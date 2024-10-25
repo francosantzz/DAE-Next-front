@@ -2,32 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+    --background: 0 0% 88%; /* Blanco */
+    --foreground: 0 0% 10%;  /* Negro */
+    --card: 0 0% 98%;       /* Fondo claro para tarjetas */
+    --card-foreground: 0 0% 10%; /* Texto en las tarjetas */
+    --popover: 0 0% 95%;     /* Popovers claros */
+    --popover-foreground: 0 0% 10%; /* Texto en popovers */
+    --primary: 0 0% 10%;     /* Elementos primarios en negro */
+    --primary-foreground: 0 0% 100%; /* Texto sobre elementos primarios */
+    --secondary: 0 0% 90%;   /* Elementos secundarios en gris claro */
+    --secondary-foreground: 0 0% 10%; /* Texto sobre elementos secundarios */
+    --muted: 0 0% 95%;       /* Elementos apagados o sutiles */
+    --muted-foreground: 0 0% 40%; /* Texto sobre elementos apagados */
+    --accent: 0 0% 80%;      /* Acentos en gris claro */
+    --accent-foreground: 0 0% 20%; /* Texto sobre acentos */
+    --destructive: 0 0% 50%; /* Elementos destructivos en gris oscuro */
+    --destructive-foreground: 0 0% 100%; /* Texto en elementos destructivos */
+    --border: 0 0% 85%;      /* Bordes en gris claro */
+    --input: 0 0% 95%;       /* Entradas en blanco */
+    --ring: 0 0% 40%;        /* Anillos de enfoque en gris oscuro */
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 0 0% 5%;   /* Fondo oscuro para modo oscuro */
+    --foreground: 0 0% 95%;  /* Texto claro en modo oscuro */
+    --card: 0 0% 10%;        /* Tarjetas oscuras */
+    --card-foreground: 0 0% 95%; /* Texto en tarjetas oscuras */
+    --popover: 0 0% 10%;     /* Popovers oscuros */
+    --popover-foreground: 0 0% 95%; /* Texto en popovers oscuros */
+    --primary: 0 0% 95%;     /* Elementos primarios en modo oscuro */
+    --primary-foreground: 0 0% 10%; /* Texto en elementos primarios */
+    --secondary: 0 0% 25%;   /* Elementos secundarios en modo oscuro */
+    --secondary-foreground: 0 0% 85%; /* Texto sobre elementos secundarios */
+    --muted: 0 0% 25%;       /* Elementos apagados en modo oscuro */
+    --muted-foreground: 0 0% 70%; /* Texto en elementos apagados */
+    --accent: 0 0% 35%;      /* Acentos oscuros */
+    --accent-foreground: 0 0% 85%; /* Texto en acentos oscuros */
+    --destructive: 0 0% 45%; /* Elementos destructivos en modo oscuro */
+    --destructive-foreground: 0 0% 95%; /* Texto en elementos destructivos */
+    --border: 0 0% 35%;      /* Bordes oscuros en modo oscuro */
+    --input: 0 0% 25%;       /* Entradas en modo oscuro */
+    --ring: 0 0% 60%;        /* Anillos de enfoque en modo oscuro */
   }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
