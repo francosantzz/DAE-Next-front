@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,93 +15,79 @@ import {
 import Layout from '../../components/Layout'
 
 interface PaqueteHoras {
-  horas: number;
-  escuela: string;
+  id: number;
+  tipo: string;
+  cantidad: number;
+  escuela: {
+    id: number;
+    nombre: string;
+  };
 }
 
 interface Profesional {
-  id: string;
+  id: number;
   nombre: string;
   apellido: string;
-  edad: number;
-  direccion: string;
-  dni: string;
-  email: string;
-  ocupacion: string;
-  departamento: string;
-  equipo: string;
-  seccion: string;
+  cuil: number;
+  profesion: string;
+  matricula: string;
+  telefono: number;
+  direccion: {
+    id: number;
+    calle: string;
+    numero: number;
+    departamento: {
+      id: number;
+      nombre: string;
+      region: {
+        id: number;
+        nombre: string;
+      }
+    }
+  };
   paquetesHoras: PaqueteHoras[];
+  equipos: {
+    id: number;
+    nombre: string;
+    seccion: string;
+    profesionales: string[];
+  }[];
 }
 
-const profesionalesMock: Profesional[] = [
-  {
-    id: "1",
-    nombre: "Ana",
-    apellido: "García",
-    edad: 35,
-    direccion: "Calle Principal 123, Ciudad",
-    dni: "12345678A",
-    email: "ana.garcia@email.com",
-    ocupacion: "Profesora de Matemáticas",
-    departamento: "Ciencias",
-    equipo: "Equipo Alfa",
-    seccion: "Secundaria",
-    paquetesHoras: [
-      { horas: 20, escuela: "Escuela A" },
-      { horas: 10, escuela: "Escuela B" },
-    ],
-  },
-  {
-    id: "2",
-    nombre: "Carlos",
-    apellido: "López",
-    edad: 42,
-    direccion: "Avenida Central 456, Ciudad",
-    dni: "87654321B",
-    email: "carlos.lopez@email.com",
-    ocupacion: "Profesor de Literatura",
-    departamento: "Humanidades",
-    equipo: "Equipo Beta",
-    seccion: "Bachillerato",
-    paquetesHoras: [
-      { horas: 15, escuela: "Escuela C" },
-      { horas: 15, escuela: "Escuela D" },
-    ],
-  },
-  {
-    id: "3",
-    nombre: "Elena",
-    apellido: "Martínez",
-    edad: 38,
-    direccion: "Plaza Mayor 789, Ciudad",
-    dni: "23456789C",
-    email: "elena.martinez@email.com",
-    ocupacion: "Profesora de Biología",
-    departamento: "Ciencias",
-    equipo: "Equipo Gamma",
-    seccion: "Secundaria",
-    paquetesHoras: [
-      { horas: 25, escuela: "Escuela A" },
-      { horas: 5, escuela: "Escuela E" },
-    ],
-  },
-]
-
 export default function ListaProfesionales() {
+  const [profesionales, setProfesionales] = useState<Profesional[]>([])
   const [filtroNombre, setFiltroNombre] = useState('')
   const [filtroDepartamento, setFiltroDepartamento] = useState('todos')
   const [filtroSeccion, setFiltroSeccion] = useState('todas')
+  const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  const profesionalesFiltrados = profesionalesMock.filter(profesional => 
+  // Obtener los datos desde la API
+  useEffect(() => {
+    setIsLoading(true) // Mostrar indicador de carga
+    const fetchProfesionales = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`)
+        const data = await response.json()
+        setProfesionales(data)
+      } catch (error) {
+        console.error("Error al obtener profesionales:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchProfesionales()
+  }, [])
+
+  // Filtrado
+  const profesionalesFiltrados = profesionales.filter(profesional => 
     `${profesional.nombre} ${profesional.apellido}`.toLowerCase().includes(filtroNombre.toLowerCase()) &&
-    (filtroDepartamento === 'todos' || profesional.departamento === filtroDepartamento) &&
-    (filtroSeccion === 'todas' || profesional.seccion === filtroSeccion)
+    (filtroDepartamento === 'todos' || profesional.direccion.departamento.nombre === filtroDepartamento) &&
+    (filtroSeccion === 'todas' || profesional.equipos.some(equipo => equipo.seccion === filtroSeccion))
   )
 
-  const departamentos = Array.from(new Set(profesionalesMock.map(p => p.departamento)))
-  const secciones = Array.from(new Set(profesionalesMock.map(p => p.seccion)))
+  const departamentos = Array.from(new Set(profesionales.map(p => p.direccion.departamento.nombre)))
+  const secciones = Array.from(new Set(profesionales.flatMap(p => p.equipos.map(equipo => equipo.seccion))))
 
   return (
     <Layout>
@@ -152,24 +138,25 @@ export default function ListaProfesionales() {
           {profesionalesFiltrados.length > 0 ? (
             <Accordion type="multiple" collapsible className="w-full">
               {profesionalesFiltrados.map((profesional) => (
-                <AccordionItem key={profesional.id} value={profesional.id}>
+                <AccordionItem key={profesional.id} value={String(profesional.id)}>
                   <AccordionTrigger className="px-6 py-4 hover:bg-gray-50">
                     <div className="flex justify-between w-full">
                       <span className="font-medium">{`${profesional.nombre} ${profesional.apellido}`}</span>
-                      <span className="text-sm text-gray-500">{profesional.ocupacion}</span>
+                      <span className="text-sm text-gray-500">{profesional.profesion}</span>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-6 py-4">
                     <div className="space-y-4">
-                      <p><strong>Departamento:</strong> {profesional.departamento}</p>
-                      <p><strong>Equipo:</strong> {profesional.equipo}</p>
-                      <p><strong>Sección:</strong> {profesional.seccion}</p>
+                      <p><strong>Profesión:</strong> {profesional.profesion}</p>
+                      <p><strong>Departamento:</strong> {profesional.direccion.departamento.nombre}</p>
+                      <p><strong>Equipo:</strong> {profesional.equipos.map(equipo => equipo.nombre).join(', ')}</p>
+                      <p><strong>Sección:</strong> {profesional.equipos.map(equipo => equipo.seccion).join(', ')}</p>
                       <div>
                         <strong>Paquetes de Horas:</strong>
                         <ul className="list-disc pl-5 mt-2 space-y-1">
                           {profesional.paquetesHoras.map((paquete, index) => (
                             <li key={index}>
-                              {paquete.horas} horas en {paquete.escuela}
+                              {paquete.cantidad} horas en {paquete.escuela.nombre}
                             </li>
                           ))}
                         </ul>

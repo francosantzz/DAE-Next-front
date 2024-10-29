@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -13,60 +13,46 @@ import {
 
 interface Profesional {
   nombre: string;
-  rol: string;
 }
 
 interface Equipo {
-  id: string;
+  id: number;
   nombre: string;
   seccion: string;
-  profesionales: Profesional[];
-  numeroEscuelas: number;
+  profesionales: string[];
+  totalHorasEquipo: number;
 }
 
-const equiposMock: Equipo[] = [
-  {
-    id: "1",
-    nombre: "Equipo Alfa",
-    seccion: "Desarrollo",
-    profesionales: [
-      { nombre: "Ana García", rol: "Desarrollador Frontend" },
-      { nombre: "Carlos López", rol: "Desarrollador Backend" },
-    ],
-    numeroEscuelas: 5,
-  },
-  {
-    id: "2",
-    nombre: "Equipo Beta",
-    seccion: "Diseño",
-    profesionales: [
-      { nombre: "Elena Martínez", rol: "Diseñador UX" },
-      { nombre: "David Rodríguez", rol: "Diseñador UI" },
-    ],
-    numeroEscuelas: 3,
-  },
-  {
-    id: "3",
-    nombre: "Equipo Gamma",
-    seccion: "Marketing",
-    profesionales: [
-      { nombre: "Isabel Fernández", rol: "Especialista en Marketing Digital" },
-      { nombre: "Javier Sánchez", rol: "Analista de Datos" },
-    ],
-    numeroEscuelas: 7,
-  },
-]
-
 export function ListaEquiposPantallaCompleta() {
+  const [equipos, setEquipos] = useState<Equipo[]>([])
   const [filtroNombre, setFiltroNombre] = useState('')
   const [filtroSeccion, setFiltroSeccion] = useState('todas')
+  const [isLoading, setIsLoading] = useState(true)
 
-  const equiposFiltrados = equiposMock.filter(equipo => 
+  // Carga los equipos desde la API
+  useEffect(() => {
+    setIsLoading(true) // Mostrar indicador de carga
+    const fetchEquipos = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`)
+        const data = await response.json()
+        setEquipos(data)
+      } catch (error) {
+        console.error("Error al cargar los equipos:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchEquipos()
+  }, [])
+
+  // Filtra los equipos según el filtro de nombre y sección
+  const equiposFiltrados = equipos.filter(equipo => 
     equipo.nombre.toLowerCase().includes(filtroNombre.toLowerCase()) &&
     (filtroSeccion === 'todas' || equipo.seccion === filtroSeccion)
   )
 
-  const secciones = Array.from(new Set(equiposMock.map(equipo => equipo.seccion)))
+  const secciones = Array.from(new Set(equipos.map(equipo => equipo.seccion)))
 
   return (
     <>
@@ -112,7 +98,7 @@ export function ListaEquiposPantallaCompleta() {
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
           <Accordion type="multiple" collapsible className="w-full">
             {equiposFiltrados.map((equipo) => (
-              <AccordionItem key={equipo.id} value={equipo.id}>
+              <AccordionItem key={equipo.id} value={String(equipo.id)}>
                 <AccordionTrigger className="px-6 py-4 hover:bg-gray-50">
                   <div className="flex justify-between w-full">
                     <span>{equipo.nombre}</span>
@@ -122,17 +108,15 @@ export function ListaEquiposPantallaCompleta() {
                 <AccordionContent className="px-6 py-4">
                   <div className="space-y-4">
                     <p><strong>Sección:</strong> {equipo.seccion}</p>
-                    <p><strong>Número de escuelas:</strong> {equipo.numeroEscuelas}</p>
                     <div>
                       <strong>Profesionales:</strong>
                       <ul className="list-disc pl-5 mt-2 space-y-1">
                         {equipo.profesionales.map((profesional, index) => (
-                          <li key={index}>
-                            {profesional.nombre} - <span className="text-gray-600">{profesional.rol}</span>
-                          </li>
+                          <li key={index}>{profesional}</li>
                         ))}
                       </ul>
                     </div>
+                    <p><strong>Horas totales del Equipo:</strong> {equipo.totalHorasEquipo}</p>
                   </div>
                 </AccordionContent>
               </AccordionItem>
