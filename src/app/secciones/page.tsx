@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
 import {
   Accordion,
   AccordionContent,
@@ -11,6 +12,17 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { PlusCircle, Edit, Trash2, X } from 'lucide-react'
 
 interface Escuela {
   id: number;
@@ -18,50 +30,175 @@ interface Escuela {
 }
 
 interface Equipo {
+  id: number;
   nombre: string;
   profesionales: string[];
+}
+
+interface Departamento {
+  id: number;
+  nombre: string;
 }
 
 interface Seccion {
   id: number;
   nombre: string;
-  equipo: Equipo;
+  equipo: Equipo | null;
   escuelas: Escuela[];
   totalHorasseccion: number;
-  departamento: string;
+  departamento: string | null;
 }
 
 export default function ListaSecciones() {
   const [filtroNombre, setFiltroNombre] = useState('')
-  const [filtroNivel, setFiltroNivel] = useState('todos')
+  const [filtroDepartamento, setFiltroDepartamento] = useState('todos')
   const [secciones, setSecciones] = useState<Seccion[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [currentSeccion, setCurrentSeccion] = useState<Seccion | null>(null)
+  const [formData, setFormData] = useState({
+    nombre: '',
+    equipoId: '',
+    departamentoId: '',
+  })
+  const [equipos, setEquipos] = useState<Equipo[]>([])
+  const [escuelas, setEscuelas] = useState<Escuela[]>([])
+  const [departamentos, setDepartamentos] = useState<Departamento[]>([])
+  const [escuelaSearch, setEscuelaSearch] = useState('')
+  const [escuelasSeleccionadas, setEscuelasSeleccionadas] = useState<Escuela[]>([])
 
   useEffect(() => {
-    const fetchSecciones = async () => {
-      setIsLoading(true) // Mostrar indicador de carga
+    const fetchData = async () => {
+      setIsLoading(true)
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/seccions`)
-        if (!response.ok) throw new Error('Error al obtener las secciones')
+        const [seccionesRes, equiposRes, escuelasRes, departamentosRes] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/seccions`),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas`),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`)
+        ])
+        
+        if (!seccionesRes.ok || !equiposRes.ok || !escuelasRes.ok || !departamentosRes.ok) 
+          throw new Error('Error al obtener los datos')
 
-        const data: Seccion[] = await response.json()
-        setSecciones(data)
+        const [seccionesData, equiposData, escuelasData, departamentosData] = await Promise.all([
+          seccionesRes.json(),
+          equiposRes.json(),
+          escuelasRes.json(),
+          departamentosRes.json()
+        ])
+
+        setSecciones(seccionesData)
+        setEquipos(equiposData)
+        setEscuelas(escuelasData)
+        setDepartamentos(departamentosData)
       } catch (error) {
-        console.error('Error al obtener secciones:', error)
+        console.error('Error al obtener datos:', error)
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchSecciones()
+    fetchData()
   }, [])
-
+  
   const seccionesFiltradas = secciones.filter(seccion => 
     seccion.nombre.toLowerCase().includes(filtroNombre.toLowerCase()) &&
-    (filtroNivel === 'todos' || seccion.departamento === filtroNivel)
+    (filtroDepartamento === 'todos' || seccion.departamento === filtroDepartamento)
   )
 
-  const departamentos = Array.from(new Set(secciones.map(s => s.departamento)))
+  const escuelasFiltradas = escuelas.filter(escuela => 
+    escuela.nombre.toLowerCase().includes(escuelaSearch.toLowerCase()) &&
+    !escuelasSeleccionadas.some(e => e.id === escuela.id)
+  )
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData({ ...formData, [name]: value })
+  }
+
+  const handleEscuelaSelect = (escuela: Escuela) => {
+    setEscuelasSeleccionadas(prev => [...prev, escuela])
+    setEscuelaSearch('')
+  }
+
+  const handleEscuelaRemove = (escuelaId: number) => {
+    setEscuelasSeleccionadas(prev => prev.filter(e => e.id !== escuelaId))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const url = currentSeccion
+        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/seccions/${currentSeccion.id}`
+        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/seccions`
+      const method = currentSeccion ? 'PATCH' : 'POST'
+      
+      const dataToSend = {
+        nombre: formData.nombre,
+        ...(formData.equipoId && { equipoId: parseInt(formData.equipoId) }),
+        ...(formData.departamentoId && { departamentoId: parseInt(formData.departamentoId) }),
+        ...(escuelasSeleccionadas.length > 0 && { escuelasIds: escuelasSeleccionadas.map(e => e.id) })
+      }
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dataToSend)
+      })
+
+      if (!response.ok) throw new Error('Error al guardar la sección')
+
+      const updatedSeccion = await response.json()
+      
+      setSecciones(prev => 
+        currentSeccion
+          ? prev.map(s => s.id === updatedSeccion.id ? updatedSeccion : s)
+          : [...prev, updatedSeccion]
+      )
+
+      setIsDialogOpen(false)
+      setCurrentSeccion(null)
+      setFormData({
+        nombre: '',
+        equipoId: '',
+        departamentoId: '',
+      })
+      setEscuelasSeleccionadas([])
+    } catch (error) {
+      console.error('Error al guardar la sección:', error)
+    }
+  }
+
+  const handleEdit = (seccion: Seccion) => {
+    setCurrentSeccion(seccion)
+    setFormData({
+      nombre: seccion.nombre,
+      equipoId: seccion.equipo?.id?.toString() || '',
+      departamentoId: seccion.departamento ? departamentos.find(dep => dep.nombre === seccion.departamento)?.id.toString() || '' : '',
+    })
+    setEscuelasSeleccionadas(seccion.escuelas || [])
+    setIsDialogOpen(true)
+  }
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar esta sección?')) {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/seccions/${id}`, {
+          method: 'DELETE'
+        })
+
+        if (!response.ok) throw new Error('Error al eliminar la sección')
+
+        setSecciones(prev => prev.filter(s => s.id !== id))
+      } catch (error) {
+        console.error('Error al eliminar la sección:', error)
+      }
+    }
+  }
 
   return (
     <>
@@ -76,7 +213,7 @@ export default function ListaSecciones() {
       <div className="min-h-screen bg-gray-100 p-4 md:p-8">
         <div className="max-w-7xl mx-auto">
           <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <Label htmlFor="filtroNombre">Filtrar por nombre</Label>
                 <Input
@@ -87,18 +224,139 @@ export default function ListaSecciones() {
                 />
               </div>
               <div>
-                <Label htmlFor="filtroNivel">Filtrar por departamento</Label>
-                <Select onValueChange={setFiltroNivel} value={filtroNivel}>
-                  <SelectTrigger id="filtroNivel">
+                <Label htmlFor="filtroDepartamento">Filtrar por departamento</Label>
+                <Select onValueChange={setFiltroDepartamento} value={filtroDepartamento}>
+                  <SelectTrigger id="filtroDepartamento">
                     <SelectValue placeholder="Selecciona un departamento" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todos los departamentos</SelectItem>
                     {departamentos.map((departamento) => (
-                      <SelectItem key={departamento} value={departamento}>{departamento}</SelectItem>
+                      <SelectItem key={departamento.id} value={departamento.nombre}>{departamento.nombre}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="flex items-end">
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={() => {
+                      setCurrentSeccion(null)
+                      setFormData({
+                        nombre: '',
+                        equipoId: '',
+                        departamentoId: '',
+                      })
+                      setEscuelasSeleccionadas([])
+                    }}>
+                      <PlusCircle className="mr-2 h-4 w-4" /> Agregar Sección
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>{currentSeccion ? 'Editar' : 'Agregar'} Sección</DialogTitle>
+                      <DialogDescription>
+                        Complete los detalles de la sección aquí. Haga clic en guardar cuando termine.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div>
+                        <Label htmlFor="nombre">Nombre</Label>
+                        <Input
+                          id="nombre"
+                          name="nombre"
+                          value={formData.nombre}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="departamentoId">Departamento</Label>
+                        <Select
+                          name="departamentoId"
+                          onValueChange={(value) => handleSelectChange('departamentoId', value)}
+                          value={formData.departamentoId}
+                        >
+                          <SelectTrigger id="departamentoId">
+                            <SelectValue placeholder="Selecciona un departamento" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {departamentos.map((departamento) => (
+                              <SelectItem key={departamento.id} value={departamento.id.toString()}>
+                                {departamento.nombre}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="equipoId">Equipo</Label>
+                        <Select
+                          name="equipoId"
+                          onValueChange={(value) => handleSelectChange('equipoId', value)}
+                          value={formData.equipoId}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un equipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {equipos.map((equipo) => (
+                              <SelectItem key={equipo.id} value={equipo.id.toString()}>
+                                {equipo.nombre}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="escuelaSearch">Buscar y seleccionar escuelas</Label>
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            id="escuelaSearch"
+                            value={escuelaSearch}
+                            onChange={(e) => setEscuelaSearch(e.target.value)}
+                            placeholder="Buscar escuelas..."
+                          />
+                        </div>
+                        {escuelaSearch && (
+                          <ScrollArea className="h-32 overflow-auto mt-2 border rounded-md">
+                            <div className="p-2">
+                              {escuelasFiltradas.map((escuela) => (
+                                <div
+                                  key={escuela.id}
+                                  className="cursor-pointer hover:bg-gray-100 p-2 rounded"
+                                  onClick={() => handleEscuelaSelect(escuela)}
+                                >
+                                  {escuela.nombre}
+                                </div>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        )}
+                      </div>
+                      <div>
+                        <Label>Escuelas seleccionadas</Label>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {escuelasSeleccionadas.map((escuela) => (
+                            <Badge key={escuela.id} variant="secondary" className="flex items-center gap-1">
+                              {escuela.nombre}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="h-4 w-4 p-0"
+                                onClick={() => handleEscuelaRemove(escuela.id)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <Button  type="submit">Guardar</Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
           </div>
@@ -120,9 +378,9 @@ export default function ListaSecciones() {
                       <div className="space-y-4">
                         <div>
                           <h3 className="font-semibold mb-2">Equipo:</h3>
-                          <p>{seccion.equipo.nombre}</p>
+                          <p>{seccion.equipo?.nombre}</p>
                           <ul className="list-disc pl-5 space-y-1">
-                            {seccion.equipo.profesionales.map((profesional, index) => (
+                            {seccion.equipo?.profesionales.map((profesional, index) => (
                               <li key={index}>{profesional}</li>
                             ))}
                           </ul>
@@ -136,6 +394,14 @@ export default function ListaSecciones() {
                           </ul>
                         </div>
                         <p><strong>Horas totales de la sección:</strong> {seccion.totalHorasseccion}</p>
+                        <div className="flex justify-end space-x-2">
+                          <Button variant="outline" size="sm" onClick={() => handleEdit(seccion)}>
+                            <Edit className="mr-2 h-4 w-4" /> Editar
+                          </Button>
+                          <Button variant="destructive" size="sm" onClick={() => handleDelete(seccion.id)}>
+                            <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                          </Button>
+                        </div>
                       </div>
                     </AccordionContent>
                   </AccordionItem>
