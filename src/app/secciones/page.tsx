@@ -62,6 +62,7 @@ export default function ListaSecciones() {
     departamentoId: '',
   })
   const [equipos, setEquipos] = useState<Equipo[]>([])
+  const [equiposVacios, setEquiposVacios] = useState<Equipo[]>([])
   const [escuelas, setEscuelas] = useState<Escuela[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [escuelaSearch, setEscuelaSearch] = useState('')
@@ -71,27 +72,30 @@ export default function ListaSecciones() {
     const fetchData = async () => {
       setIsLoading(true)
       try {
-        const [seccionesRes, equiposRes, escuelasRes, departamentosRes] = await Promise.all([
+        const [seccionesRes, equiposRes, escuelasRes, departamentosRes, equiposVaciosRes] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/seccions`),
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`),
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas`),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`)
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/sin-seccion`),
         ])
         
         if (!seccionesRes.ok || !equiposRes.ok || !escuelasRes.ok || !departamentosRes.ok) 
           throw new Error('Error al obtener los datos')
 
-        const [seccionesData, equiposData, escuelasData, departamentosData] = await Promise.all([
+        const [seccionesData, equiposData, escuelasData, departamentosData, equiposVaciosData] = await Promise.all([
           seccionesRes.json(),
           equiposRes.json(),
           escuelasRes.json(),
-          departamentosRes.json()
+          departamentosRes.json(),
+          equiposVaciosRes.json(),
         ])
 
         setSecciones(seccionesData)
         setEquipos(equiposData)
         setEscuelas(escuelasData)
         setDepartamentos(departamentosData)
+        setEquiposVacios(equiposVaciosData)
       } catch (error) {
         console.error('Error al obtener datos:', error)
       } finally {
@@ -129,60 +133,87 @@ export default function ListaSecciones() {
     setEscuelasSeleccionadas(prev => prev.filter(e => e.id !== escuelaId))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      const url = currentSeccion
-        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/seccions/${currentSeccion.id}`
-        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/seccions`
-      const method = currentSeccion ? 'PATCH' : 'POST'
-      
-      const dataToSend = {
-        nombre: formData.nombre,
-        ...(formData.equipoId && { equipoId: parseInt(formData.equipoId) }),
-        ...(formData.departamentoId && { departamentoId: parseInt(formData.departamentoId) }),
-        ...(escuelasSeleccionadas.length > 0 && { escuelasIds: escuelasSeleccionadas.map(e => e.id) })
-      }
+  // Verificar si alguna de las escuelas seleccionadas ya está asignada a otra sección
+  const validarEscuelasSeleccionadas = () => {
+    const escuelasAsignadas = secciones.flatMap(seccion => seccion.escuelas.map(escuela => escuela.id));
+    const escuelasDuplicadas = escuelasSeleccionadas.filter(escuela => escuelasAsignadas.includes(escuela.id));
 
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dataToSend)
-      })
-
-      if (!response.ok) throw new Error('Error al guardar la sección')
-
-      const updatedSeccion = await response.json()
-      
-      setSecciones(prev => 
-        currentSeccion
-          ? prev.map(s => s.id === updatedSeccion.id ? updatedSeccion : s)
-          : [...prev, updatedSeccion]
-      )
-
-      setIsDialogOpen(false)
-      setCurrentSeccion(null)
-      setFormData({
-        nombre: '',
-        equipoId: '',
-        departamentoId: '',
-      })
-      setEscuelasSeleccionadas([])
-    } catch (error) {
-      console.error('Error al guardar la sección:', error)
+    if (escuelasDuplicadas.length > 0) {
+      const nombresEscuelas = escuelasDuplicadas.map(esc => esc.nombre).join(', ');
+      alert(`Las siguientes escuelas ya están asignadas a otra sección: ${nombresEscuelas}`);
+      return false;
     }
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  // Validación previa para verificar si las escuelas seleccionadas ya están asignadas
+  if (!validarEscuelasSeleccionadas()) {
+    return; // Evita el envío si hay duplicados
   }
+
+  try {
+    const url = currentSeccion
+      ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/seccions/${currentSeccion.id}`
+      : `${process.env.NEXT_PUBLIC_BACKEND_URL}/seccions`;
+    const method = currentSeccion ? 'PATCH' : 'POST';
+
+    const dataToSend = {
+      nombre: formData.nombre,
+      ...(formData.equipoId && { equipoId: parseInt(formData.equipoId) }),
+      ...(formData.departamentoId && { departamentoId: parseInt(formData.departamentoId) }),
+      ...(escuelasSeleccionadas.length > 0 && { escuelasIds: escuelasSeleccionadas.map(e => e.id) })
+    };
+
+    const response = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dataToSend)
+    });
+
+    if (!response.ok) throw new Error('Error al guardar la sección');
+
+    const updatedSeccion = await response.json();
+
+    setSecciones(prev =>
+      currentSeccion
+        ? prev.map(s => s.id === updatedSeccion.id ? updatedSeccion : s)
+        : [...prev, updatedSeccion]
+    );
+
+    setIsDialogOpen(false);
+    setCurrentSeccion(null);
+    setFormData({
+      nombre: '',
+      equipoId: '',
+      departamentoId: '',
+    });
+    setEscuelasSeleccionadas([]);
+  } catch (error) {
+    console.error('Error al guardar la sección:', error);
+  }
+};
 
   const handleEdit = (seccion: Seccion) => {
-    setCurrentSeccion(seccion)
-    setFormData({
-      nombre: seccion.nombre,
-      equipoId: seccion.equipo?.id?.toString() || '',
-      departamentoId: seccion.departamento ? departamentos.find(dep => dep.nombre === seccion.departamento)?.id.toString() || '' : '',
-    })
-    setEscuelasSeleccionadas(seccion.escuelas || [])
-    setIsDialogOpen(true)
-  }
+  setCurrentSeccion(seccion);
+
+  // Combinar el equipo asignado a la sección actual con los equipos sin sección asignada
+  const equiposParaFormulario = seccion.equipo
+    ? [...equiposVacios, seccion.equipo] // Incluye el equipo actual asignado en edición
+    : equiposVacios;
+
+  setEquipos(equiposParaFormulario);
+
+  setFormData({
+    nombre: seccion.nombre,
+    equipoId: seccion.equipo?.id?.toString() || '',
+    departamentoId: seccion.departamento ? departamentos.find(dep => dep.nombre === seccion.departamento)?.id.toString() || '' : '',
+  });
+  setEscuelasSeleccionadas(seccion.escuelas || []);
+  setIsDialogOpen(true);
+};
 
   const handleDelete = async (id: number) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar esta sección?')) {
@@ -237,7 +268,7 @@ export default function ListaSecciones() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-end">
+              <div className="flex items-end bg-white shadow-md">
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
                     <Button onClick={() => {
@@ -247,6 +278,7 @@ export default function ListaSecciones() {
                         equipoId: '',
                         departamentoId: '',
                       })
+                      setEquipos(equiposVacios)
                       setEscuelasSeleccionadas([])
                     }}>
                       <PlusCircle className="mr-2 h-4 w-4" /> Agregar Sección
@@ -293,18 +325,28 @@ export default function ListaSecciones() {
                         <Label htmlFor="equipoId">Equipo</Label>
                         <Select
                           name="equipoId"
-                          onValueChange={(value) => handleSelectChange('equipoId', value)}
+                          onValueChange={(value) => handleSelectChange("equipoId", value)}
                           value={formData.equipoId}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger id="equipoId">
                             <SelectValue placeholder="Selecciona un equipo" />
                           </SelectTrigger>
                           <SelectContent>
-                            {equipos.map((equipo) => (
-                              <SelectItem key={equipo.id} value={equipo.id.toString()}>
-                                {equipo.nombre}
+                           
+                            {equipos.length === 0 ? (
+                              <SelectItem value="No hay equipos disponibles" disabled>
+                                No hay equipos disponibles
                               </SelectItem>
-                            ))}
+                            ) : (
+                              <>
+                                <SelectItem value="null">Sin equipo</SelectItem> {/* Opción para "Sin equipo" */}
+                                {equipos.map((equipo) => (
+                                  <SelectItem key={equipo.id} value={equipo.id.toString()}>
+                                    {equipo.nombre}
+                                  </SelectItem>
+                                ))}
+                              </>
+                            )}
                           </SelectContent>
                         </Select>
                       </div>

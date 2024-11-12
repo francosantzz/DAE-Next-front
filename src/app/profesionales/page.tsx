@@ -12,6 +12,15 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { PlusCircle, Edit, Trash2 } from 'lucide-react'
 import Layout from '../../components/Layout'
 
 interface PaqueteHoras {
@@ -22,6 +31,12 @@ interface PaqueteHoras {
     id: number;
     nombre: string;
   };
+  equipo: string;
+}
+
+interface Departamento {
+  id: number;
+  nombre: string;
 }
 
 interface Profesional {
@@ -33,17 +48,9 @@ interface Profesional {
   matricula: string;
   telefono: number;
   direccion: {
-    id: number;
     calle: string;
     numero: number;
-    departamento: {
-      id: number;
-      nombre: string;
-      region: {
-        id: number;
-        nombre: string;
-      }
-    }
+    departamento: Departamento;
   };
   paquetesHoras: PaqueteHoras[];
   equipos: {
@@ -56,44 +63,157 @@ interface Profesional {
 
 export default function ListaProfesionales() {
   const [profesionales, setProfesionales] = useState<Profesional[]>([])
+  const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [filtroNombre, setFiltroNombre] = useState('')
   const [filtroDepartamento, setFiltroDepartamento] = useState('todos')
   const [filtroSeccion, setFiltroSeccion] = useState('todas')
   const [isLoading, setIsLoading] = useState(true)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [currentProfesional, setCurrentProfesional] = useState<Profesional | null>(null)
+  const [formData, setFormData] = useState({
+    nombre: '',
+    apellido: '',
+    cuil: '',
+    profesion: '',
+    matricula: '',
+    telefono: '',
+    'direccion.calle': '',
+    'direccion.numero': '',
+    'direccion.departamentoId': '',
+  })
   const router = useRouter()
 
-  // Obtener los datos desde la API
   useEffect(() => {
-    setIsLoading(true) // Mostrar indicador de carga
-    const fetchProfesionales = async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`)
-        const data = await response.json()
-        setProfesionales(data)
-      } catch (error) {
-        console.error("Error al obtener profesionales:", error)
-      } finally {
-        setIsLoading(false)
-      }
-    }
     fetchProfesionales()
+    fetchDepartamentos()
   }, [])
 
-  // Filtrado
+  const fetchDepartamentos = async () => {
+    setIsLoading(true)
+    try {
+      const responseDep = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`)
+      const data = await responseDep.json()
+      setDepartamentos(data)
+    } catch (error) {
+      console.error("Error al obtener departamentos:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const fetchProfesionales = async () => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`)
+      const data = await response.json()
+      setProfesionales(data)
+    } catch (error) {
+      console.error("Error al obtener profesionales:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const profesionalesFiltrados = profesionales.filter(profesional => 
     `${profesional.nombre} ${profesional.apellido}`.toLowerCase().includes(filtroNombre.toLowerCase()) &&
     (filtroDepartamento === 'todos' || profesional.direccion.departamento.nombre === filtroDepartamento) &&
     (filtroSeccion === 'todas' || profesional.equipos.some(equipo => equipo.seccion === filtroSeccion))
   )
 
-  const departamentos = Array.from(new Set(profesionales.map(p => p.direccion.departamento.nombre)))
   const secciones = Array.from(new Set(profesionales.flatMap(p => p.equipos.map(equipo => equipo.seccion))))
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData({ ...formData, [name]: value })
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const url = currentProfesional
+        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${currentProfesional.id}`
+        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`
+      const method = currentProfesional ? 'PUT' : 'POST'
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: formData.nombre,
+          apellido: formData.apellido,
+          cuil: parseInt(formData.cuil),
+          profesion: formData.profesion,
+          matricula: formData.matricula,
+          telefono: parseInt(formData.telefono),
+          direccion: {
+            calle: formData['direccion.calle'],
+            numero: parseInt(formData['direccion.numero']),
+            departamentoId: parseInt(formData['direccion.departamentoId'])
+          }
+        })
+      })
+
+      if (!response.ok) throw new Error('Error al guardar el profesional')
+
+      await fetchProfesionales()
+      setIsDialogOpen(false)
+      setCurrentProfesional(null)
+      setFormData({
+        nombre: '',
+        apellido: '',
+        cuil: '',
+        profesion: '',
+        matricula: '',
+        telefono: '',
+        'direccion.calle': '',
+        'direccion.numero': '',
+        'direccion.departamentoId': '',
+      })
+    } catch (error) {
+      console.error('Error al guardar el profesional:', error)
+    }
+  }
+
+  const handleEdit = (profesional: Profesional) => {
+    setCurrentProfesional(profesional)
+    setFormData({
+      nombre: profesional.nombre,
+      apellido: profesional.apellido,
+      cuil: profesional.cuil.toString(),
+      profesion: profesional.profesion,
+      matricula: profesional.matricula,
+      telefono: profesional.telefono.toString(),
+      'direccion.calle': profesional.direccion.calle,
+      'direccion.numero': profesional.direccion.numero.toString(),
+      'direccion.departamentoId': profesional.direccion.departamento.id.toString(),
+    })
+    setIsDialogOpen(true)
+  }
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm('¿Estás seguro de que quieres eliminar este profesional?')) {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${id}`, {
+          method: 'DELETE'
+        })
+
+        if (!response.ok) throw new Error('Error al eliminar el profesional')
+
+        await fetchProfesionales()
+      } catch (error) {
+        console.error('Error al eliminar el profesional:', error)
+      }
+    }
+  }
 
   return (
     <Layout>
       <div className="space-y-6">
         <div className="bg-white shadow-md rounded-lg p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
               <Label htmlFor="filtroNombre">Filtrar por nombre</Label>
               <Input
@@ -111,8 +231,8 @@ export default function ListaProfesionales() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos los departamentos</SelectItem>
-                  {departamentos.map((dep) => (
-                    <SelectItem key={dep} value={dep}>{dep}</SelectItem>
+                  {departamentos.map((departamento) => (
+                    <SelectItem key={departamento.id} value={departamento.nombre}>{departamento.nombre}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -131,11 +251,145 @@ export default function ListaProfesionales() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex items-end">
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={() => {
+                    setCurrentProfesional(null)
+                    setFormData({
+                      nombre: '',
+                      apellido: '',
+                      cuil: '',
+                      profesion: '',
+                      matricula: '',
+                      telefono: '',
+                      'direccion.calle': '',
+                      'direccion.numero': '',
+                      'direccion.departamentoId': '',
+                    })
+                  }}>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Agregar Profesional
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>{currentProfesional ? 'Editar' : 'Agregar'} Profesional</DialogTitle>
+                    <DialogDescription>
+                      Complete los detalles del profesional aquí. Haga clic en guardar cuando termine.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <Label htmlFor="nombre">Nombre</Label>
+                      <Input
+                        id="nombre"
+                        name="nombre"
+                        value={formData.nombre}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="apellido">Apellido</Label>
+                      <Input
+                        id="apellido"
+                        name="apellido"
+                        value={formData.apellido}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="cuil">CUIL</Label>
+                      <Input
+                        id="cuil"
+                        name="cuil"
+                        value={formData.cuil}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="profesion">Profesión</Label>
+                      <Input
+                        id="profesion"
+                        name="profesion"
+                        value={formData.profesion}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="matricula">Matrícula</Label>
+                      <Input
+                        id="matricula"
+                        name="matricula"
+                        value={formData.matricula}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="telefono">Teléfono</Label>
+                      <Input
+                        id="telefono"
+                        name="telefono"
+                        value={formData.telefono}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="direccion.calle">Calle</Label>
+                      <Input
+                        id="direccion.calle"
+                        name="direccion.calle"
+                        value={formData['direccion.calle']}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="direccion.numero">Número</Label>
+                      <Input
+                        id="direccion.numero"
+                        name="direccion.numero"
+                        value={formData['direccion.numero']}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="direccion.departamentoId">Departamento</Label>
+                      <Select
+                        name="direccion.departamentoId"
+                        onValueChange={(value) => handleSelectChange('direccion.departamentoId', value)}
+                        value={formData['direccion.departamentoId']}
+                      >
+                        <SelectTrigger id="direccion.departamentoId">
+                          <SelectValue placeholder="Selecciona un departamento" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {departamentos.map((departamento) => (
+                            <SelectItem key={departamento.id} value={departamento.id.toString()}>
+                              {departamento.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button type="submit">Guardar</Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </div>
 
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          {profesionalesFiltrados.length > 0 ? (
+          {isLoading ? (
+            <p className="text-center py-4">Cargando profesionales...</p>
+          ) : profesionalesFiltrados.length > 0 ? (
             <Accordion type="multiple" collapsible className="w-full">
               {profesionalesFiltrados.map((profesional) => (
                 <AccordionItem key={profesional.id} value={String(profesional.id)}>
@@ -156,14 +410,22 @@ export default function ListaProfesionales() {
                         <ul className="list-disc pl-5 mt-2 space-y-1">
                           {profesional.paquetesHoras.map((paquete, index) => (
                             <li key={index}>
-                              {paquete.cantidad} horas en {paquete.escuela.nombre}
+                              {paquete.cantidad} horas en {paquete.escuela.nombre} en el equipo {paquete.equipo}
                             </li>
                           ))}
                         </ul>
                       </div>
-                      <Button onClick={() => router.push(`/perfil/${profesional.id}`)}>
-                        Ver Perfil Detallado
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button onClick={() => router.push(`/perfil/${profesional.id}`)}>
+                          Ver Perfil Detallado
+                        </Button>
+                        <Button variant="outline" onClick={() => handleEdit(profesional)}>
+                          <Edit className="mr-2 h-4 w-4" /> Editar
+                        </Button>
+                        <Button variant="destructive" onClick={() => handleDelete(profesional.id)}>
+                          <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                        </Button>
+                      </div>
                     </div>
                   </AccordionContent>
                 </AccordionItem>
