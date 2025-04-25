@@ -164,7 +164,7 @@ export default function ListaSecciones() {
       nombre: formData.nombre,
       ...(formData.equipoId && { equipoId: parseInt(formData.equipoId) }),
       ...(formData.departamentoId && { departamentoId: parseInt(formData.departamentoId) }),
-      ...(escuelasSeleccionadas.length > 0 && { escuelasIds: escuelasSeleccionadas.map(e => e.id) })
+      escuelasIds: escuelasSeleccionadas.map(e => e.id) // Always send the array, even if empty
     };
 
     const response = await fetch(url, {
@@ -231,6 +231,10 @@ export default function ListaSecciones() {
     }
   }
 
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>
+  }
+
   return (
     <>
       <div className='bg-gray-100'>
@@ -268,7 +272,7 @@ export default function ListaSecciones() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-end bg-white shadow-md">
+              <div className="flex items-end bg-white">
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
                     <Button onClick={() => {

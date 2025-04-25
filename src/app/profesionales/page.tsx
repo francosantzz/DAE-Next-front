@@ -21,7 +21,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { PlusCircle, Edit, Trash2 } from 'lucide-react'
-import Layout from '../../components/Layout'
+import Layout from '../../components/LayoutProf'
+import { ScrollArea } from '@radix-ui/react-scroll-area'
 
 interface PaqueteHoras {
   id: number;
@@ -136,7 +137,7 @@ export default function ListaProfesionales() {
       const url = currentProfesional
         ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${currentProfesional.id}`
         : `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`
-      const method = currentProfesional ? 'PUT' : 'POST'
+      const method = currentProfesional ? 'PATCH' : 'POST'
       
       const response = await fetch(url, {
         method,
@@ -156,7 +157,10 @@ export default function ListaProfesionales() {
         })
       })
 
-      if (!response.ok) throw new Error('Error al guardar el profesional')
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al guardar el profesional');
+      }
 
       await fetchProfesionales()
       setIsDialogOpen(false)
@@ -173,7 +177,7 @@ export default function ListaProfesionales() {
         'direccion.departamentoId': '',
       })
     } catch (error) {
-      console.error('Error al guardar el profesional:', error)
+      alert('Error al guardar el profesional: ' + error);
     }
   }
 
@@ -209,6 +213,10 @@ export default function ListaProfesionales() {
     }
   }
 
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>
+  }
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -229,11 +237,14 @@ export default function ListaProfesionales() {
                 <SelectTrigger id="filtroDepartamento">
                   <SelectValue placeholder="Selecciona un departamento" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos los departamentos</SelectItem>
-                  {departamentos.map((departamento) => (
-                    <SelectItem key={departamento.id} value={departamento.nombre}>{departamento.nombre}</SelectItem>
-                  ))}
+                <SelectContent className="max-h-60 overflow-y-auto">
+                    <ScrollArea className="h-[200px]">
+                      <SelectItem value="todos">Todos los departamentos</SelectItem>
+                      {departamentos.map((departamento) => (
+                        <SelectItem key={departamento.id} value={departamento.nombre}>{departamento.nombre}
+                        </SelectItem>
+                      ))}
+                    </ScrollArea>
                 </SelectContent>
               </Select>
             </div>
@@ -243,11 +254,11 @@ export default function ListaProfesionales() {
                 <SelectTrigger id="filtroSeccion">
                   <SelectValue placeholder="Selecciona una sección" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todas">Todas las secciones</SelectItem>
-                  {secciones.map((sec) => (
-                    <SelectItem key={sec} value={sec}>{sec}</SelectItem>
-                  ))}
+                <SelectContent className="max-h-60 overflow-y-auto">
+                    <SelectItem value="todas">Todas las secciones</SelectItem>
+                    {secciones.map((sec) => (
+                      <SelectItem key={sec} value={sec}>{sec}</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -369,12 +380,14 @@ export default function ListaProfesionales() {
                         <SelectTrigger id="direccion.departamentoId">
                           <SelectValue placeholder="Selecciona un departamento" />
                         </SelectTrigger>
-                        <SelectContent>
-                          {departamentos.map((departamento) => (
-                            <SelectItem key={departamento.id} value={departamento.id.toString()}>
-                              {departamento.nombre}
-                            </SelectItem>
-                          ))}
+                        <SelectContent className="max-h-[300px]">
+                          <ScrollArea className="h-[200px]">
+                            {departamentos.map((departamento) => (
+                              <SelectItem key={departamento.id} value={departamento.id.toString()}>
+                                {departamento.nombre}
+                              </SelectItem>
+                            ))}
+                          </ScrollArea>
                         </SelectContent>
                       </Select>
                     </div>
@@ -415,7 +428,7 @@ export default function ListaProfesionales() {
                           ))}
                         </ul>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex justify-end space-x-2">
                         <Button onClick={() => router.push(`/perfil/${profesional.id}`)}>
                           Ver Perfil Detallado
                         </Button>

@@ -18,6 +18,7 @@ const Navbar = () => {
     { href: "/equipos", label: "Equipos", authRequired: true },
     { href: "/secciones", label: "Secciones", authRequired: true },
     { href: "/escuelas", label: "Escuelas", authRequired: true },
+    { href: "/horarios", label: "Horarios", authRequired: true },
   ];
 
   return (

@@ -56,4 +56,10 @@
   body {
     @apply bg-background text-foreground;
   }
+  form input, form select {
+    @apply border-black border-[1px];
+  }
+  .dark form input, .dark form select {
+    @apply border-white;
+  }
 }
