@@ -47,6 +47,7 @@ interface Seccion {
   escuelas: Escuela[];
   totalHorasseccion: number;
   departamento: string | null;
+  profesionales: (string | { nombre: string; apellido: string })[];
 }
 
 export default function ListaSecciones() {
@@ -135,7 +136,11 @@ export default function ListaSecciones() {
 
   // Verificar si alguna de las escuelas seleccionadas ya está asignada a otra sección
   const validarEscuelasSeleccionadas = () => {
-    const escuelasAsignadas = secciones.flatMap(seccion => seccion.escuelas.map(escuela => escuela.id));
+    // Obtener todas las escuelas asignadas, excluyendo las de la sección actual si estamos editando
+    const escuelasAsignadas = secciones
+      .filter(seccion => !currentSeccion || seccion.id !== currentSeccion.id) // Excluir la sección actual si estamos editando
+      .flatMap(seccion => seccion.escuelas.map(escuela => escuela.id));
+
     const escuelasDuplicadas = escuelasSeleccionadas.filter(escuela => escuelasAsignadas.includes(escuela.id));
 
     if (escuelasDuplicadas.length > 0) {
@@ -426,8 +431,10 @@ export default function ListaSecciones() {
                           <h3 className="font-semibold mb-2">Equipo:</h3>
                           <p>{seccion.equipo?.nombre}</p>
                           <ul className="list-disc pl-5 space-y-1">
-                            {seccion.equipo?.profesionales.map((profesional, index) => (
-                              <li key={index}>{profesional}</li>
+                            {seccion.equipo?.profesionales.map((prof, index) => (
+                               typeof prof === 'string'
+                               ? <li key={index}>{prof}</li>
+                               : <li key={index}>{prof.nombre} {prof.apellido}</li>
                             ))}
                           </ul>
                         </div>

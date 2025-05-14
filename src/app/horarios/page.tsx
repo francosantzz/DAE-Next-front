@@ -34,53 +34,66 @@ interface Equipo {
   seccion: string;
 }
 
-interface HorarioProfesional {
+interface PaqueteHoras {
   id: number;
-  profesionalId: number;
-  profesionalNombre: string;
-  tipoTrabajoId: number;
-  tipoTrabajoNombre: string;
-  escuelaId: number;
-  escuelaNombre: string;
-  lunes: string;
-  martes: string;
-  miercoles: string;
-  jueves: string;
-  viernes: string;
+  tipo: string;
+  cantidad: number;
+  profesional: {
+    id: number;
+    nombre: string;
+    apellido: string;
+  };
+  escuela?: {
+    id: number;
+    nombre: string;
+  };
+  equipo: {
+    id: number;
+    nombre: string;
+  };
+  dias: {
+    lunes: string | null;
+    martes: string | null;
+    miercoles: string | null;
+    jueves: string | null;
+    viernes: string | null;
+  };
 }
 
 export default function GrillaHorarios() {
-  const [horarios, setHorarios] = useState<HorarioProfesional[]>([])
+  const [paquetes, setPaquetes] = useState<PaqueteHoras[]>([])
   const [profesionales, setProfesionales] = useState<Profesional[]>([])
   const [profesionalesFiltrados, setProfesionalesFiltrados] = useState<Profesional[]>([])
   const [escuelas, setEscuelas] = useState<Escuela[]>([])
   const [equipos, setEquipos] = useState<Equipo[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [openModal, setOpenModal] = useState(false)
-  const [currentHorario, setCurrentHorario] = useState<HorarioProfesional | null>(null)
+  const [currentPaquete, setCurrentPaquete] = useState<PaqueteHoras | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
-  const [filteredHorarios, setFilteredHorarios] = useState<HorarioProfesional[]>([])
+  const [filteredPaquetes, setFilteredPaquetes] = useState<PaqueteHoras[]>([])
   const [equipoSeleccionado, setEquipoSeleccionado] = useState<string>("")
   const [profesionalSeleccionado, setProfesionalSeleccionado] = useState<string>("")
-  const [horariosCargados, setHorariosCargados] = useState(false)
+  const [paquetesCargados, setPaquetesCargados] = useState(false)
   const [activeTab, setActiveTab] = useState<"seleccion" | "horarios">("seleccion")
 
-
-  const tiposTrabajo = [
-    { id: 1, nombre: "Escuela" },
-    { id: 2, nombre: "Carga en GEI" },
-    { id: 3, nombre: "Trabajo interdisciplinario" },
+  const tiposPaquete = [
+    "Escuela",
+    "Carga en GEI",
+    "Trabajo Interdisciplinario"
   ]
 
   const [formData, setFormData] = useState({
-    profesionalId: "",
-    tipoTrabajoId: "",
+    tipo: "",
+    cantidad: "",
     escuelaId: "",
-    lunes: "",
-    martes: "",
-    miercoles: "",
-    jueves: "",
-    viernes: "",
+    equipoId: "",
+    dias: {
+      lunes: "",
+      martes: "",
+      miercoles: "",
+      jueves: "",
+      viernes: ""
+    }
   })
 
   // Cargar datos iniciales
@@ -133,7 +146,7 @@ export default function GrillaHorarios() {
         setProfesionales(profesionalesData)
         setProfesionalesFiltrados(filtrados)
         setProfesionalSeleccionado("")
-        setHorariosCargados(false)
+        setPaquetesCargados(false)
       } catch (error) {
         console.error("Error fetching profesionales:", error)
       } finally {
@@ -144,77 +157,83 @@ export default function GrillaHorarios() {
     fetchProfesionales()
   }, [equipoSeleccionado])
 
-  // Cargar horarios cuando se selecciona un profesional
+  // Cargar paquetes cuando se selecciona un profesional
   useEffect(() => {
-    const fetchHorarios = async () => {
+    const fetchPaquetes = async () => {
       if (!profesionalSeleccionado) {
-        setHorarios([])
-        setFilteredHorarios([])
-        setHorariosCargados(false)
+        setPaquetes([])
+        setFilteredPaquetes([])
+        setPaquetesCargados(false)
         return
       }
 
       setIsLoading(true)
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/horarios?profesionalId=${profesionalSeleccionado}`
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes?profesionalId=${profesionalSeleccionado}`
         )
         
-        if (!response.ok) throw new Error('Error al obtener horarios')
+        if (!response.ok) throw new Error('Error al obtener paquetes')
         
-        const horariosData = await response.json()
-        setHorarios(horariosData)
-        setFilteredHorarios(horariosData)
-        setHorariosCargados(true)
+        const paquetesData = await response.json()
+        setPaquetes(paquetesData)
+        setFilteredPaquetes(paquetesData)
+        setPaquetesCargados(true)
       } catch (error) {
-        console.error("Error fetching horarios:", error)
+        console.error("Error fetching paquetes:", error)
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchHorarios()
+    fetchPaquetes()
   }, [profesionalSeleccionado])
 
-  // Filtrar horarios cuando cambia el término de búsqueda
+  // Filtrar paquetes cuando cambia el término de búsqueda
   useEffect(() => {
     if (searchTerm.trim() === "") {
-      setFilteredHorarios(horarios)
+      setFilteredPaquetes(paquetes)
     } else {
       const lowerSearchTerm = searchTerm.toLowerCase()
-      const filtered = horarios.filter(
-        (horario) =>
-          (horario.escuelaNombre?.toLowerCase() || '').includes(lowerSearchTerm) ||
-          horario.tipoTrabajoNombre.toLowerCase().includes(lowerSearchTerm)
+      const filtered = paquetes.filter(
+        (paquete) =>
+          (paquete.escuela?.nombre?.toLowerCase() || '').includes(lowerSearchTerm) ||
+          paquete.tipo.toLowerCase().includes(lowerSearchTerm)
       )
-      setFilteredHorarios(filtered)
+      setFilteredPaquetes(filtered)
     }
-  }, [searchTerm, horarios])
+  }, [searchTerm, paquetes])
 
-  const handleOpenModal = (horario?: HorarioProfesional) => {
-    if (horario) {
-      setCurrentHorario(horario)
+  const handleOpenModal = (paquete?: PaqueteHoras) => {
+    if (paquete) {
+      setCurrentPaquete(paquete)
       setFormData({
-        profesionalId: horario.profesionalId.toString(),
-        tipoTrabajoId: horario.tipoTrabajoId.toString(),
-        escuelaId: horario.escuelaId?.toString() || "",
-        lunes: horario.lunes || "",
-        martes: horario.martes || "",
-        miercoles: horario.miercoles || "",
-        jueves: horario.jueves || "",
-        viernes: horario.viernes || "",
+        tipo: paquete.tipo,
+        cantidad: paquete.cantidad.toString(),
+        escuelaId: paquete.escuela?.id.toString() || "",
+        equipoId: paquete.equipo.id.toString(),
+        dias: {
+          lunes: paquete.dias.lunes || "",
+          martes: paquete.dias.martes || "",
+          miercoles: paquete.dias.miercoles || "",
+          jueves: paquete.dias.jueves || "",
+          viernes: paquete.dias.viernes || ""
+        }
       })
     } else {
-      setCurrentHorario(null)
+      setCurrentPaquete(null)
       setFormData({
-        profesionalId: profesionalSeleccionado,
-        tipoTrabajoId: "",
+        tipo: tiposPaquete[0],
+        cantidad: "",
         escuelaId: "",
-        lunes: "",
-        martes: "",
-        miercoles: "",
-        jueves: "",
-        viernes: "",
+        equipoId: equipoSeleccionado,
+        dias: {
+          lunes: "",
+          martes: "",
+          miercoles: "",
+          jueves: "",
+          viernes: ""
+        }
       })
     }
     setOpenModal(true)
@@ -223,113 +242,102 @@ export default function GrillaHorarios() {
   const handleCloseModal = () => setOpenModal(false)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    if (name.startsWith("dias.")) {
+      const dia = name.split(".")[1]
+      setFormData(prev => ({
+        ...prev,
+        dias: {
+          ...prev.dias,
+          [dia]: value
+        }
+      }))
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }))
+    }
   }
 
   const handleSelectChange = (name: string, value: string) => {
-    if (name === "tipoTrabajoId") {
-      // Si el tipo de trabajo no es "Escuela", resetear el valor de escuela
-      if (value !== "1") {
-        setFormData(prev => ({
-          ...prev,
-          [name]: value,
-          escuelaId: ""
-        }))
-      } else {
-        setFormData(prev => ({
-          ...prev,
-          [name]: value
-        }))
-      }
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }))
+    setFormData(prev => ({ ...prev, [name]: value }))
+    // Si el tipo cambia a "Carga en GEI" o "Trabajo Interdisciplinario", limpiar la escuela
+    if (name === "tipo" && (value === "Carga en GEI" || value === "Trabajo Interdisciplinario")) {
+      setFormData(prev => ({ ...prev, escuelaId: "" }))
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
+
     try {
-      const profesional = profesionales.find((p) => p.id.toString() === formData.profesionalId)
-      const tipoTrabajo = tiposTrabajo.find((t) => t.id.toString() === formData.tipoTrabajoId)
-      const escuela = escuelas.find((e) => e.id.toString() === formData.escuelaId)
+      const url = currentPaquete
+        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes/${currentPaquete.id}`
+        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes`
 
-      if (!profesional || !tipoTrabajo) {
-        throw new Error("Datos incompletos")
-      }
-
-      // Solo requerir escuela si el tipo de trabajo es "Escuela"
-      if (tipoTrabajo.nombre === "Escuela" && !escuela) {
-        throw new Error("Debe seleccionar una escuela para el tipo de trabajo 'Escuela'")
-      }
-
-      const url = currentHorario
-        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/horarios/${currentHorario.id}`
-        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/horarios`
-
-      const requestBody = {
-        profesionalId: parseInt(formData.profesionalId),
-        profesionalNombre: `${profesional.nombre} ${profesional.apellido}`,
-        tipoTrabajoId: parseInt(formData.tipoTrabajoId),
-        tipoTrabajoNombre: tipoTrabajo.nombre,
-        escuelaId: tipoTrabajo.nombre === "Escuela" ? parseInt(formData.escuelaId) : null,
-        escuelaNombre: tipoTrabajo.nombre === "Escuela" ? escuela?.nombre : null,
-        lunes: formData.lunes || null,
-        martes: formData.martes || null,
-        miercoles: formData.miercoles || null,
-        jueves: formData.jueves || null,
-        viernes: formData.viernes || null
-      }
-
-      console.log('Tipo de trabajo:', tipoTrabajo.nombre)
-      console.log('Escuela seleccionada:', escuela?.nombre)
-      console.log('Request body completo:', JSON.stringify(requestBody, null, 2))
+      const method = currentPaquete ? "PATCH" : "POST"
 
       const response = await fetch(url, {
-        method: currentHorario ? 'PATCH' : 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(requestBody)
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipo: formData.tipo,
+          cantidad: Number.parseInt(formData.cantidad),
+          escuelaId: formData.tipo === "Escuela" ? Number.parseInt(formData.escuelaId) : null,
+          equipoId: Number.parseInt(formData.equipoId),
+          profesionalId: Number.parseInt(profesionalSeleccionado),
+          dias: {
+            lunes: formData.dias.lunes || null,
+            martes: formData.dias.martes || null,
+            miercoles: formData.dias.miercoles || null,
+            jueves: formData.dias.jueves || null,
+            viernes: formData.dias.viernes || null
+          }
+        }),
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Error al guardar el horario')
-      }
+      if (!response.ok) throw new Error('Error al guardar el paquete')
 
-      const nuevoHorario = await response.json()
+      // Recargar los paquetes
+      const updatedResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes?profesionalId=${profesionalSeleccionado}`
+      )
+      if (!updatedResponse.ok) throw new Error('Error al actualizar los paquetes')
       
-      if (currentHorario) {
-        setHorarios(prev => prev.map(h => h.id === currentHorario.id ? nuevoHorario : h))
-      } else {
-        setHorarios(prev => [...prev, nuevoHorario])
-      }
-
-      handleCloseModal()
+      const updatedPaquetes = await updatedResponse.json()
+      setPaquetes(updatedPaquetes)
+      setFilteredPaquetes(updatedPaquetes)
+      setOpenModal(false)
     } catch (error) {
-      console.error("Error al guardar el horario:", error)
-      alert("Error al guardar el horario: " + error)
+      console.error("Error al guardar el paquete:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const handleDelete = async (id: number) => {
-    if (confirm("¿Está seguro que desea eliminar este horario?")) {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/horarios/${id}`, {
-          method: 'DELETE'
-        })
+    if (!confirm("¿Está seguro de que desea eliminar este paquete?")) return
 
-        if (!response.ok) throw new Error('Error al eliminar el horario')
+    setIsLoading(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes/${id}`, {
+        method: "DELETE",
+      })
 
-        setHorarios(prev => prev.filter(h => h.id !== id))
-      } catch (error) {
-        console.error("Error al eliminar el horario:", error)
-        alert("Error al eliminar el horario: " + error)
-      }
+      if (!response.ok) throw new Error('Error al eliminar el paquete')
+
+      // Recargar los paquetes
+      const updatedResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes?profesionalId=${profesionalSeleccionado}`
+      )
+      if (!updatedResponse.ok) throw new Error('Error al actualizar los paquetes')
+      
+      const updatedPaquetes = await updatedResponse.json()
+      setPaquetes(updatedPaquetes)
+      setFilteredPaquetes(updatedPaquetes)
+    } catch (error) {
+      console.error("Error al eliminar el paquete:", error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -348,128 +356,104 @@ export default function GrillaHorarios() {
   }
 
   return (
-    <div className="flex flex-col w-full min-h-screen bg-background">
-      <main className="flex min-h-[calc(100vh_-_theme(spacing.16))] flex-1 flex-col gap-4 p-4 md:gap-8 md:p-10">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xl font-bold">Grilla de Horarios Semanales</CardTitle>
-          </CardHeader>
-          <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="seleccion">Selección</TabsTrigger>
-                <TabsTrigger value="horarios" disabled={!horariosCargados}>
-                  Horarios
-                </TabsTrigger>
-              </TabsList>
+    <div className="container mx-auto py-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Grilla de Paquetes de Horas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "seleccion" | "horarios")}>
+            <TabsList>
+              <TabsTrigger value="seleccion">Selección</TabsTrigger>
+              <TabsTrigger value="horarios" disabled={!paquetesCargados}>Paquetes</TabsTrigger>
+            </TabsList>
 
-              <TabsContent value="seleccion" className="space-y-4 mt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Selector de Equipo */}
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-md flex items-center">
-                        <UsersIcon className="w-5 h-5 mr-2" />
-                        Seleccionar Equipo
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Select value={equipoSeleccionado} onValueChange={setEquipoSeleccionado}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona un equipo" />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-60 overflow-y-auto">
-                          {equipos.map((equipo) => (
-                            <SelectItem key={equipo.id} value={equipo.id.toString()}>
-                              {equipo.nombre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </CardContent>
-                  </Card>
-
-                  {/* Selector de Profesional */}
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-md flex items-center">
-                        <UserIcon className="w-5 h-5 mr-2" />
-                        Seleccionar Profesional
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Select
-                        value={profesionalSeleccionado}
-                        onValueChange={setProfesionalSeleccionado}
-                        disabled={!equipoSeleccionado}
-                      >
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              equipoSeleccionado ? "Selecciona un profesional" : "Primero selecciona un equipo"
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {profesionalesFiltrados.map((profesional) => (
-                            <SelectItem key={profesional.id} value={profesional.id.toString()}>
-                              {profesional.nombre} {profesional.apellido}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </CardContent>
-                  </Card>
+            <TabsContent value="seleccion" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Equipo</Label>
+                  <Select
+                    value={equipoSeleccionado}
+                    onValueChange={setEquipoSeleccionado}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione un equipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {equipos.map((equipo) => (
+                        <SelectItem key={equipo.id} value={equipo.id.toString()}>
+                          {equipo.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                {profesionalSeleccionado && (
-                  <Alert className="mt-4">
-                    <AlertDescription>
-                      Mostrando horarios de <strong>{getNombreProfesionalSeleccionado()}</strong> del equipo{" "}
-                      <strong>{getNombreEquipoSeleccionado()}</strong>
-                    </AlertDescription>
-                  </Alert>
-                )}
+                <div className="space-y-2">
+                  <Label>Profesional</Label>
+                  <Select
+                    value={profesionalSeleccionado}
+                    onValueChange={setProfesionalSeleccionado}
+                    disabled={!equipoSeleccionado}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccione un profesional" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {profesionalesFiltrados.map((profesional) => (
+                        <SelectItem key={profesional.id} value={profesional.id.toString()}>
+                          {profesional.nombre} {profesional.apellido}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-                {profesionalSeleccionado && (
-                  <div className="flex justify-end mt-4">
-                    <Button onClick={() => setActiveTab("horarios")}>
-                        Ver Horarios
-                    </Button>
-                  </div>
-                )}
-              </TabsContent>
+              {profesionalSeleccionado && (
+                <div className="flex justify-end">
+                  <Button onClick={() => setActiveTab("horarios")}>
+                    Ver Paquetes
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
 
-              <TabsContent value="horarios" className="space-y-4 mt-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center">
-                    <h3 className="text-lg font-semibold">
-                      Horarios de {getNombreProfesionalSeleccionado()} - {getNombreEquipoSeleccionado()}
-                    </h3>
+            <TabsContent value="horarios">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-2">
+                    <UsersIcon className="h-5 w-5" />
+                    <span className="font-semibold">{getNombreEquipoSeleccionado()}</span>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="relative max-w-sm">
-                      <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        type="search"
-                        placeholder="Buscar por escuela o tipo..."
-                        className="pl-8 w-[200px]"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </div>
-                    <Button onClick={() => handleOpenModal()}>
-                      <PlusIcon className="w-4 h-4 mr-2" />
-                      Agregar Horario
-                    </Button>
+                  <div className="flex items-center space-x-2">
+                    <UserIcon className="h-5 w-5" />
+                    <span className="font-semibold">{getNombreProfesionalSeleccionado()}</span>
                   </div>
                 </div>
 
-                <div className="rounded-md border">
+                <div className="flex justify-between items-center">
+                  <div className="relative w-64">
+                    <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+                    <Input
+                      placeholder="Buscar..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
+                  <Button onClick={() => handleOpenModal()}>
+                    <PlusIcon className="h-4 w-4 mr-2" />
+                    Agregar Paquete
+                  </Button>
+                </div>
+
+                <div className="border rounded-md">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Tipo de Trabajo</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Cantidad</TableHead>
                         <TableHead>Escuela</TableHead>
                         <TableHead>Lunes</TableHead>
                         <TableHead>Martes</TableHead>
@@ -480,185 +464,131 @@ export default function GrillaHorarios() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredHorarios.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={8} className="text-center py-4">
-                            No se encontraron horarios para este profesional
+                      {filteredPaquetes.map((paquete) => (
+                        <TableRow key={paquete.id}>
+                          <TableCell>{paquete.tipo}</TableCell>
+                          <TableCell>{paquete.cantidad} horas</TableCell>
+                          <TableCell>{paquete.escuela?.nombre || "-"}</TableCell>
+                          <TableCell>{paquete.dias.lunes || "-"}</TableCell>
+                          <TableCell>{paquete.dias.martes || "-"}</TableCell>
+                          <TableCell>{paquete.dias.miercoles || "-"}</TableCell>
+                          <TableCell>{paquete.dias.jueves || "-"}</TableCell>
+                          <TableCell>{paquete.dias.viernes || "-"}</TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleOpenModal(paquete)}
+                            >
+                              <FilePenIcon className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(paquete.id)}
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
-                      ) : (
-                        filteredHorarios.map((horario) => (
-                          <TableRow key={horario.id}>
-                            <TableCell>{horario.tipoTrabajoNombre}</TableCell>
-                            <TableCell>{horario.escuelaNombre}</TableCell>
-                            <TableCell>{horario.lunes || "-"}</TableCell>
-                            <TableCell>{horario.martes || "-"}</TableCell>
-                            <TableCell>{horario.miercoles || "-"}</TableCell>
-                            <TableCell>{horario.jueves || "-"}</TableCell>
-                            <TableCell>{horario.viernes || "-"}</TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" onClick={() => handleOpenModal(horario)}>
-                                <FilePenIcon className="w-4 h-4" />
-                                <span className="sr-only">Editar</span>
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => handleDelete(horario.id)}>
-                                <TrashIcon className="w-4 h-4" />
-                                <span className="sr-only">Eliminar</span>
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
+                      ))}
                     </TableBody>
                   </Table>
                 </div>
-
-                <div className="flex justify-end mt-4">
-                <Button variant="outline" onClick={() => setActiveTab("seleccion")}>
-                    Volver a Selección
-                </Button>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      </main>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
 
       <Dialog open={openModal} onOpenChange={setOpenModal}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle>{currentHorario ? "Editar" : "Agregar"} Horario</DialogTitle>
+            <DialogTitle>{currentPaquete ? "Editar" : "Agregar"} Paquete de Horas</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="profesionalId">Profesional</Label>
-              <Select
-                name="profesionalId"
-                onValueChange={(value) => handleSelectChange("profesionalId", value)}
-                value={formData.profesionalId}
-                disabled={!currentHorario && !!profesionalSeleccionado}
-                required
-              >
-                <SelectTrigger id="profesionalId">
-                  <SelectValue placeholder="Selecciona un profesional" />
-                </SelectTrigger>
-                <SelectContent>
-                  <ScrollArea className="h-[200px]">
-                    {profesionales.map((profesional) => (
-                      <SelectItem key={profesional.id} value={profesional.id.toString()}>
-                        {profesional.nombre} {profesional.apellido}
+          <div className="flex-1 overflow-y-auto pr-2">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="tipo">Tipo de Paquete</Label>
+                <Select
+                  name="tipo"
+                  value={formData.tipo}
+                  onValueChange={(value) => handleSelectChange("tipo", value)}
+                  required
+                >
+                  <SelectTrigger id="tipo">
+                    <SelectValue placeholder="Seleccione un tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tiposPaquete.map((tipo) => (
+                      <SelectItem key={tipo} value={tipo}>
+                        {tipo}
                       </SelectItem>
                     ))}
-                  </ScrollArea>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="tipoTrabajoId">Tipo de Trabajo</Label>
-              <Select
-                name="tipoTrabajoId"
-                onValueChange={(value) => handleSelectChange("tipoTrabajoId", value)}
-                value={formData.tipoTrabajoId}
-                required
-              >
-                <SelectTrigger id="tipoTrabajoId">
-                  <SelectValue placeholder="Selecciona un tipo de trabajo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {tiposTrabajo.map((tipo) => (
-                    <SelectItem key={tipo.id} value={tipo.id.toString()}>
-                      {tipo.nombre}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="escuelaId">Escuela</Label>
-              <Select
-                name="escuelaId"
-                onValueChange={(value) => handleSelectChange("escuelaId", value)}
-                value={formData.escuelaId}
-                disabled={formData.tipoTrabajoId !== "1"}
-                required={formData.tipoTrabajoId === "1"}
-              >
-                <SelectTrigger id="escuelaId">
-                  <SelectValue placeholder={"Selecciona una escuela"} />
-                </SelectTrigger>
-                <SelectContent>
-                  <ScrollArea className="h-[200px]">
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cantidad">Cantidad de Horas</Label>
+                <Input
+                  id="cantidad"
+                  name="cantidad"
+                  type="number"
+                  min="1"
+                  value={formData.cantidad}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="escuelaId">Escuela</Label>
+                <Select
+                  name="escuelaId"
+                  value={formData.escuelaId}
+                  onValueChange={(value) => handleSelectChange("escuelaId", value)}
+                  disabled={formData.tipo !== "Escuela"}
+                >
+                  <SelectTrigger id="escuelaId">
+                    <SelectValue placeholder="Seleccione una escuela" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Ninguna</SelectItem>
                     {escuelas.map((escuela) => (
                       <SelectItem key={escuela.id} value={escuela.id.toString()}>
                         {escuela.nombre}
                       </SelectItem>
                     ))}
-                  </ScrollArea>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="lunes">Lunes</Label>
-                <Input
-                  id="lunes"
-                  name="lunes"
-                  placeholder="Ej: 09:00 a 13:00"
-                  value={formData.lunes}
-                  onChange={handleInputChange}
-                />
+                  </SelectContent>
+                </Select>
               </div>
-              <div>
-                <Label htmlFor="martes">Martes</Label>
-                <Input
-                  id="martes"
-                  name="martes"
-                  placeholder="Ej: 09:00 a 13:00"
-                  value={formData.martes}
-                  onChange={handleInputChange}
-                />
+              <div className="space-y-2">
+                <Label>Días de la semana</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  {["lunes", "martes", "miercoles", "jueves", "viernes"].map((dia) => (
+                    <div className="space-y-2" key={dia}>
+                      <Label htmlFor={`dias.${dia}`}>{dia.charAt(0).toUpperCase() + dia.slice(1)}</Label>
+                      <Input
+                        id={`dias.${dia}`}
+                        name={`dias.${dia}`}
+                        type="text"
+                        placeholder="Ej: 8:00 - 12:00"
+                        value={formData.dias[dia]}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div>
-                <Label htmlFor="miercoles">Miércoles</Label>
-                <Input
-                  id="miercoles"
-                  name="miercoles"
-                  placeholder="Ej: 09:00 a 13:00"
-                  value={formData.miercoles}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div>
-                <Label htmlFor="jueves">Jueves</Label>
-                <Input
-                  id="jueves"
-                  name="jueves"
-                  placeholder="Ej: 09:00 a 13:00"
-                  value={formData.jueves}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div>
-                <Label htmlFor="viernes">Viernes</Label>
-                <Input
-                  id="viernes"
-                  name="viernes"
-                  placeholder="Ej: 09:00 a 13:00"
-                  value={formData.viernes}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleCloseModal}>
-                Cancelar
-              </Button>
-              <Button type="submit">Guardar</Button>
-            </DialogFooter>
-          </form>
+            </form>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpenModal(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isLoading} onClick={handleSubmit}>
+              {isLoading ? "Guardando..." : "Guardar"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

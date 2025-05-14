@@ -21,7 +21,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { PlusCircle, Edit, Trash2 } from 'lucide-react'
-import Layout from '../../components/LayoutProf'
+import Layout from '../../components/profesional/LayoutProf'
 import { ScrollArea } from '@radix-ui/react-scroll-area'
 
 interface PaqueteHoras {
@@ -32,7 +32,9 @@ interface PaqueteHoras {
     id: number;
     nombre: string;
   };
-  equipo: string;
+  equipo: {
+    nombre: string;
+  };
 }
 
 interface Departamento {
@@ -65,6 +67,7 @@ interface Profesional {
 export default function ListaProfesionales() {
   const [profesionales, setProfesionales] = useState<Profesional[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
+  const [paquetesPorProfesional, setPaquetesPorProfesional] = useState<{ [key: number]: PaqueteHoras[] }>({})
   const [filtroNombre, setFiltroNombre] = useState('')
   const [filtroDepartamento, setFiltroDepartamento] = useState('todos')
   const [filtroSeccion, setFiltroSeccion] = useState('todas')
@@ -84,24 +87,6 @@ export default function ListaProfesionales() {
   })
   const router = useRouter()
 
-  useEffect(() => {
-    fetchProfesionales()
-    fetchDepartamentos()
-  }, [])
-
-  const fetchDepartamentos = async () => {
-    setIsLoading(true)
-    try {
-      const responseDep = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`)
-      const data = await responseDep.json()
-      setDepartamentos(data)
-    } catch (error) {
-      console.error("Error al obtener departamentos:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const fetchProfesionales = async () => {
     setIsLoading(true)
     try {
@@ -113,6 +98,69 @@ export default function ListaProfesionales() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const fetchPaquetesProfesional = async (profesionalId: number) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${profesionalId}/paquetes`)
+      if (!response.ok) throw new Error('Error al obtener paquetes')
+      const data = await response.json()
+      setPaquetesPorProfesional(prev => ({
+        ...prev,
+        [profesionalId]: data
+      }))
+    } catch (error) {
+      console.error("Error al obtener paquetes del profesional:", error)
+    }
+  }
+
+  const fetchDepartamentos = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`)
+      if (!response.ok) throw new Error('Error al obtener departamentos')
+      const data = await response.json()
+      setDepartamentos(data)
+    } catch (error) {
+      console.error("Error al obtener departamentos:", error)
+    }
+  }
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true)
+      try {
+        const [profResponse, depResponse] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`)
+        ])
+
+        if (!profResponse.ok || !depResponse.ok) {
+          throw new Error('Error al obtener datos')
+        }
+
+        const [profData, depData] = await Promise.all([
+          profResponse.json(),
+          depResponse.json()
+        ])
+
+        setProfesionales(profData)
+        setDepartamentos(depData)
+
+        // Obtener paquetes para cada profesional
+        await Promise.all(profData.map((prof: Profesional) => fetchPaquetesProfesional(prof.id)))
+      } catch (error) {
+        console.error("Error al obtener datos:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  const getPaquetesProfesional = (profesionalId: number) => {
+    console.log(paquetesPorProfesional[profesionalId])
+    return paquetesPorProfesional[profesionalId] || []
   }
 
   const profesionalesFiltrados = profesionales.filter(profesional => 
@@ -216,6 +264,9 @@ export default function ListaProfesionales() {
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>
   }
+
+  console.log(profesionalesFiltrados.map(profesional => profesional.paquetesHoras));
+  
 
   return (
     <Layout>
@@ -421,9 +472,12 @@ export default function ListaProfesionales() {
                       <div>
                         <strong>Paquetes de Horas:</strong>
                         <ul className="list-disc pl-5 mt-2 space-y-1">
-                          {profesional.paquetesHoras.map((paquete, index) => (
-                            <li key={index}>
-                              {paquete.cantidad} horas en {paquete.escuela.nombre} en el equipo {paquete.equipo}
+                          {getPaquetesProfesional(profesional.id).map((paquete) => (
+                            <li key={paquete.id}>
+                              {paquete.cantidad} horas - 
+                              {` Tipo: ${paquete.tipo}.`}
+                              {paquete.escuela && ` En: ${paquete.escuela.nombre}`}
+                              {paquete.equipo && ` (Equipo: ${paquete.equipo.nombre})`}
                             </li>
                           ))}
                         </ul>

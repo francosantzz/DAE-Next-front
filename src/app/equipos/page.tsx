@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -53,12 +53,14 @@ export function ListaEquiposPantallaCompleta() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentEquipo, setCurrentEquipo] = useState<Equipo | null>(null)
   const [formData, setFormData] = useState({
+    id: 0,
     nombre: '',
-    seccionId: '',
-    profesionalesIds: [] as number[],
+    seccion: '',
+    profesionales: [] as string[],
   })
   const [profesionalSearch, setProfesionalSearch] = useState('')
   const [profesionalesSeleccionados, setProfesionalesSeleccionados] = useState< {id: number, nombre: string, apellido: string,}[]>([])
+  const [isEditing, setIsEditing] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -119,72 +121,71 @@ export function ListaEquiposPantallaCompleta() {
     setProfesionalesSeleccionados(prev => [...prev, profesional])
     setFormData(prev => ({
       ...prev,
-      profesionalesIds: [...prev.profesionalesIds, profesional.id]
+      profesionales: [...prev.profesionales, profesional.id.toString()]
     }))
     setProfesionalSearch('')
   }
 
-  const handleProfesionalRemove = (profesionalId: number) => {
-    setProfesionalesSeleccionados(prev => prev.filter(p => p.id !== profesionalId))
+  const handleProfesionalRemove = (profesionalId: string) => {
+    setProfesionalesSeleccionados(prev => prev.filter(p => p.id.toString() !== profesionalId))
     setFormData(prev => ({
       ...prev,
-      profesionalesIds: prev.profesionalesIds.filter(id => id !== profesionalId)
+      profesionales: prev.profesionales.filter(id => id !== profesionalId)
     }))
   }
 
+  const handleEdit = (equipo: Equipo) => {
+    setCurrentEquipo(equipo);
+    
+    setFormData({
+      id: equipo.id,
+      nombre: equipo.nombre,
+      seccion: equipo.seccion || '',
+      profesionales: equipo.profesionales?.map((prof: any) =>
+        typeof prof === 'object' ? prof.id.toString() : prof.toString()
+      ) || []
+    });
+  
+    const profesionalesDelEquipo = profesionales.filter(p =>
+      equipo.profesionales.some((ep: any) =>
+        typeof ep === 'object' ? ep.id === p.id : ep === p.id
+      )
+    );
+    setProfesionalesSeleccionados(profesionalesDelEquipo);
+  
+    
+    setIsEditing(true);
+    setIsDialogOpen(true);
+  };
+  
+  
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     try {
-      const url = currentEquipo
-        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/${currentEquipo.id}`
-        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`
-      const method = currentEquipo ? 'PATCH' : 'POST'
-      const bodyData = {
-        nombre: formData.nombre,
-        ...(formData.seccionId && { seccionId: parseInt(formData.seccionId) }),
-        ...(profesionalesSeleccionados.length > 0 && { profesionalesIds: profesionalesSeleccionados.map(p => p.id) })
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/${formData.id || ''}`, {
+        method: formData.id ? 'PATCH' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          profesionales: formData.profesionales.map(id => id.toString())
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al guardar el equipo');
       }
 
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyData)
-      })
-
-      if (!response.ok) throw new Error('Error al guardar el equipo')
-
-      const updatedEquipo = await response.json()
-      
-      setEquipos(prev => 
-        currentEquipo
-          ? prev.map(e => e.id === updatedEquipo.id ? updatedEquipo : e)
-          : [...prev, updatedEquipo]
-      )
-
-      setIsDialogOpen(false)
-      setCurrentEquipo(null)
-      setFormData({
-        nombre: '',
-        seccionId: '',
-        profesionalesIds: [],
-      })
-      setProfesionalesSeleccionados([])
+      setIsDialogOpen(false);
+      fetchEquipos();
+      resetForm();
     } catch (error) {
-      console.error('Error al guardar el equipo:', error)
+      console.error('Error:', error);
+      alert('Error al guardar el equipo');
     }
-  }
-
-  const handleEdit = (equipo: Equipo) => {
-    setCurrentEquipo(equipo)
-    setSecciones(secciones)
-    setFormData({
-      nombre: equipo.nombre,
-      seccionId: equipo.seccion ? secciones.find(sec => sec.nombre === equipo.seccion)?.id.toString() || '' : '',
-      profesionalesIds: [], 
-    })
-    setProfesionalesSeleccionados(equipo.profesionales.map(nombre => ({ id: Date.now(), nombre, apellido: 'N/A', })))
-    setIsDialogOpen(true)
-  }
+  };
 
   const handleDelete = async (id: number) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este equipo?')) {
@@ -200,6 +201,27 @@ export function ListaEquiposPantallaCompleta() {
         console.error('Error al eliminar el equipo:', error)
       }
     }
+  }
+
+  const fetchEquipos = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`)
+      if (!response.ok) throw new Error('Error al obtener equipos')
+      const data = await response.json()
+      setEquipos(data)
+    } catch (error) {
+      console.error('Error al obtener equipos:', error)
+    }
+  }
+
+  const resetForm = () => {
+    setFormData({
+      id: 0,
+      nombre: '',
+      seccion: '',
+      profesionales: []
+    })
+    setProfesionalesSeleccionados([])
   }
 
   if (isLoading) {
@@ -247,19 +269,18 @@ export function ListaEquiposPantallaCompleta() {
             </div>
             <div className="flex items-end">
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={() => {
-                    setCurrentEquipo(null)
-                    setFormData({
-                      nombre: '',
-                      seccionId: '',
-                      profesionalesIds: [],
-                    })
-                    setProfesionalesSeleccionados([])
-                  }}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Agregar Equipo
-                  </Button>
-                </DialogTrigger>
+              <DialogTrigger asChild>
+                <Button
+                  onClick={() => {
+                    setCurrentEquipo(null);
+                    resetForm();
+                    setIsDialogOpen(true); // abrí el modal al crear también
+                  }}
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" /> Agregar Equipo
+                </Button>
+              </DialogTrigger>
+
                 <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>{currentEquipo ? 'Editar' : 'Agregar'} Equipo</DialogTitle>
@@ -279,20 +300,20 @@ export function ListaEquiposPantallaCompleta() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="seccionId">Sección</Label>
+                      <Label htmlFor="seccion">Sección</Label>
                       <Select
-                        name="seccionId"
-                        onValueChange={(value) => handleSelectChange('seccionId', value)}
-                        value={formData.seccionId}
+                        name="seccion"
+                        onValueChange={(value) => handleSelectChange('seccion', value)}
+                        value={formData.seccion}
                       >
-                        <SelectTrigger id="seccionId">
+                        <SelectTrigger id="seccion">
                           <SelectValue placeholder="Selecciona una sección" />
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px]">
                           <ScrollArea className="h-[200px]">
                             <SelectItem value=".">Sin sección</SelectItem>
                             {todasLasSecciones.map((seccion) => (
-                              <SelectItem key={seccion.id} value={seccion.id.toString()}>
+                              <SelectItem key={seccion.id} value={seccion.nombre}>
                                 {seccion.nombre}
                               </SelectItem>
                             ))}
@@ -337,7 +358,7 @@ export function ListaEquiposPantallaCompleta() {
                               variant="ghost"
                               size="sm"
                               className="h-4 w-4 p-0"
-                              onClick={() => handleProfesionalRemove(profesional.id)}
+                              onClick={() => handleProfesionalRemove(profesional.id.toString())}
                             >
                               <X className="h-3 w-3" />
                             </Button>
@@ -357,14 +378,14 @@ export function ListaEquiposPantallaCompleta() {
           {isLoading ? (
             <p className="text-center py-4">Cargando equipos...</p>
           ) : equiposFiltrados.length > 0 ? (
-            <Accordion type="multiple" collapsible className="w-full">
+            <Accordion type="multiple" className="w-full">
               {equiposFiltrados.map((equipo) => (
                 <AccordionItem key={equipo.id} value={String(equipo.id)}>
                   <AccordionTrigger className="px-6 py-4 hover:bg-gray-50">
                     <div className="flex justify-between w-full">
                       <span>{equipo.nombre}</span>
                       <span className="text-sm text-gray-500">
-                        {equipo.seccion ? `Sección: ${equipo.seccion}` : 'Sin sección asignada'}
+                        {equipo.seccion ? `Sección:   ${equipo.seccion}` : 'Sin sección asignada'}
                       </span>
                     </div>
                   </AccordionTrigger>
@@ -378,9 +399,10 @@ export function ListaEquiposPantallaCompleta() {
                         <strong>Profesionales:</strong>
                         {equipo.profesionales && equipo.profesionales.length > 0 ? (
                           <ul className="list-disc pl-5 mt-2 space-y-1">
-                            {equipo.profesionales.map((profesional, index) => (
-                              <li key={index}>{profesional}</li>
-                            ))}
+                           {equipo.profesionales.map((profesional, index) => (
+                            <li key={index}>{profesional.nombre} {profesional.apellido}</li>
+                          ))}
+
                           </ul>
                         ) : (
                           <p>No hay profesionales asignados</p>
