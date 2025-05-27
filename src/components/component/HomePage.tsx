@@ -49,7 +49,10 @@ interface Equipo {
   id: number;
   nombre: string;
   profesionales: string[];
-  seccion: string;
+  seccion: {
+    id: number;
+    nombre: string;
+  };
 }
 
 interface Professional {
@@ -104,7 +107,6 @@ export function HomePage() {
         const departamentosData = await departamentosRes.json()
 
         setProfessionals(professionalsData)
-        console.log(professionalsData)
         setDashboardData(dashboardData)
         setDepartamentos(departamentosData)
       } catch (error) {
@@ -309,7 +311,7 @@ export function HomePage() {
                         {professional.equipos.map(equipo => (
                           <div key={equipo.id} className="flex items-center gap-2">
                             <UsersIcon className="w-4 h-4 text-muted-foreground" />
-                            <div>{equipo.nombre} ({equipo.seccion})</div>
+                            <div>{equipo.nombre} ({equipo.seccion.nombre})</div>
                           </div>
                         ))}
                       </div>

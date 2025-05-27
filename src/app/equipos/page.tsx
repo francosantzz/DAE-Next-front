@@ -22,6 +22,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { PlusCircle, Edit, Trash2, X } from 'lucide-react'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 interface Profesional {
   id: number;
@@ -34,12 +35,30 @@ interface Seccion {
   nombre: string;
 }
 
+interface PaqueteHoras {
+  id: number;
+  tipo: string;
+  cantidad: number;
+  profesional: Profesional;
+  escuela: {
+    id: number;
+    nombre: string;
+  };
+  dias: {
+    lunes: boolean;
+    martes: boolean;
+    miercoles: boolean;
+    jueves: boolean;
+    viernes: boolean;
+  };
+}
+
 interface Equipo {
   id: number;
   nombre: string;
-  seccion: string | null;
-  profesionales: string[];
-  paquetesHoras: any[];
+  profesionales: Profesional[];
+  seccion: Seccion | null;
+  paquetesHoras: PaqueteHoras[];
   totalHorasEquipo: number;
 }
 
@@ -55,13 +74,13 @@ export function ListaEquiposPantallaCompleta() {
   const [formData, setFormData] = useState({
     id: 0,
     nombre: '',
-    seccion: '',
-    profesionales: [] as string[],
+    seccionId: 0,
+    profesionales: [] as number[],
   })
   const [profesionalSearch, setProfesionalSearch] = useState('')
-  const [profesionalesSeleccionados, setProfesionalesSeleccionados] = useState< {id: number, nombre: string, apellido: string,}[]>([])
+  const [profesionalesSeleccionados, setProfesionalesSeleccionados] = useState<Profesional[]>([])
   const [isEditing, setIsEditing] = useState(false)
-
+ 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
@@ -94,40 +113,39 @@ export function ListaEquiposPantallaCompleta() {
     fetchData()
   }, [])
 
-  const equiposFiltrados = equipos.filter(equipo => 
-    equipo.nombre.toLowerCase().includes(filtroNombre.toLowerCase()) &&
-    (filtroSeccion === 'todas' || equipo.seccion === filtroSeccion)
-  )
-
-  const todasLasSecciones = secciones
+  const equiposFiltrados = equipos.filter(equipo => {
+    const cumpleFiltroNombre = equipo.nombre.toLowerCase().includes(filtroNombre.toLowerCase())
+    const cumpleFiltroSeccion = filtroSeccion === 'todas' || 
+      (equipo.seccion && equipo.seccion.id === Number(filtroSeccion))
+    return cumpleFiltroNombre && cumpleFiltroSeccion
+  })
+  console.log(equiposFiltrados);
   
-
   const profesionalesFiltrados = profesionales.filter(profesional => 
     (profesional.nombre.toLowerCase().includes(profesionalSearch.toLowerCase()) ||
      profesional.apellido.toLowerCase().includes(profesionalSearch.toLowerCase())) &&
     !profesionalesSeleccionados.some(p => p.id === profesional.id)
   )
-  
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData({ ...formData, [name]: value })
+    setFormData({ ...formData, [name]: Number(value) })
   }
 
   const handleProfesionalSelect = (profesional: Profesional) => {
     setProfesionalesSeleccionados(prev => [...prev, profesional])
     setFormData(prev => ({
       ...prev,
-      profesionales: [...prev.profesionales, profesional.id.toString()]
+      profesionales: [...prev.profesionales, profesional.id]
     }))
     setProfesionalSearch('')
   }
 
-  const handleProfesionalRemove = (profesionalId: string) => {
-    setProfesionalesSeleccionados(prev => prev.filter(p => p.id.toString() !== profesionalId))
+  const handleProfesionalRemove = (profesionalId: number) => {
+    setProfesionalesSeleccionados(prev => prev.filter(p => p.id !== profesionalId))
     setFormData(prev => ({
       ...prev,
       profesionales: prev.profesionales.filter(id => id !== profesionalId)
@@ -135,57 +153,47 @@ export function ListaEquiposPantallaCompleta() {
   }
 
   const handleEdit = (equipo: Equipo) => {
-    setCurrentEquipo(equipo);
-    
+    setCurrentEquipo(equipo)
     setFormData({
       id: equipo.id,
       nombre: equipo.nombre,
-      seccion: equipo.seccion || '',
-      profesionales: equipo.profesionales?.map((prof: any) =>
-        typeof prof === 'object' ? prof.id.toString() : prof.toString()
-      ) || []
-    });
+      seccionId: equipo.seccion ? equipo.seccion.id : 0,
+      profesionales: equipo.profesionales.map(p => p.id)
+    })
   
-    const profesionalesDelEquipo = profesionales.filter(p =>
-      equipo.profesionales.some((ep: any) =>
-        typeof ep === 'object' ? ep.id === p.id : ep === p.id
-      )
-    );
-    setProfesionalesSeleccionados(profesionalesDelEquipo);
-  
-    
-    setIsEditing(true);
-    setIsDialogOpen(true);
-  };
-  
-  
+    setProfesionalesSeleccionados(equipo.profesionales)
+    setIsEditing(true)
+    setIsDialogOpen(true)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     try {
+      const equipoData = {
+        ...formData,
+        seccionId: formData.seccionId === 0 ? null : formData.seccionId,
+      }
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/${formData.id || ''}`, {
         method: formData.id ? 'PATCH' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          profesionales: formData.profesionales.map(id => id.toString())
-        }),
-      });
+        body: JSON.stringify(equipoData),
+      })
 
       if (!response.ok) {
-        throw new Error('Error al guardar el equipo');
+        throw new Error('Error al guardar el equipo')
       }
 
-      setIsDialogOpen(false);
-      fetchEquipos();
-      resetForm();
+      setIsDialogOpen(false)
+      fetchEquipos()
+      resetForm()
     } catch (error) {
-      console.error('Error:', error);
-      alert('Error al guardar el equipo');
+      console.error('Error:', error)
+      alert('Error al guardar el equipo')
     }
-  };
+  }
 
   const handleDelete = async (id: number) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este equipo?')) {
@@ -218,10 +226,11 @@ export function ListaEquiposPantallaCompleta() {
     setFormData({
       id: 0,
       nombre: '',
-      seccion: '',
+      seccionId: 0,
       profesionales: []
     })
     setProfesionalesSeleccionados([])
+    setIsEditing(false)
   }
 
   if (isLoading) {
@@ -229,7 +238,7 @@ export function ListaEquiposPantallaCompleta() {
   }
 
   return (
-    <>
+    <ErrorBoundary>
       <div className='bg-gray-100'>
         <header className="bg-white shadow">
           <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
@@ -255,35 +264,33 @@ export function ListaEquiposPantallaCompleta() {
                 <SelectTrigger id="filtroSeccion">
                   <SelectValue placeholder="Selecciona una sección" />
                 </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  <ScrollArea className="h-[200px]">
-                    <SelectItem value="todas">Todas las secciones</SelectItem>
-                    {secciones.map((seccion) => (
-                      <SelectItem key={seccion.id} value={seccion.nombre}>
-                        {seccion.nombre}
-                      </SelectItem>
-                    ))}
-                  </ScrollArea>
+                <SelectContent>
+                  <SelectItem value="todas">Todas las secciones</SelectItem>
+                  {secciones.map((seccion) => (
+                    <SelectItem key={seccion.id} value={seccion.id.toString()}>
+                      {seccion.nombre}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="flex items-end">
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  onClick={() => {
-                    setCurrentEquipo(null);
-                    resetForm();
-                    setIsDialogOpen(true); // abrí el modal al crear también
-                  }}
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" /> Agregar Equipo
-                </Button>
-              </DialogTrigger>
+                <DialogTrigger asChild>
+                  <Button
+                    onClick={() => {
+                      setCurrentEquipo(null)
+                      resetForm()
+                      setIsDialogOpen(true)
+                    }}
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" /> Agregar Equipo
+                  </Button>
+                </DialogTrigger>
 
                 <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>{currentEquipo ? 'Editar' : 'Agregar'} Equipo</DialogTitle>
+                    <DialogTitle>{isEditing ? 'Editar' : 'Agregar'} Equipo</DialogTitle>
                     <DialogDescription>
                       Complete los detalles del equipo aquí. Haga clic en guardar cuando termine.
                     </DialogDescription>
@@ -304,20 +311,18 @@ export function ListaEquiposPantallaCompleta() {
                       <Select
                         name="seccion"
                         onValueChange={(value) => handleSelectChange('seccion', value)}
-                        value={formData.seccion}
+                        value={formData.seccionId.toString()}
                       >
                         <SelectTrigger id="seccion">
                           <SelectValue placeholder="Selecciona una sección" />
                         </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                          <ScrollArea className="h-[200px]">
-                            <SelectItem value=".">Sin sección</SelectItem>
-                            {todasLasSecciones.map((seccion) => (
-                              <SelectItem key={seccion.id} value={seccion.nombre}>
-                                {seccion.nombre}
-                              </SelectItem>
-                            ))}
-                          </ScrollArea>
+                        <SelectContent>
+                          <SelectItem value="0">Sin sección</SelectItem>
+                          {secciones.map((seccion) => (
+                            <SelectItem key={seccion.id} value={seccion.id.toString()}>
+                              {seccion.nombre}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -358,7 +363,7 @@ export function ListaEquiposPantallaCompleta() {
                               variant="ghost"
                               size="sm"
                               className="h-4 w-4 p-0"
-                              onClick={() => handleProfesionalRemove(profesional.id.toString())}
+                              onClick={() => handleProfesionalRemove(profesional.id)}
                             >
                               <X className="h-3 w-3" />
                             </Button>
@@ -375,9 +380,7 @@ export function ListaEquiposPantallaCompleta() {
         </div>
 
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          {isLoading ? (
-            <p className="text-center py-4">Cargando equipos...</p>
-          ) : equiposFiltrados.length > 0 ? (
+          {equiposFiltrados.length > 0 ? (
             <Accordion type="multiple" className="w-full">
               {equiposFiltrados.map((equipo) => (
                 <AccordionItem key={equipo.id} value={String(equipo.id)}>
@@ -385,7 +388,7 @@ export function ListaEquiposPantallaCompleta() {
                     <div className="flex justify-between w-full">
                       <span>{equipo.nombre}</span>
                       <span className="text-sm text-gray-500">
-                        {equipo.seccion ? `Sección:   ${equipo.seccion}` : 'Sin sección asignada'}
+                        {equipo.seccion ? `Sección: ${equipo.seccion.nombre}` : 'Sin sección asignada'}
                       </span>
                     </div>
                   </AccordionTrigger>
@@ -393,19 +396,35 @@ export function ListaEquiposPantallaCompleta() {
                     <div className="space-y-4">
                       <p>
                         <strong>Sección:</strong> 
-                        {equipo.seccion || 'Sin sección asignada'}
+                        {equipo.seccion ? equipo.seccion.nombre : 'Sin sección asignada'}
                       </p>
                       <div>
                         <strong>Profesionales:</strong>
                         {equipo.profesionales && equipo.profesionales.length > 0 ? (
                           <ul className="list-disc pl-5 mt-2 space-y-1">
-                           {equipo.profesionales.map((profesional, index) => (
-                            <li key={index}>{profesional.nombre} {profesional.apellido}</li>
-                          ))}
-
+                            {equipo.profesionales.map((profesional) => (
+                              <li key={profesional.id}>
+                                {profesional.nombre} {profesional.apellido}
+                              </li>
+                            ))}
                           </ul>
                         ) : (
                           <p>No hay profesionales asignados</p>
+                        )}
+                      </div>
+                      <div>
+                        <strong>Paquetes de Horas:</strong>
+                        {equipo.paquetesHoras && equipo.paquetesHoras.length > 0 ? (
+                          <ul className="list-disc pl-5 mt-2 space-y-1">
+                            {equipo.paquetesHoras.map((paquete) => (
+                              <li key={paquete.id}>
+                                {paquete.tipo} - {paquete.cantidad} horas
+                                {paquete.escuela && ` - ${paquete.escuela.nombre}`}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>No hay paquetes de horas asignados</p>
                         )}
                       </div>
                       <p><strong>Horas totales del Equipo:</strong> {equipo.totalHorasEquipo || 0}</p>
@@ -427,7 +446,7 @@ export function ListaEquiposPantallaCompleta() {
           )}
         </div>
       </div>
-    </>
+    </ErrorBoundary>
   )
 }
 

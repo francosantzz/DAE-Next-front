@@ -23,6 +23,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { PlusCircle, Edit, Trash2, X } from 'lucide-react'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 interface Escuela {
   id: number;
@@ -241,7 +242,7 @@ export default function ListaSecciones() {
   }
 
   return (
-    <>
+    <ErrorBoundary>
       <div className='bg-gray-100'>
         <header className="bg-white shadow">
           <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
@@ -466,6 +467,6 @@ export default function ListaSecciones() {
           </div>
         </div>
       </div>
-    </>
+    </ErrorBoundary>
   )
 }

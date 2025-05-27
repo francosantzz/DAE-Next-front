@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PlusCircle, Pencil, Trash2, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Layout from "./LayoutProf"
+import ErrorBoundary from "../ErrorBoundary"
 
 // Interfaces (unchanged)
 interface Departamento {
@@ -27,11 +28,17 @@ interface Departamento {
   }
 }
 
+interface Region {
+  id: number
+  nombre: string
+}
+
 interface Direccion {
   id: number
   calle: string
   numero: number
   departamento: Departamento
+  region: Region
 }
 
 interface Escuela {
@@ -84,18 +91,17 @@ interface Profesional {
   cuil: number
   profesion: string
   matricula: string
-  telefono: number
+  telefono: string
   direccion: Direccion
   equipos: Array<{
     id: number
     nombre: string
-    profesionales: Array<{
+    seccion: {
       id: number
       nombre: string
-      apellido: string
-    }>
-    seccion: string
+    }
   }>
+  paquetesHoras: PaqueteHoras[]
   totalHoras: number
 }
 
@@ -368,120 +374,120 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
   }
 
   return (
+    <ErrorBoundary>
     <Layout>
-      <Card className="w-full max-w-3xl mx-auto">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">
-            Perfil de {profesional.nombre} {profesional.apellido}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Información Personal</h3>
-              <p>
-                <strong>CUIL:</strong> {profesional.cuil}
-              </p>
-              <p>
-                <strong>Profesión:</strong> {profesional.profesion}
-              </p>
-              <p>
-                <strong>Matrícula:</strong> {profesional.matricula}
-              </p>
-              <p>
-                <strong>Teléfono:</strong> {profesional.telefono}
-              </p>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Dirección</h3>
-              <p>
-                {profesional.direccion.calle} {profesional.direccion.numero}
-              </p>
-              <p>Departamento: {profesional.direccion.departamento.nombre}</p>
-              <p>Región: {profesional.direccion.departamento.region.nombre}</p>
-            </div>
-          </section>
-
-          <section>
-            <h3 className="text-lg font-semibold mb-2">Equipos</h3>
-            <ScrollArea className="h-[200px] rounded-md border p-4">
-              {profesional.equipos && profesional.equipos.map((equipo) => (
-                <Card key={equipo.id} className="mb-4 last:mb-0">
-                  <CardContent className="p-4">
-                    <p className="font-semibold">{equipo.nombre}</p>
-                    <p>
-                      <strong>Sección:</strong> {equipo.seccion}
-                    </p>
-                    <div className="mt-2">
-                      {equipo.profesionales && equipo.profesionales.map((prof, index) => (
-                        <Badge key={index} variant="secondary" className="mr-1 mb-1">
-                          {`${prof.nombre} ${prof.apellido}`}
-                        </Badge>
-                      ))}
+      <div className="container mx-auto py-8">
+        {isLoading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        ) : profesional ? (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-2xl">
+                  {profesional.nombre} {profesional.apellido}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Información Personal</h3>
+                    <div className="space-y-2">
+                      <p><strong>CUIL:</strong> {profesional.cuil}</p>
+                      <p><strong>Profesión:</strong> {profesional.profesion}</p>
+                      <p><strong>Matrícula:</strong> {profesional.matricula}</p>
+                      <p><strong>Teléfono:</strong> {profesional.telefono}</p>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-              {(!profesional.equipos || profesional.equipos.length === 0) && (
-                <p className="text-center text-gray-500">No hay equipos asignados</p>
-              )}
-            </ScrollArea>
-          </section>
-
-          <section>
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-lg font-semibold">Paquetes de Horas</h3>
-              <Button size="sm" onClick={() => handleOpenDialog()}>
-                <PlusCircle className="h-4 w-4 mr-2" /> Agregar Paquete
-              </Button>
-            </div>
-            <ScrollArea className="h-[250px] rounded-md border p-4">
-              {paquetes && paquetes.map((paquete) => (
-                <Card key={paquete.id} className="mb-4 last:mb-0">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-semibold">{paquete.tipo}</p>
-                        <p>
-                          <strong>{paquete.cantidad} horas</strong>
-                        </p>
-                        {paquete.escuela && (
-                          <p>
-                            <strong>Escuela:</strong> {paquete.escuela.nombre}
-                          </p>
-                        )}
-                        {paquete.equipo && (
-                          <p>
-                            <strong>Equipo:</strong> {paquete.equipo.nombre}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex space-x-2">
-                        <Button variant="outline" size="icon" onClick={() => handleOpenDialog(paquete)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="icon" onClick={() => handleOpenDeleteDialog(paquete)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Dirección</h3>
+                    <div className="space-y-2">
+                      <p>{profesional.direccion.calle} {profesional.direccion.numero}</p>
+                      <p>Departamento: {profesional.direccion.departamento.nombre}</p>
+                      <p>Región: {profesional.direccion.region ? profesional.direccion.region.nombre : "NONO"}</p>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-              {(!paquetes || paquetes.length === 0) && (
-                <p className="text-center text-gray-500">No hay paquetes de horas asignados</p>
-              )}
-            </ScrollArea>
-          </section>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          <section className="flex justify-between items-center">
-            <p className="text-lg font-semibold">
-              Total de horas: <span className="text-2xl">{profesional.totalHoras}</span>
-            </p>
-            <Button onClick={() => router.back()}>Volver</Button>
-          </section>
-        </CardContent>
-      </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xl">Equipos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {profesional.equipos && profesional.equipos.length > 0 ? (
+                  <div className="space-y-4">
+                    {profesional.equipos.map((equipo) => (
+                      <div key={equipo.id} className="p-4 border rounded-lg">
+                        <h4 className="font-semibold">{equipo.nombre}</h4>
+                        <p>Sección: {equipo.seccion.nombre}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p>No hay equipos asignados</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-xl">Paquetes de Horas</CardTitle>
+                <Button onClick={() => handleOpenDialog()}>
+                  <PlusCircle className="mr-2 h-4 w-4" /> Agregar Paquete
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {paquetes.length > 0 ? (
+                  <div className="space-y-4">
+                    {paquetes.map((paquete) => (
+                      <div key={paquete.id} className="p-4 border rounded-lg">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-semibold">{paquete.tipo}</h4>
+                            <p>Cantidad: {paquete.cantidad} horas</p>
+                            {paquete.escuela && <p>Escuela: {paquete.escuela.nombre}</p>}
+                            <p>Equipo: {paquete.equipo.nombre}</p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button variant="outline" size="sm" onClick={() => handleOpenDialog(paquete)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => handleOpenDeleteDialog(paquete)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p>No hay paquetes de horas asignados</p>
+                )}
+                
+              </CardContent>
+             
+            </Card>
+            <section className="flex justify-between items-center">
+                <p className="text-lg font-semibold">
+                  Total de horas: <span className="text-2xl">{profesional.totalHoras}</span>
+                </p>
+                <Button onClick={() => router.back()}>Volver</Button>
+              </section>
+          </div>
+        ) : (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              No se encontró el profesional solicitado.
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
 
       {/* Diálogo para agregar/editar paquete de horas */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -636,5 +642,6 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
         </DialogContent>
       </Dialog>
     </Layout>
+    </ErrorBoundary>
   )
 }

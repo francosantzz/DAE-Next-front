@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge"
 import { PlusCircle, Edit, Trash2, Eye, AlertTriangle, CheckCircle, Info } from "lucide-react"
 import { ObservacionesEditor } from "@/components/escuela/observaciones-editor"
 import { EstadoFisicoCard } from "@/components/escuela/estado-fisico-card"
+import ErrorBoundary from "@/components/ErrorBoundary"
 
 interface Profesional {
   id: number
@@ -426,7 +427,7 @@ export default function ListaEscuelas() {
   }
 
   return (
-    <>
+    <ErrorBoundary>
       <div className="bg-gray-100">
         <header className="bg-white shadow">
           <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
@@ -825,6 +826,6 @@ export default function ListaEscuelas() {
           </form>
         </DialogContent>
       </Dialog>
-    </>
+    </ErrorBoundary>
   )
 }

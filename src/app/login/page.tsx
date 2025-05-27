@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { EyeIcon, EyeOffIcon } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { EyeIcon, EyeOffIcon, ArrowLeftIcon } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
@@ -23,6 +23,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const [error, setError] = useState("");
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -46,47 +47,37 @@ export default function LoginPage() {
      // Valida el formulario antes de intentar loguearse
      if (!validateForm()) return;
 
-     const responseNextAuth = await signIn("credentials", {
-       email,
-       password,
-       redirect: false,
-     });
- 
-     // Si hay error en la respuesta de next-auth
-     if (responseNextAuth?.error) {
-        let newErrors: FormErrors = {};
+     try {
+       const result = await signIn("credentials", {
+         email,
+         password,
+         redirect: false,
+       });
 
+       if (result?.error) {
+         setError("Credenciales inválidas");
+         return;
+       }
 
-        try {
-            const backendErrors = JSON.parse(responseNextAuth.error);
-            if (backendErrors.email) newErrors.email = backendErrors.email;
-            if (backendErrors.password) newErrors.password = backendErrors.password;
-            if (backendErrors.message) newErrors.general = backendErrors.message;
-          } catch (err) {
-            // Si el error no es un JSON válido, maneja el mensaje de error como un string
-            newErrors.general = responseNextAuth.error;
-          }
- 
-       setErrors(newErrors);
-       return;
+       router.push("/dashboard");
+     } catch (error) {
+       setError("Error al iniciar sesión");
      }
- 
-     // Redirige si el login es exitoso
-     router.push("/");
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">Iniciar Sesión</CardTitle>
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <Card className="w-[400px]">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">Iniciar Sesión</CardTitle>
+          <CardDescription>
+            Ingresa tus credenciales para acceder
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {errors.general && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                <span className="block sm:inline">{errors.general}</span>
-              </div>
+            {error && (
+              <div className="text-sm text-red-500">{error}</div>
             )}
             <div className="space-y-2">
               <Label htmlFor="email">Correo Electrónico</Label>
@@ -128,6 +119,13 @@ export default function LoginPage() {
             </Button>
           </form>
         </CardContent>
+        <Button
+            className="left-4 top-4"
+            onClick={() => router.push("/")}
+          >
+            <ArrowLeftIcon className="mr-2 h-4 w-4" />
+            Volver
+          </Button>
       </Card>
     </div>
   )

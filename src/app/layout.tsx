@@ -4,7 +4,7 @@ import { Manrope } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import './globals.css'
 import SessionAuthProvider from '@/context/SessionAuthProvider'
-import Navbar from '@/components/Navbar'
+import { Sidebar } from '@/components/Sidebar'
 
 const fontHeading = Manrope({
   subsets: ['latin'],
@@ -22,8 +22,7 @@ export default function Layout({
   children,
 }: {
   children: React.ReactNode;
-
- }) {
+}) {
   return (
     <html lang="en">
       <body 
@@ -34,9 +33,13 @@ export default function Layout({
         )}
       >
         <SessionAuthProvider>
-          <Navbar/>
-          {children}
-          </SessionAuthProvider>
+          <div className="flex min-h-screen">
+            <Sidebar />
+            <main className="flex-1 ml-64">
+              {children}
+            </main>
+          </div>
+        </SessionAuthProvider>
       </body>
     </html>
   )

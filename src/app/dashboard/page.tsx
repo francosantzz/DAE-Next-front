@@ -1,4 +1,5 @@
 "use client";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useSession } from "next-auth/react";
 import { useState } from "react";
 
@@ -34,6 +35,7 @@ const Dashboard = () => {
   };
 
   return (
+    <ErrorBoundary>
     <div>
         <pre>
         <code>{JSON.stringify(session, null, 2)}</code>
@@ -53,6 +55,7 @@ const Dashboard = () => {
       )}
       
     </div>
+    </ErrorBoundary>
   );
 };
 

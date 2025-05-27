@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PlusIcon, FilePenIcon, TrashIcon, SearchIcon, UsersIcon, UserIcon } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import ErrorBoundary from "@/components/ErrorBoundary"
 
 interface Profesional {
   id: number;
@@ -160,7 +161,7 @@ export default function GrillaHorarios() {
   // Cargar paquetes cuando se selecciona un profesional
   useEffect(() => {
     const fetchPaquetes = async () => {
-      if (!profesionalSeleccionado) {
+      if (!profesionalSeleccionado || !equipoSeleccionado) {
         setPaquetes([])
         setFilteredPaquetes([])
         setPaquetesCargados(false)
@@ -176,8 +177,14 @@ export default function GrillaHorarios() {
         if (!response.ok) throw new Error('Error al obtener paquetes')
         
         const paquetesData = await response.json()
-        setPaquetes(paquetesData)
-        setFilteredPaquetes(paquetesData)
+        
+        // Filtrar los paquetes por el equipo seleccionado
+        const paquetesFiltrados = paquetesData.filter(
+          (paquete: PaqueteHoras) => paquete.equipo.id.toString() === equipoSeleccionado
+        )
+
+        setPaquetes(paquetesFiltrados)
+        setFilteredPaquetes(paquetesFiltrados)
         setPaquetesCargados(true)
       } catch (error) {
         console.error("Error fetching paquetes:", error)
@@ -187,7 +194,7 @@ export default function GrillaHorarios() {
     }
 
     fetchPaquetes()
-  }, [profesionalSeleccionado])
+  }, [profesionalSeleccionado, equipoSeleccionado])
 
   // Filtrar paquetes cuando cambia el término de búsqueda
   useEffect(() => {
@@ -304,8 +311,11 @@ export default function GrillaHorarios() {
       if (!updatedResponse.ok) throw new Error('Error al actualizar los paquetes')
       
       const updatedPaquetes = await updatedResponse.json()
-      setPaquetes(updatedPaquetes)
-      setFilteredPaquetes(updatedPaquetes)
+      const paquetesFiltrados = updatedPaquetes.filter(
+          (paquete: PaqueteHoras) => paquete.equipo.id.toString() === equipoSeleccionado
+        )
+      setPaquetes(paquetesFiltrados)
+      setFilteredPaquetes(paquetesFiltrados)
       setOpenModal(false)
     } catch (error) {
       console.error("Error al guardar el paquete:", error)
@@ -356,6 +366,7 @@ export default function GrillaHorarios() {
   }
 
   return (
+    <ErrorBoundary>
     <div className="container mx-auto py-6">
       <Card>
         <CardHeader>
@@ -551,13 +562,15 @@ export default function GrillaHorarios() {
                   <SelectTrigger id="escuelaId">
                     <SelectValue placeholder="Seleccione una escuela" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-30 overflow-y-auto">
+                  <ScrollArea className="h-[200px]">
                     <SelectItem value="none">Ninguna</SelectItem>
                     {escuelas.map((escuela) => (
                       <SelectItem key={escuela.id} value={escuela.id.toString()}>
                         {escuela.nombre}
                       </SelectItem>
                     ))}
+                    </ScrollArea>
                   </SelectContent>
                 </Select>
               </div>
@@ -592,5 +605,6 @@ export default function GrillaHorarios() {
         </DialogContent>
       </Dialog>
     </div>
+    </ErrorBoundary>
   )
 } 

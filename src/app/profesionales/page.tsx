@@ -23,23 +23,52 @@ import {
 import { PlusCircle, Edit, Trash2 } from 'lucide-react'
 import Layout from '../../components/profesional/LayoutProf'
 import { ScrollArea } from '@radix-ui/react-scroll-area'
+import ErrorBoundary from '@/components/ErrorBoundary'
+
+interface Departamento {
+  id: number;
+  nombre: string;
+  region: {
+    id: number;
+    nombre: string;
+  };
+}
+
+interface Direccion {
+  id: number;
+  calle: string;
+  numero: string;
+  departamento: Departamento;
+}
+
+interface Equipo {
+  id: number;
+  nombre: string;
+  seccion: {
+    id: number;
+    nombre: string;
+  };
+}
 
 interface PaqueteHoras {
   id: number;
   tipo: string;
   cantidad: number;
+  equipo: {
+    id: number;
+    nombre: string;
+  };
   escuela: {
     id: number;
     nombre: string;
   };
-  equipo: {
-    nombre: string;
+  dias: {
+    lunes: boolean;
+    martes: boolean;
+    miercoles: boolean;
+    jueves: boolean;
+    viernes: boolean;
   };
-}
-
-interface Departamento {
-  id: number;
-  nombre: string;
 }
 
 interface Profesional {
@@ -49,19 +78,10 @@ interface Profesional {
   cuil: number;
   profesion: string;
   matricula: string;
-  telefono: number;
-  direccion: {
-    calle: string;
-    numero: number;
-    departamento: Departamento;
-  };
+  telefono: string;
+  equipos: Equipo[];
   paquetesHoras: PaqueteHoras[];
-  equipos: {
-    id: number;
-    nombre: string;
-    seccion: string;
-    profesionales: string[];
-  }[];
+  direccion: Direccion;
 }
 
 export default function ListaProfesionales() {
@@ -75,15 +95,18 @@ export default function ListaProfesionales() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentProfesional, setCurrentProfesional] = useState<Profesional | null>(null)
   const [formData, setFormData] = useState({
+    id: 0,
     nombre: '',
     apellido: '',
     cuil: '',
     profesion: '',
     matricula: '',
     telefono: '',
-    'direccion.calle': '',
-    'direccion.numero': '',
-    'direccion.departamentoId': '',
+    direccion: {
+      calle: '',
+      numero: '',
+      departamento: 0
+    }
   })
   const router = useRouter()
 
@@ -159,17 +182,16 @@ export default function ListaProfesionales() {
   }, [])
 
   const getPaquetesProfesional = (profesionalId: number) => {
-    console.log(paquetesPorProfesional[profesionalId])
     return paquetesPorProfesional[profesionalId] || []
   }
 
   const profesionalesFiltrados = profesionales.filter(profesional => 
     `${profesional.nombre} ${profesional.apellido}`.toLowerCase().includes(filtroNombre.toLowerCase()) &&
     (filtroDepartamento === 'todos' || profesional.direccion.departamento.nombre === filtroDepartamento) &&
-    (filtroSeccion === 'todas' || profesional.equipos.some(equipo => equipo.seccion === filtroSeccion))
+    (filtroSeccion === 'todas' || profesional.equipos.some(equipo => equipo.seccion.nombre === filtroSeccion))
   )
 
-  const secciones = Array.from(new Set(profesionales.flatMap(p => p.equipos.map(equipo => equipo.seccion))))
+  const secciones = Array.from(new Set(profesionales.flatMap(p => p.equipos.map(equipo => equipo.seccion.nombre))))
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -182,65 +204,52 @@ export default function ListaProfesionales() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const url = currentProfesional
-        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${currentProfesional.id}`
-        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`
-      const method = currentProfesional ? 'PATCH' : 'POST'
-      
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre: formData.nombre,
-          apellido: formData.apellido,
-          cuil: parseInt(formData.cuil),
-          profesion: formData.profesion,
-          matricula: formData.matricula,
-          telefono: parseInt(formData.telefono),
-          direccion: {
-            calle: formData['direccion.calle'],
-            numero: parseInt(formData['direccion.numero']),
-            departamentoId: parseInt(formData['direccion.departamentoId'])
+      const profesionalData = {
+        ...formData,
+        cuil: Number(formData.cuil),
+        direccion: {
+          ...formData.direccion,
+          departamento: {
+            id: formData.direccion.departamento
           }
-        })
+        }
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${formData.id || ''}`, {
+        method: formData.id ? 'PATCH' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(profesionalData),
       })
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al guardar el profesional');
+        throw new Error('Error al guardar el profesional')
       }
 
-      await fetchProfesionales()
       setIsDialogOpen(false)
-      setCurrentProfesional(null)
-      setFormData({
-        nombre: '',
-        apellido: '',
-        cuil: '',
-        profesion: '',
-        matricula: '',
-        telefono: '',
-        'direccion.calle': '',
-        'direccion.numero': '',
-        'direccion.departamentoId': '',
-      })
+      fetchProfesionales()
     } catch (error) {
-      alert('Error al guardar el profesional: ' + error);
+      console.error('Error:', error)
+      alert('Error al guardar el profesional')
     }
   }
 
   const handleEdit = (profesional: Profesional) => {
     setCurrentProfesional(profesional)
     setFormData({
+      id: profesional.id,
       nombre: profesional.nombre,
       apellido: profesional.apellido,
       cuil: profesional.cuil.toString(),
       profesion: profesional.profesion,
       matricula: profesional.matricula,
-      telefono: profesional.telefono.toString(),
-      'direccion.calle': profesional.direccion.calle,
-      'direccion.numero': profesional.direccion.numero.toString(),
-      'direccion.departamentoId': profesional.direccion.departamento.id.toString(),
+      telefono: profesional.telefono,
+      direccion: {
+        calle: profesional.direccion.calle,
+        numero: profesional.direccion.numero,
+        departamento: profesional.direccion.departamento.id
+      }
     })
     setIsDialogOpen(true)
   }
@@ -265,10 +274,9 @@ export default function ListaProfesionales() {
     return <div className="flex justify-center items-center h-screen">Loading...</div>
   }
 
-  console.log(profesionalesFiltrados.map(profesional => profesional.paquetesHoras));
-  
 
   return (
+    <ErrorBoundary>
     <Layout>
       <div className="space-y-6">
         <div className="bg-white shadow-md rounded-lg p-6">
@@ -319,15 +327,18 @@ export default function ListaProfesionales() {
                   <Button onClick={() => {
                     setCurrentProfesional(null)
                     setFormData({
+                      id: 0,
                       nombre: '',
                       apellido: '',
                       cuil: '',
                       profesion: '',
                       matricula: '',
                       telefono: '',
-                      'direccion.calle': '',
-                      'direccion.numero': '',
-                      'direccion.departamentoId': '',
+                      direccion: {
+                        calle: '',
+                        numero: '',
+                        departamento: 0
+                      }
                     })
                   }}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Agregar Profesional
@@ -406,7 +417,7 @@ export default function ListaProfesionales() {
                       <Input
                         id="direccion.calle"
                         name="direccion.calle"
-                        value={formData['direccion.calle']}
+                        value={formData.direccion.calle}
                         onChange={handleInputChange}
                         required
                       />
@@ -416,19 +427,19 @@ export default function ListaProfesionales() {
                       <Input
                         id="direccion.numero"
                         name="direccion.numero"
-                        value={formData['direccion.numero']}
+                        value={formData.direccion.numero}
                         onChange={handleInputChange}
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="direccion.departamentoId">Departamento</Label>
+                      <Label htmlFor="direccion.departamento">Departamento</Label>
                       <Select
-                        name="direccion.departamentoId"
-                        onValueChange={(value) => handleSelectChange('direccion.departamentoId', value)}
-                        value={formData['direccion.departamentoId']}
+                        name="direccion.departamento"
+                        onValueChange={(value) => handleSelectChange('direccion.departamento', Number(value))}
+                        value={formData.direccion.departamento.toString()}
                       >
-                        <SelectTrigger id="direccion.departamentoId">
+                        <SelectTrigger id="direccion.departamento">
                           <SelectValue placeholder="Selecciona un departamento" />
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px]">
@@ -465,22 +476,35 @@ export default function ListaProfesionales() {
                   </AccordionTrigger>
                   <AccordionContent className="px-6 py-4">
                     <div className="space-y-4">
-                      <p><strong>Profesión:</strong> {profesional.profesion}</p>
-                      <p><strong>Departamento:</strong> {profesional.direccion.departamento.nombre}</p>
-                      <p><strong>Equipo:</strong> {profesional.equipos.map(equipo => equipo.nombre).join(', ')}</p>
-                      <p><strong>Sección:</strong> {profesional.equipos.map(equipo => equipo.seccion).join(', ')}</p>
+                      <div>
+                        <strong>Equipos:</strong>
+                        {profesional.equipos && profesional.equipos.length > 0 ? (
+                          <ul className="list-disc pl-5 mt-2 space-y-1">
+                            {profesional.equipos.map((equipo) => (
+                              <li key={equipo.id}>
+                                {equipo.nombre} - {equipo.seccion.nombre}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>No hay equipos asignados</p>
+                        )}
+                      </div>
                       <div>
                         <strong>Paquetes de Horas:</strong>
-                        <ul className="list-disc pl-5 mt-2 space-y-1">
-                          {getPaquetesProfesional(profesional.id).map((paquete) => (
-                            <li key={paquete.id}>
-                              {paquete.cantidad} horas - 
-                              {` Tipo: ${paquete.tipo}.`}
-                              {paquete.escuela && ` En: ${paquete.escuela.nombre}`}
-                              {paquete.equipo && ` (Equipo: ${paquete.equipo.nombre})`}
-                            </li>
-                          ))}
-                        </ul>
+                        {profesional.paquetesHoras && profesional.paquetesHoras.length > 0 ? (
+                          <ul className="list-disc pl-5 mt-2 space-y-1">
+                            {profesional.paquetesHoras.map((paquete) => (
+                              <li key={paquete.id}>
+                                {paquete.tipo} - {paquete.cantidad} horas
+                                {paquete.escuela && ` - ${paquete.escuela.nombre}`}
+                                {` (${paquete.equipo.nombre})`}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>No hay paquetes de horas asignados</p>
+                        )}
                       </div>
                       <div className="flex justify-end space-x-2">
                         <Button onClick={() => router.push(`/perfil/${profesional.id}`)}>
@@ -504,5 +528,6 @@ export default function ListaProfesionales() {
         </div>
       </div>
     </Layout>
+    </ErrorBoundary>
   )
 }
