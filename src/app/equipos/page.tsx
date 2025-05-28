@@ -57,52 +57,70 @@ interface Equipo {
   id: number;
   nombre: string;
   profesionales: Profesional[];
-  seccion: Seccion | null;
+  departamento: Departamento;
+  escuelas: Escuela[];
   paquetesHoras: PaqueteHoras[];
-  totalHorasEquipo: number;
+  totalHoras: number;
+}
+
+interface Departamento {
+  id: number;
+  nombre: string;
+}
+
+interface Escuela {
+  id: number;
+  nombre: string;
 }
 
 export function ListaEquiposPantallaCompleta() {
   const [equipos, setEquipos] = useState<Equipo[]>([])
   const [profesionales, setProfesionales] = useState<Profesional[]>([])
-  const [secciones, setSecciones] = useState<Seccion[]>([])
+  const [departamentos, setDepartamentos] = useState<Departamento[]>([])
+  const [escuelas, setEscuelas] = useState<Escuela[]>([])
   const [filtroNombre, setFiltroNombre] = useState('')
-  const [filtroSeccion, setFiltroSeccion] = useState('todas')
+  const [filtroDepartamento, setFiltroDepartamento] = useState('todos')
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentEquipo, setCurrentEquipo] = useState<Equipo | null>(null)
   const [formData, setFormData] = useState({
     id: 0,
     nombre: '',
-    seccionId: 0,
-    profesionales: [] as number[],
+    departamentoId: 0,
+    profesionalesIds: [] as number[],
+    escuelasIds: [] as number[]
   })
   const [profesionalSearch, setProfesionalSearch] = useState('')
+  const [escuelaSearch, setEscuelaSearch] = useState('')
   const [profesionalesSeleccionados, setProfesionalesSeleccionados] = useState<Profesional[]>([])
+  const [escuelasSeleccionadas, setEscuelasSeleccionadas] = useState<Escuela[]>([])
   const [isEditing, setIsEditing] = useState(false)
  
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
       try {
-        const [equiposRes, profesionalesRes, seccionesRes] = await Promise.all([
+        const [equiposRes, profesionalesRes, departamentosRes, escuelasRes] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`),
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/seccions`)
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas`)
         ])
         
-        if (!equiposRes.ok || !profesionalesRes.ok || !seccionesRes.ok) 
+        if (!equiposRes.ok || !profesionalesRes.ok || !departamentosRes.ok || !escuelasRes.ok) 
           throw new Error('Error al obtener los datos')
 
-        const [equiposData, profesionalesData, seccionesData] = await Promise.all([
+        const [equiposData, profesionalesData, departamentosData, escuelasData] = await Promise.all([
           equiposRes.json(),
           profesionalesRes.json(),
-          seccionesRes.json()
+          departamentosRes.json(),
+          escuelasRes.json()
         ])
 
         setEquipos(equiposData)
         setProfesionales(profesionalesData)
-        setSecciones(seccionesData)
+        setDepartamentos(departamentosData)
+        setEscuelas(escuelasData)
       } catch (error) {
         console.error('Error al obtener datos:', error)
       } finally {
@@ -115,9 +133,9 @@ export function ListaEquiposPantallaCompleta() {
 
   const equiposFiltrados = equipos.filter(equipo => {
     const cumpleFiltroNombre = equipo.nombre.toLowerCase().includes(filtroNombre.toLowerCase())
-    const cumpleFiltroSeccion = filtroSeccion === 'todas' || 
-      (equipo.seccion && equipo.seccion.id === Number(filtroSeccion))
-    return cumpleFiltroNombre && cumpleFiltroSeccion
+    const cumpleFiltroDepartamento = filtroDepartamento === 'todos' || 
+      (equipo.departamento && equipo.departamento.id === Number(filtroDepartamento))
+    return cumpleFiltroNombre && cumpleFiltroDepartamento
   })
   console.log(equiposFiltrados);
   
@@ -125,6 +143,11 @@ export function ListaEquiposPantallaCompleta() {
     (profesional.nombre.toLowerCase().includes(profesionalSearch.toLowerCase()) ||
      profesional.apellido.toLowerCase().includes(profesionalSearch.toLowerCase())) &&
     !profesionalesSeleccionados.some(p => p.id === profesional.id)
+  )
+
+  const escuelasFiltradas = escuelas.filter(escuela => 
+    escuela.nombre.toLowerCase().includes(escuelaSearch.toLowerCase()) &&
+    !escuelasSeleccionadas.some(e => e.id === escuela.id)
   )
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,7 +162,7 @@ export function ListaEquiposPantallaCompleta() {
     setProfesionalesSeleccionados(prev => [...prev, profesional])
     setFormData(prev => ({
       ...prev,
-      profesionales: [...prev.profesionales, profesional.id]
+      profesionalesIds: [...prev.profesionalesIds, profesional.id]
     }))
     setProfesionalSearch('')
   }
@@ -148,7 +171,24 @@ export function ListaEquiposPantallaCompleta() {
     setProfesionalesSeleccionados(prev => prev.filter(p => p.id !== profesionalId))
     setFormData(prev => ({
       ...prev,
-      profesionales: prev.profesionales.filter(id => id !== profesionalId)
+      profesionalesIds: prev.profesionalesIds.filter(id => id !== profesionalId)
+    }))
+  }
+
+  const handleEscuelaSelect = (escuela: Escuela) => {
+    setEscuelasSeleccionadas(prev => [...prev, escuela])
+    setFormData(prev => ({
+      ...prev,
+      escuelasIds: [...prev.escuelasIds, escuela.id]
+    }))
+    setEscuelaSearch('')
+  }
+
+  const handleEscuelaRemove = (escuelaId: number) => {
+    setEscuelasSeleccionadas(prev => prev.filter(e => e.id !== escuelaId))
+    setFormData(prev => ({
+      ...prev,
+      escuelasIds: prev.escuelasIds.filter(id => id !== escuelaId)
     }))
   }
 
@@ -157,11 +197,12 @@ export function ListaEquiposPantallaCompleta() {
     setFormData({
       id: equipo.id,
       nombre: equipo.nombre,
-      seccionId: equipo.seccion ? equipo.seccion.id : 0,
-      profesionales: equipo.profesionales.map(p => p.id)
+      departamentoId: equipo.departamento.id,
+      profesionalesIds: equipo.profesionales.map(p => p.id),
+      escuelasIds: equipo.escuelas.map(e => e.id)
     })
-  
     setProfesionalesSeleccionados(equipo.profesionales)
+    setEscuelasSeleccionadas(equipo.escuelas)
     setIsEditing(true)
     setIsDialogOpen(true)
   }
@@ -171,7 +212,7 @@ export function ListaEquiposPantallaCompleta() {
     try {
       const equipoData = {
         ...formData,
-        seccionId: formData.seccionId === 0 ? null : formData.seccionId,
+        departamentoId: formData.departamentoId || null,
       }
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/${formData.id || ''}`, {
@@ -226,10 +267,12 @@ export function ListaEquiposPantallaCompleta() {
     setFormData({
       id: 0,
       nombre: '',
-      seccionId: 0,
-      profesionales: []
+      departamentoId: 0,
+      profesionalesIds: [],
+      escuelasIds: []
     })
     setProfesionalesSeleccionados([])
+    setEscuelasSeleccionadas([])
     setIsEditing(false)
   }
 
@@ -259,16 +302,16 @@ export function ListaEquiposPantallaCompleta() {
               />
             </div>
             <div>
-              <Label htmlFor="filtroSeccion">Filtrar por sección</Label>
-              <Select onValueChange={setFiltroSeccion} value={filtroSeccion}>
-                <SelectTrigger id="filtroSeccion">
-                  <SelectValue placeholder="Selecciona una sección" />
+              <Label htmlFor="filtroDepartamento">Filtrar por departamento</Label>
+              <Select onValueChange={setFiltroDepartamento} value={filtroDepartamento}>
+                <SelectTrigger id="filtroDepartamento">
+                  <SelectValue placeholder="Selecciona un departamento" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="todas">Todas las secciones</SelectItem>
-                  {secciones.map((seccion) => (
-                    <SelectItem key={seccion.id} value={seccion.id.toString()}>
-                      {seccion.nombre}
+                  <SelectItem value="todos">Todos los departamentos</SelectItem>
+                  {departamentos.map((departamento) => (
+                    <SelectItem key={departamento.id} value={departamento.id.toString()}>
+                      {departamento.nombre}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -307,20 +350,19 @@ export function ListaEquiposPantallaCompleta() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="seccion">Sección</Label>
+                      <Label htmlFor="departamento">Departamento</Label>
                       <Select
-                        name="seccion"
-                        onValueChange={(value) => handleSelectChange('seccion', value)}
-                        value={formData.seccionId.toString()}
+                        name="departamento"
+                        onValueChange={(value) => handleSelectChange('departamentoId', value)}
+                        value={formData.departamentoId.toString()}
                       >
-                        <SelectTrigger id="seccion">
-                          <SelectValue placeholder="Selecciona una sección" />
+                        <SelectTrigger id="departamento">
+                          <SelectValue placeholder="Selecciona un departamento" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="0">Sin sección</SelectItem>
-                          {secciones.map((seccion) => (
-                            <SelectItem key={seccion.id} value={seccion.id.toString()}>
-                              {seccion.nombre}
+                          {departamentos.map((departamento) => (
+                            <SelectItem key={departamento.id} value={departamento.id.toString()}>
+                              {departamento.nombre}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -353,6 +395,32 @@ export function ListaEquiposPantallaCompleta() {
                       )}
                     </div>
                     <div>
+                      <Label htmlFor="escuelaSearch">Buscar y seleccionar escuelas</Label>
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          id="escuelaSearch"
+                          value={escuelaSearch}
+                          onChange={(e) => setEscuelaSearch(e.target.value)}
+                          placeholder="Buscar escuelas..."
+                        />
+                      </div>
+                      {escuelaSearch && (
+                        <ScrollArea className="h-32 overflow-auto mt-2 border rounded-md">
+                          <div className="p-2">
+                            {escuelasFiltradas.map((escuela) => (
+                              <div
+                                key={escuela.id}
+                                className="cursor-pointer hover:bg-gray-100 p-2 rounded"
+                                onClick={() => handleEscuelaSelect(escuela)}
+                              >
+                                {escuela.nombre}
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      )}
+                    </div>
+                    <div>
                       <Label>Profesionales seleccionados</Label>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {profesionalesSeleccionados.map((profesional) => (
@@ -364,6 +432,25 @@ export function ListaEquiposPantallaCompleta() {
                               size="sm"
                               className="h-4 w-4 p-0"
                               onClick={() => handleProfesionalRemove(profesional.id)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Escuelas seleccionadas</Label>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {escuelasSeleccionadas.map((escuela) => (
+                          <Badge key={escuela.id} variant="secondary" className="flex items-center gap-1">
+                            {escuela.nombre}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-4 w-4 p-0"
+                              onClick={() => handleEscuelaRemove(escuela.id)}
                             >
                               <X className="h-3 w-3" />
                             </Button>
@@ -388,15 +475,15 @@ export function ListaEquiposPantallaCompleta() {
                     <div className="flex justify-between w-full">
                       <span>{equipo.nombre}</span>
                       <span className="text-sm text-gray-500">
-                        {equipo.seccion ? `Sección: ${equipo.seccion.nombre}` : 'Sin sección asignada'}
+                        {equipo.departamento ? `Departamento: ${equipo.departamento.nombre}` : 'Sin departamento asignado'}
                       </span>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-6 py-4">
                     <div className="space-y-4">
                       <p>
-                        <strong>Sección:</strong> 
-                        {equipo.seccion ? equipo.seccion.nombre : 'Sin sección asignada'}
+                        <strong>Departamento:</strong> 
+                        {equipo.departamento ? equipo.departamento.nombre : 'Sin departamento asignado'}
                       </p>
                       <div>
                         <strong>Profesionales:</strong>
@@ -410,6 +497,20 @@ export function ListaEquiposPantallaCompleta() {
                           </ul>
                         ) : (
                           <p>No hay profesionales asignados</p>
+                        )}
+                      </div>
+                      <div>
+                        <strong>Escuelas:</strong>
+                        {equipo.escuelas && equipo.escuelas.length > 0 ? (
+                          <ul className="list-disc pl-5 mt-2 space-y-1">
+                            {equipo.escuelas.map((escuela) => (
+                              <li key={escuela.id}>
+                                {escuela.nombre}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>No hay escuelas asignadas</p>
                         )}
                       </div>
                       <div>
@@ -427,7 +528,7 @@ export function ListaEquiposPantallaCompleta() {
                           <p>No hay paquetes de horas asignados</p>
                         )}
                       </div>
-                      <p><strong>Horas totales del Equipo:</strong> {equipo.totalHorasEquipo || 0}</p>
+                      <p><strong>Horas totales del Equipo:</strong> {equipo.totalHoras || 0}</p>
                       <div className="flex justify-end space-x-2">
                         <Button variant="outline" onClick={() => handleEdit(equipo)}>
                           <Edit className="mr-2 h-4 w-4" /> Editar

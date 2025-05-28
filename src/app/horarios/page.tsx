@@ -32,7 +32,6 @@ interface Escuela {
 interface Equipo {
   id: number;
   nombre: string;
-  seccion: string;
 }
 
 interface PaqueteHoras {

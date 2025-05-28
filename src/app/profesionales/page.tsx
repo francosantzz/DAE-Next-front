@@ -28,10 +28,6 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 interface Departamento {
   id: number;
   nombre: string;
-  region: {
-    id: number;
-    nombre: string;
-  };
 }
 
 interface Direccion {
@@ -44,53 +40,41 @@ interface Direccion {
 interface Equipo {
   id: number;
   nombre: string;
-  seccion: {
-    id: number;
-    nombre: string;
-  };
+  departamento: Departamento;
+}
+
+interface Escuela {
+  id: number;
+  nombre: string;
 }
 
 interface PaqueteHoras {
   id: number;
   tipo: string;
   cantidad: number;
-  equipo: {
-    id: number;
-    nombre: string;
-  };
-  escuela: {
-    id: number;
-    nombre: string;
-  };
-  dias: {
-    lunes: boolean;
-    martes: boolean;
-    miercoles: boolean;
-    jueves: boolean;
-    viernes: boolean;
-  };
+  escuela?: Escuela;
+  equipo?: Equipo
 }
 
 interface Profesional {
   id: number;
   nombre: string;
   apellido: string;
-  cuil: number;
-  profesion: string;
-  matricula: string;
+  email: string;
   telefono: string;
+  departamento: Departamento;
   equipos: Equipo[];
   paquetesHoras: PaqueteHoras[];
-  direccion: Direccion;
+  totalHorasProfesional: number;
 }
 
 export default function ListaProfesionales() {
   const [profesionales, setProfesionales] = useState<Profesional[]>([])
+  const [equipos, setEquipos] = useState<Equipo[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
-  const [paquetesPorProfesional, setPaquetesPorProfesional] = useState<{ [key: number]: PaqueteHoras[] }>({})
   const [filtroNombre, setFiltroNombre] = useState('')
+  const [filtroEquipo, setFiltroEquipo] = useState('todos')
   const [filtroDepartamento, setFiltroDepartamento] = useState('todos')
-  const [filtroSeccion, setFiltroSeccion] = useState('todas')
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentProfesional, setCurrentProfesional] = useState<Profesional | null>(null)
@@ -98,81 +82,37 @@ export default function ListaProfesionales() {
     id: 0,
     nombre: '',
     apellido: '',
-    cuil: '',
-    profesion: '',
-    matricula: '',
+    email: '',
     telefono: '',
-    direccion: {
-      calle: '',
-      numero: '',
-      departamento: 0
-    }
+    departamentoId: '',
+    equipoId: '',
   })
   const router = useRouter()
-
-  const fetchProfesionales = async () => {
-    setIsLoading(true)
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`)
-      const data = await response.json()
-      setProfesionales(data)
-    } catch (error) {
-      console.error("Error al obtener profesionales:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const fetchPaquetesProfesional = async (profesionalId: number) => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${profesionalId}/paquetes`)
-      if (!response.ok) throw new Error('Error al obtener paquetes')
-      const data = await response.json()
-      setPaquetesPorProfesional(prev => ({
-        ...prev,
-        [profesionalId]: data
-      }))
-    } catch (error) {
-      console.error("Error al obtener paquetes del profesional:", error)
-    }
-  }
-
-  const fetchDepartamentos = async () => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`)
-      if (!response.ok) throw new Error('Error al obtener departamentos')
-      const data = await response.json()
-      setDepartamentos(data)
-    } catch (error) {
-      console.error("Error al obtener departamentos:", error)
-    }
-  }
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
       try {
-        const [profResponse, depResponse] = await Promise.all([
+        const [profesionalesRes, equiposRes, departamentosRes] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`)
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`),
         ])
 
-        if (!profResponse.ok || !depResponse.ok) {
-          throw new Error('Error al obtener datos')
-        }
+        if (!profesionalesRes.ok || !equiposRes.ok || !departamentosRes.ok)
+          throw new Error('Error al obtener los datos')
 
-        const [profData, depData] = await Promise.all([
-          profResponse.json(),
-          depResponse.json()
+        const [profesionalesData, equiposData, departamentosData] = await Promise.all([
+          profesionalesRes.json(),
+          equiposRes.json(),
+          departamentosRes.json(),
         ])
 
-        setProfesionales(profData)
-        setDepartamentos(depData)
-
-        // Obtener paquetes para cada profesional
-        await Promise.all(profData.map((prof: Profesional) => fetchPaquetesProfesional(prof.id)))
+        setProfesionales(profesionalesData)
+        setEquipos(equiposData)
+        setDepartamentos(departamentosData)
       } catch (error) {
-        console.error("Error al obtener datos:", error)
+        console.error('Error al obtener datos:', error)
       } finally {
         setIsLoading(false)
       }
@@ -181,17 +121,19 @@ export default function ListaProfesionales() {
     fetchData()
   }, [])
 
-  const getPaquetesProfesional = (profesionalId: number) => {
-    return paquetesPorProfesional[profesionalId] || []
-  }
-
-  const profesionalesFiltrados = profesionales.filter(profesional => 
-    `${profesional.nombre} ${profesional.apellido}`.toLowerCase().includes(filtroNombre.toLowerCase()) &&
-    (filtroDepartamento === 'todos' || profesional.direccion.departamento.nombre === filtroDepartamento) &&
-    (filtroSeccion === 'todas' || profesional.equipos.some(equipo => equipo.seccion.nombre === filtroSeccion))
-  )
-
-  const secciones = Array.from(new Set(profesionales.flatMap(p => p.equipos.map(equipo => equipo.seccion.nombre))))
+  const profesionalesFiltrados = profesionales.filter(profesional => {
+    const cumpleFiltroNombre = 
+      profesional.nombre.toLowerCase().includes(filtroNombre.toLowerCase()) ||
+      profesional.apellido.toLowerCase().includes(filtroNombre.toLowerCase())
+    
+    const cumpleFiltroEquipo = filtroEquipo === 'todos' ||
+      profesional.equipos.some(equipo => equipo.id === Number(filtroEquipo))
+      
+    const cumpleFiltroDepartamento = filtroDepartamento === 'todos' || 
+      (profesional.departamento && profesional.departamento.id === Number(filtroDepartamento))
+    
+    return cumpleFiltroNombre && cumpleFiltroEquipo && cumpleFiltroDepartamento
+  })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -201,57 +143,65 @@ export default function ListaProfesionales() {
     setFormData({ ...formData, [name]: value })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      const profesionalData = {
-        ...formData,
-        cuil: Number(formData.cuil),
-        direccion: {
-          ...formData.direccion,
-          departamento: {
-            id: formData.direccion.departamento
-          }
-        }
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${formData.id || ''}`, {
-        method: formData.id ? 'PATCH' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(profesionalData),
-      })
-
-      if (!response.ok) {
-        throw new Error('Error al guardar el profesional')
-      }
-
-      setIsDialogOpen(false)
-      fetchProfesionales()
-    } catch (error) {
-      console.error('Error:', error)
-      alert('Error al guardar el profesional')
-    }
-  }
-
   const handleEdit = (profesional: Profesional) => {
     setCurrentProfesional(profesional)
     setFormData({
       id: profesional.id,
       nombre: profesional.nombre,
       apellido: profesional.apellido,
-      cuil: profesional.cuil.toString(),
-      profesion: profesional.profesion,
-      matricula: profesional.matricula,
+      email: profesional.email,
       telefono: profesional.telefono,
-      direccion: {
-        calle: profesional.direccion.calle,
-        numero: profesional.direccion.numero,
-        departamento: profesional.direccion.departamento.id
-      }
+      departamentoId: profesional.departamento.id.toString(),
+      equipoId: profesional.equipos[0]?.id.toString() || '',
     })
     setIsDialogOpen(true)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const url = currentProfesional
+        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${currentProfesional.id}`
+        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`
+      const method = currentProfesional ? 'PATCH' : 'POST'
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: formData.nombre,
+          apellido: formData.apellido,
+          email: formData.email,
+          telefono: formData.telefono,
+          departamentoId: Number.parseInt(formData.departamentoId),
+          equipoId: Number.parseInt(formData.equipoId),
+        }),
+      })
+
+      if (!response.ok) throw new Error('Error al guardar el profesional')
+
+      const updatedProfesional = await response.json()
+
+      setProfesionales(prev =>
+        currentProfesional
+          ? prev.map(p => p.id === updatedProfesional.id ? updatedProfesional : p)
+          : [...prev, updatedProfesional]
+      )
+
+      setIsDialogOpen(false)
+      setCurrentProfesional(null)
+      setFormData({
+        id: 0,
+        nombre: '',
+        apellido: '',
+        email: '',
+        telefono: '',
+        departamentoId: '',
+        equipoId: '',
+      })
+    } catch (error) {
+      console.error('Error al guardar el profesional:', error)
+    }
   }
 
   const handleDelete = async (id: number) => {
@@ -263,7 +213,7 @@ export default function ListaProfesionales() {
 
         if (!response.ok) throw new Error('Error al eliminar el profesional')
 
-        await fetchProfesionales()
+        setProfesionales(prev => prev.filter(p => p.id !== id))
       } catch (error) {
         console.error('Error al eliminar el profesional:', error)
       }
@@ -273,7 +223,6 @@ export default function ListaProfesionales() {
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>
   }
-
 
   return (
     <ErrorBoundary>
@@ -291,33 +240,38 @@ export default function ListaProfesionales() {
               />
             </div>
             <div>
+              <Label htmlFor="filtroEquipo">Filtrar por equipo</Label>
+              <Select onValueChange={setFiltroEquipo} value={filtroEquipo}>
+                <SelectTrigger id="filtroEquipo">
+                  <SelectValue placeholder="Selecciona un equipo" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60 overflow-y-auto">
+                  <ScrollArea className="h-[200px]">
+                    <SelectItem value="todos">Todos los equipos</SelectItem>
+                    {equipos.map((equipo) => (
+                      <SelectItem key={equipo.id} value={equipo.id.toString()}>
+                        {equipo.nombre}
+                      </SelectItem>
+                    ))}
+                  </ScrollArea>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
               <Label htmlFor="filtroDepartamento">Filtrar por departamento</Label>
               <Select onValueChange={setFiltroDepartamento} value={filtroDepartamento}>
                 <SelectTrigger id="filtroDepartamento">
                   <SelectValue placeholder="Selecciona un departamento" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60 overflow-y-auto">
-                    <ScrollArea className="h-[200px]">
-                      <SelectItem value="todos">Todos los departamentos</SelectItem>
-                      {departamentos.map((departamento) => (
-                        <SelectItem key={departamento.id} value={departamento.nombre}>{departamento.nombre}
-                        </SelectItem>
-                      ))}
-                    </ScrollArea>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="filtroSeccion">Filtrar por sección</Label>
-              <Select onValueChange={setFiltroSeccion} value={filtroSeccion}>
-                <SelectTrigger id="filtroSeccion">
-                  <SelectValue placeholder="Selecciona una sección" />
-                </SelectTrigger>
-                <SelectContent className="max-h-60 overflow-y-auto">
-                    <SelectItem value="todas">Todas las secciones</SelectItem>
-                    {secciones.map((sec) => (
-                      <SelectItem key={sec} value={sec}>{sec}</SelectItem>
+                  <ScrollArea className="h-[200px]">
+                    <SelectItem value="todos">Todos los departamentos</SelectItem>
+                    {departamentos.map((departamento) => (
+                      <SelectItem key={departamento.id} value={departamento.id.toString()}>
+                        {departamento.nombre}
+                      </SelectItem>
                     ))}
+                  </ScrollArea>
                 </SelectContent>
               </Select>
             </div>
@@ -330,15 +284,10 @@ export default function ListaProfesionales() {
                       id: 0,
                       nombre: '',
                       apellido: '',
-                      cuil: '',
-                      profesion: '',
-                      matricula: '',
+                      email: '',
                       telefono: '',
-                      direccion: {
-                        calle: '',
-                        numero: '',
-                        departamento: 0
-                      }
+                      departamentoId: '',
+                      equipoId: '',
                     })
                   }}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Agregar Profesional
@@ -373,31 +322,11 @@ export default function ListaProfesionales() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="cuil">CUIL</Label>
+                      <Label htmlFor="email">Email</Label>
                       <Input
-                        id="cuil"
-                        name="cuil"
-                        value={formData.cuil}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="profesion">Profesión</Label>
-                      <Input
-                        id="profesion"
-                        name="profesion"
-                        value={formData.profesion}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="matricula">Matrícula</Label>
-                      <Input
-                        id="matricula"
-                        name="matricula"
-                        value={formData.matricula}
+                        id="email"
+                        name="email"
+                        value={formData.email}
                         onChange={handleInputChange}
                         required
                       />
@@ -413,33 +342,13 @@ export default function ListaProfesionales() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="direccion.calle">Calle</Label>
-                      <Input
-                        id="direccion.calle"
-                        name="direccion.calle"
-                        value={formData.direccion.calle}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="direccion.numero">Número</Label>
-                      <Input
-                        id="direccion.numero"
-                        name="direccion.numero"
-                        value={formData.direccion.numero}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="direccion.departamento">Departamento</Label>
+                      <Label htmlFor="departamentoId">Departamento</Label>
                       <Select
-                        name="direccion.departamento"
-                        onValueChange={(value) => handleSelectChange('direccion.departamento', Number(value))}
-                        value={formData.direccion.departamento.toString()}
+                        name="departamentoId"
+                        onValueChange={(value) => handleSelectChange('departamentoId', value)}
+                        value={formData.departamentoId}
                       >
-                        <SelectTrigger id="direccion.departamento">
+                        <SelectTrigger id="departamentoId">
                           <SelectValue placeholder="Selecciona un departamento" />
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px]">
@@ -447,6 +356,27 @@ export default function ListaProfesionales() {
                             {departamentos.map((departamento) => (
                               <SelectItem key={departamento.id} value={departamento.id.toString()}>
                                 {departamento.nombre}
+                              </SelectItem>
+                            ))}
+                          </ScrollArea>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="equipoId">Equipo</Label>
+                      <Select
+                        name="equipoId"
+                        onValueChange={(value) => handleSelectChange('equipoId', value)}
+                        value={formData.equipoId}
+                      >
+                        <SelectTrigger id="equipoId">
+                          <SelectValue placeholder="Selecciona un equipo" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          <ScrollArea className="h-[200px]">
+                            {equipos.map((equipo) => (
+                              <SelectItem key={equipo.id} value={equipo.id.toString()}>
+                                {equipo.nombre}
                               </SelectItem>
                             ))}
                           </ScrollArea>
@@ -482,7 +412,7 @@ export default function ListaProfesionales() {
                           <ul className="list-disc pl-5 mt-2 space-y-1">
                             {profesional.equipos.map((equipo) => (
                               <li key={equipo.id}>
-                                {equipo.nombre} - {equipo.seccion.nombre}
+                                {equipo.nombre}
                               </li>
                             ))}
                           </ul>
@@ -498,7 +428,7 @@ export default function ListaProfesionales() {
                               <li key={paquete.id}>
                                 {paquete.tipo} - {paquete.cantidad} horas
                                 {paquete.escuela && ` - ${paquete.escuela.nombre}`}
-                                {` (${paquete.equipo.nombre})`}
+                                {` (${paquete.equipo?.nombre})`}
                               </li>
                             ))}
                           </ul>

@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { PlusCircle, Pencil, Trash2, AlertCircle } from "lucide-react"
+import { PlusCircle, Pencil, Trash2, AlertCircle, Edit } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Layout from "./LayoutProf"
 import ErrorBoundary from "../ErrorBoundary"
@@ -22,10 +22,6 @@ import ErrorBoundary from "../ErrorBoundary"
 interface Departamento {
   id: number
   nombre: string
-  region: {
-    id: number
-    nombre: string
-  }
 }
 
 interface Region {
@@ -36,7 +32,7 @@ interface Region {
 interface Direccion {
   id: number
   calle: string
-  numero: number
+  numero: string
   departamento: Departamento
   region: Region
 }
@@ -46,229 +42,233 @@ interface Escuela {
   nombre: string
 }
 
+interface Equipo {
+  id: number
+  nombre: string
+  departamento: Departamento
+}
+
+interface Dias {
+  lunes: string | null
+  martes: string | null
+  miercoles: string | null
+  jueves: string | null
+  viernes: string | null
+}
+
 interface PaqueteHoras {
   id: number
   tipo: string
   cantidad: number
-  profesional: {
-    id: number
-    nombre: string
-    apellido: string
-  }
-  escuela: {
-    id: number
-    nombre: string
-  }
-  dias: {
-    lunes: string | null
-    martes: string | null
-    miercoles: string | null
-    jueves: string | null
-    viernes: string | null
-  }
-  
-  equipo: {
-    id: number
-    nombre: string
-  }
-}
-
-interface Equipo {
-  id: number
-  nombre: string
-  profesionales: Array<{
-    id: number
-    nombre: string
-    apellido: string
-  }>
-  seccion: string
+  equipo: Equipo
+  escuela: Escuela
+  dias: Dias
 }
 
 interface Profesional {
   id: number
   nombre: string
   apellido: string
-  cuil: number
+  cuil: string
   profesion: string
   matricula: string
   telefono: string
-  direccion: Direccion
-  equipos: Array<{
-    id: number
-    nombre: string
-    seccion: {
-      id: number
-      nombre: string
-    }
-  }>
+  equipos: Equipo[]
   paquetesHoras: PaqueteHoras[]
-  totalHoras: number
+  direccion: Direccion
+  totalHorasProfesional: number
 }
 
 export default function PerfilProfesional({ params }: { params: { id: string } }) {
   const [profesional, setProfesional] = useState<Profesional | null>(null)
-  const [paquetes, setPaquetes] = useState<PaqueteHoras[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [escuelas, setEscuelas] = useState<Escuela[]>([])
   const [equipos, setEquipos] = useState<Equipo[]>([])
-  const [tiposPaquete, setTiposPaquete] = useState<string[]>([
-    "Escuela",
-    "Carga en GEI",
-    "Trabajo Interdisciplinario"
-  ])
-  const router = useRouter()
-
-  // Estados para el formulario de paquete de horas
+  const [departamentos, setDepartamentos] = useState<Departamento[]>([])
+  const [escuelas, setEscuelas] = useState<Escuela[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isPaqueteDialogOpen, setIsPaqueteDialogOpen] = useState(false)
   const [currentPaquete, setCurrentPaquete] = useState<PaqueteHoras | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
   const [formData, setFormData] = useState({
+    nombre: "",
+    apellido: "",
+    cuil: "",
+    profesion: "",
+    matricula: "",
+    telefono: "",
+    departamentoId: "",
+    equipoId: "",
+    escuelaId: "",
+    tipo: "Equipo",
+    paqueteHorasId: "",
+  })
+  const [paqueteFormData, setPaqueteFormData] = useState({
+    id: 0,
     tipo: "",
     cantidad: "",
-    escuelaId: "",
     equipoId: "",
+    escuelaId: "",
     dias: {
       lunes: "",
       martes: "",
       miercoles: "",
       jueves: "",
-      viernes: ""
-    } as Record<string, string>
+      viernes: "",
+    },
   })
-  const [formError, setFormError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [paqueteToDelete, setPaqueteToDelete] = useState<PaqueteHoras | null>(null)
+  const router = useRouter()
+
+  const tiposPaquete = ["Escuela", "Trabajo Interdisciplinario", "Carga en Gei"]
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
       try {
-        const [profesionalRes, paquetesRes, escuelasRes, equiposRes] = await Promise.all([
+        const [profesionalRes, equiposRes, departamentosRes, escuelasRes] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}`),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}/paquetes`),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas`),
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas`),
         ])
 
-        if (!profesionalRes.ok || !paquetesRes.ok || !escuelasRes.ok || !equiposRes.ok) {
-          throw new Error("Error al cargar los datos.")
-        }
+        if (!profesionalRes.ok || !equiposRes.ok || !departamentosRes.ok || !escuelasRes.ok)
+          throw new Error("Error al obtener los datos")
 
-        const [profesionalData, paquetesData, escuelasData, equiposData] = await Promise.all([
+        const [profesionalData, equiposData, departamentosData, escuelasData] = await Promise.all([
           profesionalRes.json(),
-          paquetesRes.json(),
-          escuelasRes.json(),
           equiposRes.json(),
+          departamentosRes.json(),
+          escuelasRes.json(),
         ])
 
         setProfesional(profesionalData)
-        setPaquetes(paquetesData)
-        setEscuelas(escuelasData)
         setEquipos(equiposData)
+        setDepartamentos(departamentosData)
+        setEscuelas(escuelasData)
       } catch (error) {
-        console.error("Error al obtener los datos:", error)
+        console.error("Error al obtener datos:", error)
       } finally {
         setIsLoading(false)
       }
     }
+
     fetchData()
   }, [params.id])
 
-  const handleOpenDialog = (paquete?: PaqueteHoras) => {
-    if (paquete) {
-      setCurrentPaquete(paquete)
-      setFormData({
-        tipo: paquete.tipo,
-        cantidad: paquete.cantidad.toString(),
-        escuelaId: paquete.escuela ? paquete.escuela.id.toString() : "",
-        equipoId: paquete.equipo ? paquete.equipo.id.toString() : "",
-        dias: {
-          lunes: paquete.dias.lunes || "",
-          martes: paquete.dias.martes || "",
-          miercoles: paquete.dias.miercoles || "",
-          jueves: paquete.dias.jueves || "",
-          viernes: paquete.dias.viernes || ""
-        }
-      })
-    } else {
-      setCurrentPaquete(null)
-      setFormData({
-        tipo: tiposPaquete[0],
-        cantidad: "",
-        escuelaId: "",
-        equipoId: "",
-        dias: {
-          lunes: "",
-          martes: "",
-          miercoles: "",
-          jueves: "",
-          viernes: ""
-        }
-      })
-    }
-    setFormError(null)
-    setIsDialogOpen(true)
-  }
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    if (name.startsWith("dias.")) {
-      const dia = name.split(".")[1]
-      setFormData(prev => ({
-        ...prev,
-        dias: {
-          ...prev.dias,
-          [dia]: value
-        }
-      }))
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }))
-    }
+    setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }))
-    // Si el tipo cambia a "Carga en GEI" o "Trabajo Interdisciplinario", limpiar la escuela
-    if (name === "tipo" && (value === "Carga en GEI" || value === "Trabajo Interdisciplinario")) {
-      setFormData(prev => ({ ...prev, escuelaId: "" }))
-    }
+    setFormData({ ...formData, [name]: value })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setFormError(null)
-    setIsSubmitting(true)
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: formData.nombre,
+          apellido: formData.apellido,
+          cuil: formData.cuil,
+          profesion: formData.profesion,
+          matricula: formData.matricula,
+          telefono: formData.telefono,
+          departamentoId: Number.parseInt(formData.departamentoId),
+          equipoId: Number.parseInt(formData.equipoId),
+          escuelaId: formData.escuelaId ? Number.parseInt(formData.escuelaId) : null,
+          tipo: formData.tipo,
+          paqueteHorasId: formData.paqueteHorasId ? Number.parseInt(formData.paqueteHorasId) : null,
+        }),
+      })
 
-    // Validación básica
-    if (!formData.tipo || !formData.cantidad || Number.parseInt(formData.cantidad) <= 0) {
-      setFormError("Por favor complete todos los campos requeridos correctamente.")
-      setIsSubmitting(false)
-      return
+      if (!response.ok) throw new Error("Error al actualizar el profesional")
+
+      const updatedProfesional = await response.json()
+      setProfesional(updatedProfesional)
+      setIsDialogOpen(false)
+    } catch (error) {
+      console.error("Error al actualizar el profesional:", error)
     }
+  }
+
+  const handlePaqueteEdit = (paquete: PaqueteHoras) => {
+    setCurrentPaquete(paquete)
+    setPaqueteFormData({
+      id: paquete.id,
+      tipo: paquete.tipo,
+      cantidad: paquete.cantidad.toString(),
+      equipoId: paquete.equipo.id.toString(),
+      escuelaId: paquete.escuela.id.toString(),
+      dias: {
+        lunes: paquete.dias.lunes || "",
+        martes: paquete.dias.martes || "",
+        miercoles: paquete.dias.miercoles || "",
+        jueves: paquete.dias.jueves || "",
+        viernes: paquete.dias.viernes || "",
+      },
+    })
+    setIsPaqueteDialogOpen(true)
+  }
+
+  const handlePaqueteDelete = async (paqueteId: number) => {
+    if (window.confirm("¿Estás seguro de que quieres eliminar este paquete de horas?")) {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}/paquetes/${paqueteId}`,
+          {
+            method: "DELETE",
+          }
+        )
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.message || "Error al eliminar el paquete de horas")
+        }
+
+        // Actualizar el estado local inmediatamente
+        if (profesional) {
+          const updatedPaquetes = profesional.paquetesHoras.filter((p) => p.id !== paqueteId)
+          setProfesional({
+            ...profesional,
+            paquetesHoras: updatedPaquetes,
+            totalHorasProfesional: updatedPaquetes.reduce((sum, p) => sum + p.cantidad, 0),
+          })
+        }
+      } catch (error) {
+        console.error("Error al eliminar el paquete de horas:", error)
+        alert(error instanceof Error ? error.message : "Error al eliminar el paquete de horas")
+      }
+    }
+  }
+
+  const handlePaqueteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    setFormError(null)
 
     try {
+      // Validar que si el tipo no es Escuela, no se envíe escuelaId
+      const requestData = {
+        tipo: paqueteFormData.tipo,
+        cantidad: Number(paqueteFormData.cantidad),
+        equipoId: Number(paqueteFormData.equipoId),
+        escuelaId: paqueteFormData.tipo === "Escuela" ? Number(paqueteFormData.escuelaId) : null,
+        dias: paqueteFormData.dias,
+      }
+
       const url = currentPaquete
         ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}/paquetes/${currentPaquete.id}`
         : `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}/paquetes`
-
       const method = currentPaquete ? "PATCH" : "POST"
 
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tipo: formData.tipo,
-          cantidad: Number.parseInt(formData.cantidad),
-          escuelaId: formData.tipo === "Escuela" ? Number.parseInt(formData.escuelaId) : null,
-          equipoId: Number.parseInt(formData.equipoId),
-          dias: {
-            lunes: formData.dias.lunes || null,
-            martes: formData.dias.martes || null,
-            miercoles: formData.dias.miercoles || null,
-            jueves: formData.dias.jueves || null,
-            viernes: formData.dias.viernes || null
-          }
-        }),
+        body: JSON.stringify(requestData),
       })
 
       if (!response.ok) {
@@ -276,27 +276,58 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
         throw new Error(errorData.message || "Error al guardar el paquete de horas")
       }
 
-      // Actualizar la lista de paquetes
-      const updatedPaquetesRes = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}/paquetes`,
+      const updatedProfesional = await response.json()
+      
+      // Encontrar el paquete actualizado en la respuesta
+      const updatedPaquete = updatedProfesional.paquetesHoras.find(
+        (p: PaqueteHoras) => p.id === (currentPaquete?.id || updatedProfesional.paquetesHoras[updatedProfesional.paquetesHoras.length - 1].id)
       )
-      if (!updatedPaquetesRes.ok) {
-        throw new Error("Error al actualizar la lista de paquetes")
+
+      // Encontrar el equipo correspondiente
+      const equipo = equipos.find(e => e.id === Number(paqueteFormData.equipoId))
+
+      // Construir el paquete actualizado con la información completa
+      const paqueteCompleto = {
+        ...updatedPaquete,
+        equipo: equipo || { id: Number(paqueteFormData.equipoId), nombre: "Equipo no encontrado" },
+        dias: updatedPaquete.dias || {
+          lunes: "",
+          martes: "",
+          miercoles: "",
+          jueves: "",
+          viernes: ""
+        }
       }
 
-      const updatedPaquetes = await updatedPaquetesRes.json()
-      setPaquetes(updatedPaquetes)
+      // Actualizar el estado local inmediatamente
+      if (profesional) {
+        const updatedPaquetes = currentPaquete
+          ? profesional.paquetesHoras.map((p) => (p.id === currentPaquete.id ? paqueteCompleto : p))
+          : [...profesional.paquetesHoras, paqueteCompleto]
 
-      // Actualizar el profesional para obtener el total de horas actualizado
-      const updatedProfesionalRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}`)
-      if (!updatedProfesionalRes.ok) {
-        throw new Error("Error al actualizar los datos del profesional")
+        setProfesional({
+          ...profesional,
+          paquetesHoras: updatedPaquetes,
+          totalHorasProfesional: updatedPaquetes.reduce((sum, p) => sum + p.cantidad, 0),
+        })
       }
 
-      const updatedProfesional = await updatedProfesionalRes.json()
-      setProfesional(updatedProfesional)
-
-      setIsDialogOpen(false)
+      setIsPaqueteDialogOpen(false)
+      setCurrentPaquete(null)
+      setPaqueteFormData({
+        id: 0,
+        tipo: "",
+        cantidad: "",
+        equipoId: "",
+        escuelaId: "",
+        dias: {
+          lunes: "",
+          martes: "",
+          miercoles: "",
+          jueves: "",
+          viernes: "",
+        },
+      })
     } catch (error) {
       console.error("Error al guardar el paquete de horas:", error)
       setFormError(error instanceof Error ? error.message : "Error al guardar el paquete de horas")
@@ -305,72 +336,38 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
     }
   }
 
-  const handleOpenDeleteDialog = (paquete: PaqueteHoras) => {
-    setPaqueteToDelete(paquete)
-    setIsDeleteDialogOpen(true)
-  }
-
-  const handleDelete = async () => {
-    if (!paqueteToDelete) return
-
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}/paquetes/${paqueteToDelete.id}`,
-        { method: "DELETE" },
-      )
-
-      if (!response.ok) {
-        throw new Error("Error al eliminar el paquete de horas")
-      }
-
-      // Actualizar la lista de paquetes
-      setPaquetes(paquetes.filter((p) => p.id !== paqueteToDelete.id))
-
-      // Actualizar el profesional para obtener el total de horas actualizado
-      const updatedProfesionalRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}`)
-      if (!updatedProfesionalRes.ok) {
-        throw new Error("Error al actualizar los datos del profesional")
-      }
-
-      const updatedProfesional = await updatedProfesionalRes.json()
-      setProfesional(updatedProfesional)
-
-      setIsDeleteDialogOpen(false)
-      setPaqueteToDelete(null)
-    } catch (error) {
-      console.error("Error al eliminar el paquete de horas:", error)
+  const handlePaqueteInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    if (name.startsWith("dias.")) {
+      const dia = name.split(".")[1]
+      setPaqueteFormData((prev) => ({
+        ...prev,
+        dias: {
+          ...prev.dias,
+          [dia]: value,
+        },
+      }))
+    } else {
+      setPaqueteFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }))
     }
   }
 
+  const handlePaqueteSelectChange = (name: string, value: string) => {
+    setPaqueteFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
   if (isLoading) {
-    return (
-      <Layout>
-        <Card className="w-full max-w-3xl mx-auto">
-          <CardHeader>
-            <Skeleton className="h-8 w-3/4" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-5/6" />
-              <Skeleton className="h-4 w-4/6" />
-            </div>
-          </CardContent>
-        </Card>
-      </Layout>
-    )
+    return <div className="flex justify-center items-center h-screen">Loading...</div>
   }
 
   if (!profesional) {
-    return (
-      <Layout>
-        <Card className="w-full max-w-3xl mx-auto">
-          <CardContent>
-            <p className="text-center py-4">Profesional no encontrado</p>
-          </CardContent>
-        </Card>
-      </Layout>
-    )
+    return <div>No se encontró el profesional</div>
   }
 
   return (
@@ -400,64 +397,83 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
                       <p><strong>Profesión:</strong> {profesional.profesion}</p>
                       <p><strong>Matrícula:</strong> {profesional.matricula}</p>
                       <p><strong>Teléfono:</strong> {profesional.telefono}</p>
+                      <p><strong>Dirección:</strong> {profesional.direccion.calle} {profesional.direccion.numero}</p>
+                      <p><strong>Departamento:</strong> {profesional.direccion.departamento.nombre}</p>
+                      <p><strong>Región:</strong> {profesional.direccion.region.nombre}</p>
                     </div>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">Dirección</h3>
-                    <div className="space-y-2">
-                      <p>{profesional.direccion.calle} {profesional.direccion.numero}</p>
-                      <p>Departamento: {profesional.direccion.departamento.nombre}</p>
-                      <p>Región: {profesional.direccion.region ? profesional.direccion.region.nombre : "NONO"}</p>
-                    </div>
+                    <h3 className="text-lg font-semibold mb-4">Equipos</h3>
+                    {profesional.equipos && profesional.equipos.length > 0 ? (
+                      <div className="space-y-4">
+                        {profesional.equipos.map((equipo) => (
+                          <div key={equipo.id} className="p-4 border rounded-lg">
+                            <h4 className="font-semibold">{equipo.nombre}</h4>
+                            <p>Departamento: {equipo.departamento.nombre}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p>No hay equipos asignados</p>
+                    )}
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">Equipos</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {profesional.equipos && profesional.equipos.length > 0 ? (
-                  <div className="space-y-4">
-                    {profesional.equipos.map((equipo) => (
-                      <div key={equipo.id} className="p-4 border rounded-lg">
-                        <h4 className="font-semibold">{equipo.nombre}</h4>
-                        <p>Sección: {equipo.seccion.nombre}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p>No hay equipos asignados</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-xl">Paquetes de Horas</CardTitle>
-                <Button onClick={() => handleOpenDialog()}>
+                <Button onClick={() => {
+                  setCurrentPaquete(null)
+                  setPaqueteFormData({
+                    id: 0,
+                    tipo: "",
+                    cantidad: "",
+                    equipoId: "",
+                    escuelaId: "",
+                    dias: {
+                      lunes: "",
+                      martes: "",
+                      miercoles: "",
+                      jueves: "",
+                      viernes: "",
+                    },
+                  })
+                  setIsPaqueteDialogOpen(true)
+                }}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Agregar Paquete
                 </Button>
               </CardHeader>
               <CardContent>
-                {paquetes.length > 0 ? (
+                {profesional.paquetesHoras && profesional.paquetesHoras.length > 0 ? (
                   <div className="space-y-4">
-                    {paquetes.map((paquete) => (
+                    {profesional.paquetesHoras.map((paquete) => (
                       <div key={paquete.id} className="p-4 border rounded-lg">
                         <div className="flex justify-between items-start">
                           <div>
                             <h4 className="font-semibold">{paquete.tipo}</h4>
                             <p>Cantidad: {paquete.cantidad} horas</p>
-                            {paquete.escuela && <p>Escuela: {paquete.escuela.nombre}</p>}
                             <p>Equipo: {paquete.equipo.nombre}</p>
+                            {paquete.escuela && <p>Escuela: {paquete.escuela.nombre}</p>}
+                            <div className="mt-2">
+                              <p className="font-semibold">Días:</p>
+                              <ul className="list-disc pl-5">
+                                {Object.entries(paquete.dias).map(([dia, horario]) => (
+                                  horario && (
+                                    <li key={dia}>
+                                      {dia.charAt(0).toUpperCase() + dia.slice(1)}: {horario}
+                                    </li>
+                                  )
+                                ))}
+                              </ul>
+                            </div>
                           </div>
                           <div className="flex space-x-2">
-                            <Button variant="outline" size="sm" onClick={() => handleOpenDialog(paquete)}>
-                              <Pencil className="h-4 w-4" />
+                            <Button variant="outline" size="sm" onClick={() => handlePaqueteEdit(paquete)}>
+                              <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="destructive" size="sm" onClick={() => handleOpenDeleteDialog(paquete)}>
+                            <Button variant="destructive" size="sm" onClick={() => handlePaqueteDelete(paquete.id)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -468,16 +484,28 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
                 ) : (
                   <p>No hay paquetes de horas asignados</p>
                 )}
-                
               </CardContent>
-             
             </Card>
-            <section className="flex justify-between items-center">
-                <p className="text-lg font-semibold">
-                  Total de horas: <span className="text-2xl">{profesional.totalHoras}</span>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-xl">Resumen de Horas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>
+                  <strong>Horas totales:</strong> {profesional.paquetesHoras.reduce((sum, p) => sum + p.cantidad, 0)}
                 </p>
-                <Button onClick={() => router.back()}>Volver</Button>
-              </section>
+              </CardContent>
+            </Card>
+
+            <section className="flex justify-between items-center">
+              <Button variant="outline" onClick={() => router.push('/profesionales')}>
+                Volver a la lista
+              </Button>
+              <Button onClick={() => setIsDialogOpen(true)}>
+                <Pencil className="mr-2 h-4 w-4" /> Editar Perfil
+              </Button>
+            </section>
           </div>
         ) : (
           <Alert>
@@ -489,14 +517,129 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
         )}
       </div>
 
-      {/* Diálogo para agregar/editar paquete de horas */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Perfil</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="nombre">Nombre</Label>
+              <Input
+                id="nombre"
+                name="nombre"
+                value={formData.nombre}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="apellido">Apellido</Label>
+              <Input
+                id="apellido"
+                name="apellido"
+                value={formData.apellido}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="cuil">CUIL</Label>
+              <Input
+                id="cuil"
+                name="cuil"
+                value={formData.cuil}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="profesion">Profesión</Label>
+              <Input
+                id="profesion"
+                name="profesion"
+                value={formData.profesion}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="matricula">Matrícula</Label>
+              <Input
+                id="matricula"
+                name="matricula"
+                value={formData.matricula}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="telefono">Teléfono</Label>
+              <Input
+                id="telefono"
+                name="telefono"
+                value={formData.telefono}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="departamentoId">Departamento</Label>
+              <Select
+                name="departamentoId"
+                onValueChange={(value) => handleSelectChange("departamentoId", value)}
+                value={formData.departamentoId}
+                required
+              >
+                <SelectTrigger id="departamentoId">
+                  <SelectValue placeholder="Seleccione un departamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departamentos.map((departamento) => (
+                    <SelectItem key={departamento.id} value={departamento.id.toString()}>
+                      {departamento.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="equipoId">Equipo</Label>
+              <Select
+                name="equipoId"
+                onValueChange={(value) => handleSelectChange("equipoId", value)}
+                value={formData.equipoId}
+                required
+              >
+                <SelectTrigger id="equipoId">
+                  <SelectValue placeholder="Seleccione un equipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {equipos.map((equipo) => (
+                    <SelectItem key={equipo.id} value={equipo.id.toString()}>
+                      {equipo.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">Guardar Cambios</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPaqueteDialogOpen} onOpenChange={setIsPaqueteDialogOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{currentPaquete ? "Editar" : "Agregar"} Paquete de Horas</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto pr-2">
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handlePaqueteSubmit} className="space-y-4">
               {formError && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
@@ -507,8 +650,14 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
                 <Label htmlFor="tipo">Tipo de Paquete</Label>
                 <Select
                   name="tipo"
-                  value={formData.tipo}
-                  onValueChange={(value) => handleSelectChange("tipo", value)}
+                  value={paqueteFormData.tipo}
+                  onValueChange={(value) => {
+                    setPaqueteFormData(prev => ({
+                      ...prev,
+                      tipo: value,
+                      escuelaId: value !== "Escuela" ? "" : prev.escuelaId
+                    }))
+                  }}
                   required
                 >
                   <SelectTrigger id="tipo">
@@ -530,8 +679,8 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
                   name="cantidad"
                   type="number"
                   min="1"
-                  value={formData.cantidad}
-                  onChange={handleInputChange}
+                  value={paqueteFormData.cantidad}
+                  onChange={handlePaqueteInputChange}
                   required
                 />
               </div>
@@ -539,9 +688,9 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
                 <Label htmlFor="escuelaId">Escuela</Label>
                 <Select
                   name="escuelaId"
-                  value={formData.escuelaId}
-                  onValueChange={(value) => handleSelectChange("escuelaId", value)}
-                  disabled={formData.tipo !== "Escuela"}
+                  value={paqueteFormData.escuelaId}
+                  onValueChange={(value) => handlePaqueteSelectChange("escuelaId", value)}
+                  disabled={paqueteFormData.tipo !== "Escuela"}
                 >
                   <SelectTrigger id="escuelaId">
                     <SelectValue placeholder="Seleccione una escuela" />
@@ -560,15 +709,15 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
                 <Label htmlFor="equipoId">Equipo</Label>
                 <Select
                   name="equipoId"
-                  value={formData.equipoId}
-                  onValueChange={(value) => handleSelectChange("equipoId", value)}
+                  value={paqueteFormData.equipoId}
+                  onValueChange={(value) => handlePaqueteSelectChange("equipoId", value)}
                   required
                 >
                   <SelectTrigger id="equipoId">
                     <SelectValue placeholder="Seleccione un equipo" />
                   </SelectTrigger>
                   <SelectContent>
-                    {profesional.equipos?.map((equipo) => (
+                    {profesional?.equipos?.map((equipo) => (
                       <SelectItem key={equipo.id} value={equipo.id.toString()}>
                         {equipo.nombre}
                       </SelectItem>
@@ -587,8 +736,8 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
                         name={`dias.${dia}`}
                         type="text"
                         placeholder="Ej: 8:00 - 12:00"
-                        value={formData.dias[dia]}
-                        onChange={handleInputChange}
+                        value={paqueteFormData.dias[dia as keyof typeof paqueteFormData.dias]}
+                        onChange={handlePaqueteInputChange}
                       />
                     </div>
                   ))}
@@ -597,46 +746,11 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
             </form>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setIsPaqueteDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting} onClick={handleSubmit}>
+            <Button type="submit" disabled={isSubmitting} onClick={handlePaqueteSubmit}>
               {isSubmitting ? "Guardando..." : "Guardar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Diálogo de confirmación para eliminar */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Confirmar eliminación</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p>¿Está seguro de que desea eliminar este paquete de horas?</p>
-            {paqueteToDelete && (
-              <div className="mt-2 p-3 bg-gray-100 rounded-md">
-                <p>
-                  <strong>Tipo:</strong> {paqueteToDelete.tipo}
-                </p>
-                <p>
-                  <strong>Cantidad:</strong> {paqueteToDelete.cantidad} horas
-                </p>
-                {paqueteToDelete.escuela && (
-                  <p>
-                    <strong>Escuela:</strong> {paqueteToDelete.escuela.nombre}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={handleDelete}>
-              Eliminar
             </Button>
           </DialogFooter>
         </DialogContent>

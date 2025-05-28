@@ -47,6 +47,10 @@ interface Direccion {
   departamento: {
     id: number
     nombre: string
+    region?: {
+      id: number
+      nombre: string
+    }
   }
 }
 
@@ -66,14 +70,20 @@ interface Departamento {
   nombre: string
 }
 
+interface Equipo {
+  id: number
+  nombre: string
+  departamento: Departamento
+}
+
 interface Escuela {
   id: number
   nombre: string
   direccion: Direccion
-  seccion: Seccion
+  equipo: Equipo
   anexos: Anexo[]
   paquetesHoras: PaqueteHoras[]
-  observaciones?: string // Campo opcional para observaciones del espacio físico
+  observaciones?: string
 }
 
 // Simulación de roles de usuario - En un entorno real, esto vendría de un sistema de autenticación
@@ -84,11 +94,11 @@ const userRoles = {
 
 export default function ListaEscuelas() {
   const [escuelas, setEscuelas] = useState<Escuela[]>([])
-  const [secciones, setSecciones] = useState<Seccion[]>([])
+  const [equipos, setEquipos] = useState<Equipo[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [anexos, setAnexos] = useState<Anexo[]>([])
   const [filtroNombre, setFiltroNombre] = useState("")
-  const [filtroSeccion, setFiltroSeccion] = useState("todas")
+  const [filtroEquipo, setFiltroEquipo] = useState("todos")
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentEscuela, setCurrentEscuela] = useState<Escuela | null>(null)
@@ -97,7 +107,7 @@ export default function ListaEscuelas() {
     "direccion.calle": "",
     "direccion.numero": "",
     departamentoId: "",
-    seccionId: "",
+    equipoId: "",
     observaciones: "",
   })
   const [isDetailViewOpen, setIsDetailViewOpen] = useState(false)
@@ -114,25 +124,25 @@ export default function ListaEscuelas() {
   const fetchData = useCallback(async () => {
     setIsLoading(true)
     try {
-      const [escuelasRes, seccionesRes, departamentosRes, anexosRes] = await Promise.all([
+      const [escuelasRes, equiposRes, departamentosRes, anexosRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas`),
-        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/seccions`),
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`),
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`),
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/anexos`),
       ])
 
-      if (!escuelasRes.ok || !seccionesRes.ok || !departamentosRes.ok || !anexosRes.ok)
+      if (!escuelasRes.ok || !equiposRes.ok || !departamentosRes.ok || !anexosRes.ok)
         throw new Error("Error al obtener los datos")
 
-      const [escuelasData, seccionesData, departamentosData, anexosData] = await Promise.all([
+      const [escuelasData, equiposData, departamentosData, anexosData] = await Promise.all([
         escuelasRes.json(),
-        seccionesRes.json(),
+        equiposRes.json(),
         departamentosRes.json(),
         anexosRes.json(),
       ])
 
       setEscuelas(escuelasData)
-      setSecciones(seccionesData)
+      setEquipos(equiposData)
       setDepartamentos(departamentosData)
       setAnexos(anexosData)
     } catch (error) {
@@ -149,7 +159,7 @@ export default function ListaEscuelas() {
   const escuelasFiltradas = escuelas.filter(
     (escuela) =>
       escuela.nombre.toLowerCase().includes(filtroNombre.toLowerCase()) &&
-      (filtroSeccion === "todas" || escuela.seccion.id.toString() === filtroSeccion),
+      (filtroEquipo === "todos" || escuela.equipo?.id?.toString() === filtroEquipo),
   )
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -171,47 +181,60 @@ export default function ListaEscuelas() {
         ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas/${currentEscuela.id}`
         : `${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas`
       const method = currentEscuela ? "PATCH" : "POST"
-
+  
+      const payload = {
+        nombre: formData.nombre,
+        direccion: {
+          calle: formData["direccion.calle"],
+          numero: Number(formData["direccion.numero"]),
+          departamentoId: Number(formData.departamentoId)
+        },
+        equipoId: Number(formData.equipoId),
+        observaciones: formData.observaciones,
+        // Si necesitas enviar anexos o paquetes de horas:
+        anexos: currentEscuela?.anexos || [],
+        paquetesHorasIds: currentEscuela?.paquetesHoras?.map(p => p.id) || []
+      }
+  
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nombre: formData.nombre,
-          direccion: {
-            calle: formData["direccion.calle"],
-            numero: Number.parseInt(formData["direccion.numero"]),
-            departamentoId: Number.parseInt(formData.departamentoId),
-          },
-          seccionId: Number.parseInt(formData.seccionId),
-          observaciones: formData.observaciones,
-        }),
+        body: JSON.stringify(payload)
       })
-
+  
       if (!response.ok) throw new Error("Error al guardar la escuela")
-
+  
       const updatedEscuela = await response.json()
-
-      setEscuelas((prev) =>
-        currentEscuela ? prev.map((e) => (e.id === updatedEscuela.id ? updatedEscuela : e)) : [...prev, updatedEscuela],
+      
+      // Actualizar el estado
+      setEscuelas(prev => 
+        currentEscuela 
+          ? prev.map(e => e.id === updatedEscuela.id ? updatedEscuela : e) 
+          : [...prev, updatedEscuela]
       )
-
-      if (selectedEscuela && selectedEscuela.id === updatedEscuela.id) {
+  
+      if (selectedEscuela?.id === updatedEscuela.id) {
         setSelectedEscuela(updatedEscuela)
       }
-
+  
       setIsDialogOpen(false)
       setCurrentEscuela(null)
-      setFormData({
-        nombre: "",
-        "direccion.calle": "",
-        "direccion.numero": "",
-        departamentoId: "",
-        seccionId: "",
-        observaciones: "",
-      })
+      resetForm()
     } catch (error) {
       console.error("Error al guardar la escuela:", error)
+      // Aquí podrías agregar un toast o alerta de error
     }
+  }
+  
+  const resetForm = () => {
+    setFormData({
+      nombre: "",
+      "direccion.calle": "",
+      "direccion.numero": "",
+      departamentoId: "",
+      equipoId: "",
+      observaciones: "",
+    })
   }
 
   const handleEdit = useCallback((escuela: Escuela) => {
@@ -221,8 +244,8 @@ export default function ListaEscuelas() {
       "direccion.calle": escuela.direccion.calle,
       "direccion.numero": escuela.direccion.numero.toString(),
       departamentoId: escuela.direccion.departamento.id.toString(),
-      seccionId: escuela.seccion?.id?.toString() || "",
-      observaciones: escuela.observaciones || "",
+      equipoId: escuela.equipo?.id?.toString() || '',
+      observaciones: escuela.observaciones || ""
     })
     setIsDialogOpen(true)
   }, [])
@@ -269,33 +292,46 @@ export default function ListaEscuelas() {
   const handleAnexoSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedEscuela) return
-
+  
     try {
       const url = isEditingAnexo
         ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas/${selectedEscuela.id}/anexos/${anexoFormData.id}`
         : `${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas/${selectedEscuela.id}/anexos`
+      
       const method = isEditingAnexo ? "PATCH" : "POST"
-
+      
+      const payload = {
+        nombre: anexoFormData.nombre,
+        matricula: Number(anexoFormData.matricula)
+      }
+  
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nombre: anexoFormData.nombre,
-          matricula: Number.parseInt(anexoFormData.matricula),
-        }),
+        body: JSON.stringify(payload)
       })
-
+  
       if (!response.ok) throw new Error(`Error al ${isEditingAnexo ? "editar" : "agregar"} anexo`)
-
-      const anexosResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/anexos`)
-      if (!anexosResponse.ok) throw new Error("Error al obtener anexos actualizados")
-
-      const updatedAnexos = await anexosResponse.json()
-      setAnexos(updatedAnexos)
-
+  
+      // Actualizar la lista de anexos
+      const updatedAnexos = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas/${selectedEscuela.id}/anexos`)
+      if (!updatedAnexos.ok) throw new Error("Error al obtener anexos actualizados")
+      
+      const anexosData = await updatedAnexos.json()
+      setAnexos(anexosData)
+  
+      // Cerrar diálogo y resetear formulario
       setIsAnexoDialogOpen(false)
       setAnexoFormData({ id: undefined, nombre: "", matricula: "" })
       setIsEditingAnexo(false)
+      
+      // Actualizar la escuela en el estado si es necesario
+      setEscuelas(prev => prev.map(e => 
+        e.id === selectedEscuela.id 
+          ? { ...e, anexos: anexosData } 
+          : e
+      ))
+  
     } catch (error) {
       console.error(`Error al ${isEditingAnexo ? "editar" : "agregar"} anexo:`, error)
     }
@@ -448,16 +484,16 @@ export default function ListaEscuelas() {
               />
             </div>
             <div>
-              <Label htmlFor="filtroSeccion">Filtrar por sección</Label>
-              <Select onValueChange={setFiltroSeccion} value={filtroSeccion}>
-                <SelectTrigger id="filtroSeccion">
-                  <SelectValue placeholder="Selecciona una sección" />
+              <Label htmlFor="filtroEquipo">Filtrar por equipo</Label>
+              <Select onValueChange={setFiltroEquipo} value={filtroEquipo}>
+                <SelectTrigger id="filtroEquipo">
+                  <SelectValue placeholder="Selecciona un equipo" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60 overflow-y-auto">
-                  <SelectItem value="todas">Todas las secciones</SelectItem>
-                  {secciones.map((seccion) => (
-                    <SelectItem key={seccion.id} value={seccion.id.toString()}>
-                      {seccion.nombre}
+                  <SelectItem value="todos">Todos los equipos</SelectItem>
+                  {equipos.map((equipo) => (
+                    <SelectItem key={equipo.id} value={equipo.id.toString()}>
+                      {equipo.nombre}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -474,7 +510,7 @@ export default function ListaEscuelas() {
                         "direccion.calle": "",
                         "direccion.numero": "",
                         departamentoId: "",
-                        seccionId: "",
+                        equipoId: "",
                         observaciones: "",
                       })
                     }}
@@ -535,19 +571,19 @@ export default function ListaEscuelas() {
                       </Select>
                     </div>
                     <div>
-                      <Label htmlFor="seccionId">Sección</Label>
+                      <Label htmlFor="equipoId">Equipo</Label>
                       <Select
-                        name="seccionId"
-                        onValueChange={(value) => handleSelectChange("seccionId", value)}
-                        value={formData.seccionId}
+                        name="equipoId"
+                        onValueChange={(value) => handleSelectChange("equipoId", value)}
+                        value={formData.equipoId}
                       >
-                        <SelectTrigger id="seccionId">
-                          <SelectValue placeholder="Selecciona una sección" />
+                        <SelectTrigger id="equipoId">
+                          <SelectValue placeholder="Selecciona un equipo" />
                         </SelectTrigger>
                         <SelectContent>
-                          {secciones.map((seccion) => (
-                            <SelectItem key={seccion.id} value={seccion.id.toString()}>
-                              {seccion.nombre}
+                          {equipos.map((equipo) => (
+                            <SelectItem key={equipo.id} value={equipo.id.toString()}>
+                              {equipo.nombre}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -595,7 +631,7 @@ export default function ListaEscuelas() {
                           )}
                         </div>
                         <span className="text-sm text-gray-500">
-                          {escuela.seccion ? `Sección: ${escuela.seccion.nombre}` : "Sin sección asignada"}
+                          {escuela.equipo ? `Equipo: ${escuela.equipo.nombre}` : "Sin equipo asignado"}
                         </span>
                       </div>
                     </AccordionTrigger>
@@ -688,8 +724,7 @@ export default function ListaEscuelas() {
                     <strong>Departamento:</strong> {selectedEscuela.direccion.departamento.nombre}
                   </p>
                   <p>
-                    <strong>Sección:</strong>{" "}
-                    {selectedEscuela.seccion ? selectedEscuela.seccion.nombre : "Sin sección asignada"}
+                    <strong>Equipo:</strong> {selectedEscuela.equipo.nombre}
                   </p>
                 </CardContent>
               </Card>
