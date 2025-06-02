@@ -24,6 +24,8 @@ import { PlusCircle, Edit, Trash2 } from 'lucide-react'
 import Layout from '../../components/profesional/LayoutProf'
 import { ScrollArea } from '@radix-ui/react-scroll-area'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import { Badge } from '@/components/ui/badge'
+import { XIcon } from 'lucide-react'
 
 interface Departamento {
   id: number;
@@ -62,10 +64,13 @@ interface Profesional {
   apellido: string;
   email: string;
   telefono: string;
-  departamento: Departamento;
+  direccion: Direccion;
   equipos: Equipo[];
   paquetesHoras: PaqueteHoras[];
   totalHorasProfesional: number;
+  cuil: string;
+  profesion: string;
+  matricula: string;
 }
 
 export default function ListaProfesionales() {
@@ -82,10 +87,16 @@ export default function ListaProfesionales() {
     id: 0,
     nombre: '',
     apellido: '',
-    email: '',
+    cuil: '',
+    profesion: '',
+    matricula: '',
     telefono: '',
-    departamentoId: '',
-    equipoId: '',
+    equiposIds: [] as number[],
+    direccion: {
+      calle: '',
+      numero: '',
+      departamentoId: ''
+    }
   })
   const router = useRouter()
 
@@ -130,7 +141,7 @@ export default function ListaProfesionales() {
       profesional.equipos.some(equipo => equipo.id === Number(filtroEquipo))
       
     const cumpleFiltroDepartamento = filtroDepartamento === 'todos' || 
-      (profesional.departamento && profesional.departamento.id === Number(filtroDepartamento))
+      (profesional.direccion.departamento && profesional.direccion.departamento.id === Number(filtroDepartamento))
     
     return cumpleFiltroNombre && cumpleFiltroEquipo && cumpleFiltroDepartamento
   })
@@ -149,10 +160,16 @@ export default function ListaProfesionales() {
       id: profesional.id,
       nombre: profesional.nombre,
       apellido: profesional.apellido,
-      email: profesional.email,
+      cuil: profesional.cuil,
+      profesion: profesional.profesion,
+      matricula: profesional.matricula,
       telefono: profesional.telefono,
-      departamentoId: profesional.departamento.id.toString(),
-      equipoId: profesional.equipos[0]?.id.toString() || '',
+      equiposIds: profesional.equipos.map(e => e.id),
+      direccion: {
+        calle: profesional.direccion.calle,
+        numero: profesional.direccion.numero,
+        departamentoId: profesional.direccion.departamento.id.toString()
+      }
     })
     setIsDialogOpen(true)
   }
@@ -171,10 +188,16 @@ export default function ListaProfesionales() {
         body: JSON.stringify({
           nombre: formData.nombre,
           apellido: formData.apellido,
-          email: formData.email,
+          cuil: formData.cuil,
+          profesion: formData.profesion,
+          matricula: formData.matricula,
           telefono: formData.telefono,
-          departamentoId: Number.parseInt(formData.departamentoId),
-          equipoId: Number.parseInt(formData.equipoId),
+          equiposIds: formData.equiposIds,
+          direccion: {
+            calle: formData.direccion.calle,
+            numero: parseInt(formData.direccion.numero),
+            departamentoId: parseInt(formData.direccion.departamentoId)
+          }
         }),
       })
 
@@ -194,10 +217,16 @@ export default function ListaProfesionales() {
         id: 0,
         nombre: '',
         apellido: '',
-        email: '',
+        cuil: '',
+        profesion: '',
+        matricula: '',
         telefono: '',
-        departamentoId: '',
-        equipoId: '',
+        equiposIds: [],
+        direccion: {
+          calle: '',
+          numero: '',
+          departamentoId: ''
+        }
       })
     } catch (error) {
       console.error('Error al guardar el profesional:', error)
@@ -284,10 +313,16 @@ export default function ListaProfesionales() {
                       id: 0,
                       nombre: '',
                       apellido: '',
-                      email: '',
+                      cuil: '',
+                      profesion: '',
+                      matricula: '',
                       telefono: '',
-                      departamentoId: '',
-                      equipoId: '',
+                      equiposIds: [],
+                      direccion: {
+                        calle: '',
+                        numero: '',
+                        departamentoId: ''
+                      }
                     })
                   }}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Agregar Profesional
@@ -296,9 +331,6 @@ export default function ListaProfesionales() {
                 <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>{currentProfesional ? 'Editar' : 'Agregar'} Profesional</DialogTitle>
-                    <DialogDescription>
-                      Complete los detalles del profesional aquí. Haga clic en guardar cuando termine.
-                    </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -322,11 +354,31 @@ export default function ListaProfesionales() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="cuil">CUIL</Label>
                       <Input
-                        id="email"
-                        name="email"
-                        value={formData.email}
+                        id="cuil"
+                        name="cuil"
+                        value={formData.cuil}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="profesion">Profesión</Label>
+                      <Input
+                        id="profesion"
+                        name="profesion"
+                        value={formData.profesion}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="matricula">Matrícula</Label>
+                      <Input
+                        id="matricula"
+                        name="matricula"
+                        value={formData.matricula}
                         onChange={handleInputChange}
                         required
                       />
@@ -342,48 +394,109 @@ export default function ListaProfesionales() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="departamentoId">Departamento</Label>
+                      <Label htmlFor="direccion.calle">Calle</Label>
+                      <Input
+                        id="direccion.calle"
+                        name="direccion.calle"
+                        value={formData.direccion.calle}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          direccion: { ...prev.direccion, calle: e.target.value }
+                        }))}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="direccion.numero">Número</Label>
+                      <Input
+                        id="direccion.numero"
+                        name="direccion.numero"
+                        type="number"
+                        value={formData.direccion.numero}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          direccion: { ...prev.direccion, numero: e.target.value }
+                        }))}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="direccion.departamentoId">Departamento</Label>
                       <Select
-                        name="departamentoId"
-                        onValueChange={(value) => handleSelectChange('departamentoId', value)}
-                        value={formData.departamentoId}
+                        name="direccion.departamentoId"
+                        onValueChange={(value) => setFormData(prev => ({
+                          ...prev,
+                          direccion: { ...prev.direccion, departamentoId: value }
+                        }))}
+                        value={formData.direccion.departamentoId}
+                        required
                       >
-                        <SelectTrigger id="departamentoId">
-                          <SelectValue placeholder="Selecciona un departamento" />
+                        <SelectTrigger id="direccion.departamentoId">
+                          <SelectValue placeholder="Seleccione un departamento" />
                         </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                          <ScrollArea className="h-[200px]">
-                            {departamentos.map((departamento) => (
-                              <SelectItem key={departamento.id} value={departamento.id.toString()}>
-                                {departamento.nombre}
-                              </SelectItem>
-                            ))}
-                          </ScrollArea>
+                        <SelectContent>
+                          {departamentos.map((departamento) => (
+                            <SelectItem key={departamento.id} value={departamento.id.toString()}>
+                              {departamento.nombre}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div>
-                      <Label htmlFor="equipoId">Equipo</Label>
+                      <Label htmlFor="equiposIds">Equipos</Label>
                       <Select
-                        name="equipoId"
-                        onValueChange={(value) => handleSelectChange('equipoId', value)}
-                        value={formData.equipoId}
+                        name="equiposIds"
+                        onValueChange={(value) => {
+                          const equipoId = parseInt(value);
+                          setFormData(prev => ({
+                            ...prev,
+                            equiposIds: prev.equiposIds.includes(equipoId)
+                              ? prev.equiposIds.filter(id => id !== equipoId)
+                              : [...prev.equiposIds, equipoId]
+                          }))
+                        }}
+                        value=""
                       >
-                        <SelectTrigger id="equipoId">
-                          <SelectValue placeholder="Selecciona un equipo" />
+                        <SelectTrigger id="equiposIds">
+                          <SelectValue placeholder="Seleccione equipos" />
                         </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
-                          <ScrollArea className="h-[200px]">
-                            {equipos.map((equipo) => (
-                              <SelectItem key={equipo.id} value={equipo.id.toString()}>
-                                {equipo.nombre}
-                              </SelectItem>
-                            ))}
-                          </ScrollArea>
+                        <SelectContent>
+                          {equipos.map((equipo) => (
+                            <SelectItem key={equipo.id} value={equipo.id.toString()}>
+                              {equipo.nombre}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {formData.equiposIds.map(id => {
+                          const equipo = equipos.find(e => e.id === id);
+                          return equipo ? (
+                            <Badge key={id} variant="secondary" className="flex items-center gap-1">
+                              {equipo.nombre}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-4 w-4 p-0"
+                                onClick={() => setFormData(prev => ({
+                                  ...prev,
+                                  equiposIds: prev.equiposIds.filter(eid => eid !== id)
+                                }))}
+                              >
+                                <XIcon className="h-3 w-3" />
+                              </Button>
+                            </Badge>
+                          ) : null;
+                        })}
+                      </div>
                     </div>
-                    <Button type="submit">Guardar</Button>
+                    <div className="flex justify-end space-x-2">
+                      <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                        Cancelar
+                      </Button>
+                      <Button type="submit">Guardar Cambios</Button>
+                    </div>
                   </form>
                 </DialogContent>
               </Dialog>

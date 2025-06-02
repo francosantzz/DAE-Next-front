@@ -291,77 +291,99 @@ export default function ListaEscuelas() {
 
   const handleAnexoSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedEscuela) return
-  
     try {
       const url = isEditingAnexo
-        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas/${selectedEscuela.id}/anexos/${anexoFormData.id}`
-        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas/${selectedEscuela.id}/anexos`
-      
+        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/anexos/${anexoFormData.id}`
+        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/anexos`
       const method = isEditingAnexo ? "PATCH" : "POST"
-      
+
       const payload = {
         nombre: anexoFormData.nombre,
-        matricula: Number(anexoFormData.matricula)
+        matricula: Number(anexoFormData.matricula),
+        escuelaId: selectedEscuela?.id
       }
-  
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       })
-  
-      if (!response.ok) throw new Error(`Error al ${isEditingAnexo ? "editar" : "agregar"} anexo`)
-  
-      // Actualizar la lista de anexos
-      const updatedAnexos = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas/${selectedEscuela.id}/anexos`)
-      if (!updatedAnexos.ok) throw new Error("Error al obtener anexos actualizados")
-      
-      const anexosData = await updatedAnexos.json()
-      setAnexos(anexosData)
-  
-      // Cerrar diálogo y resetear formulario
+
+      if (!response.ok) throw new Error("Error al guardar el anexo")
+
+      const updatedAnexo = await response.json()
+
+      // Actualizar el estado de anexos
+      setAnexos(prev => 
+        isEditingAnexo
+          ? prev.map(a => a.id === updatedAnexo.id ? updatedAnexo : a)
+          : [...prev, updatedAnexo]
+      )
+
+      // Actualizar la escuela seleccionada
+      if (selectedEscuela) {
+        const updatedEscuela = {
+          ...selectedEscuela,
+          anexos: isEditingAnexo
+            ? selectedEscuela.anexos.map(a => a.id === updatedAnexo.id ? updatedAnexo : a)
+            : [...selectedEscuela.anexos, updatedAnexo]
+        }
+        setSelectedEscuela(updatedEscuela)
+
+        // Actualizar también en la lista de escuelas
+        setEscuelas(prev => 
+          prev.map(e => e.id === selectedEscuela.id ? updatedEscuela : e)
+        )
+      }
+
       setIsAnexoDialogOpen(false)
       setAnexoFormData({ id: undefined, nombre: "", matricula: "" })
       setIsEditingAnexo(false)
-      
-      // Actualizar la escuela en el estado si es necesario
-      setEscuelas(prev => prev.map(e => 
-        e.id === selectedEscuela.id 
-          ? { ...e, anexos: anexosData } 
-          : e
-      ))
-  
     } catch (error) {
-      console.error(`Error al ${isEditingAnexo ? "editar" : "agregar"} anexo:`, error)
+      console.error("Error al guardar el anexo:", error)
     }
   }
 
-  const handleEditAnexo = useCallback((anexo: Anexo) => {
+  const handleDeleteAnexo = async (anexoId: number) => {
+    if (!window.confirm("¿Estás seguro de que quieres eliminar este anexo?")) return
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/anexos/${anexoId}`, {
+        method: "DELETE"
+      })
+
+      if (!response.ok) throw new Error("Error al eliminar el anexo")
+
+      // Actualizar el estado de anexos
+      setAnexos(prev => prev.filter(a => a.id !== anexoId))
+
+      // Actualizar la escuela seleccionada
+      if (selectedEscuela) {
+        const updatedEscuela = {
+          ...selectedEscuela,
+          anexos: selectedEscuela.anexos.filter(a => a.id !== anexoId)
+        }
+        setSelectedEscuela(updatedEscuela)
+
+        // Actualizar también en la lista de escuelas
+        setEscuelas(prev => 
+          prev.map(e => e.id === selectedEscuela.id ? updatedEscuela : e)
+        )
+      }
+    } catch (error) {
+      console.error("Error al eliminar el anexo:", error)
+    }
+  }
+
+  const handleEditAnexo = (anexo: Anexo) => {
     setAnexoFormData({
       id: anexo.id,
       nombre: anexo.nombre,
-      matricula: anexo.matricula.toString(),
+      matricula: anexo.matricula.toString()
     })
     setIsEditingAnexo(true)
     setIsAnexoDialogOpen(true)
-  }, [])
-
-  const handleDeleteAnexo = useCallback(async (escuelaId: number, anexoId: number) => {
-    if (window.confirm("¿Estás seguro de que quieres eliminar este anexo?")) {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas/${escuelaId}/anexos/${anexoId}`, {
-          method: "DELETE",
-        })
-
-        if (!response.ok) throw new Error("Error al eliminar el anexo")
-
-        setAnexos((prev) => prev.filter((a) => a.id !== anexoId))
-      } catch (error) {
-        console.error("Error al eliminar el anexo:", error)
-      }
-    }
-  }, [])
+  }
 
   const handleEditObservaciones = useCallback((escuela: Escuela) => {
     setCurrentEscuela(escuela)
@@ -759,7 +781,7 @@ export default function ListaEscuelas() {
                             <Button
                               variant="destructive"
                               size="sm"
-                              onClick={() => handleDeleteAnexo(selectedEscuela.id, anexo.id)}
+                              onClick={() => handleDeleteAnexo(anexo.id)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>

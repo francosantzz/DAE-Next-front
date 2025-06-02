@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { PlusCircle, Pencil, Trash2, AlertCircle, Edit } from "lucide-react"
+import { PlusCircle, Pencil, Trash2, AlertCircle, Edit, XIcon } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Layout from "./LayoutProf"
 import ErrorBoundary from "../ErrorBoundary"
@@ -97,11 +97,12 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
     profesion: "",
     matricula: "",
     telefono: "",
-    departamentoId: "",
-    equipoId: "",
-    escuelaId: "",
-    tipo: "Equipo",
-    paqueteHorasId: "",
+    equiposIds: [] as number[],
+    direccion: {
+      calle: "",
+      numero: "",
+      departamentoId: ""
+    }
   })
   const [paqueteFormData, setPaqueteFormData] = useState({
     id: 0,
@@ -146,6 +147,22 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
         setEquipos(equiposData)
         setDepartamentos(departamentosData)
         setEscuelas(escuelasData)
+
+        // Cargar los datos del profesional en el formulario
+        setFormData({
+          nombre: profesionalData.nombre,
+          apellido: profesionalData.apellido,
+          cuil: profesionalData.cuil,
+          profesion: profesionalData.profesion,
+          matricula: profesionalData.matricula,
+          telefono: profesionalData.telefono,
+          equiposIds: profesionalData.equipos.map((e: Equipo) => e.id),
+          direccion: {
+            calle: profesionalData.direccion.calle,
+            numero: profesionalData.direccion.numero,
+            departamentoId: profesionalData.direccion.departamento.id.toString()
+          }
+        })
       } catch (error) {
         console.error("Error al obtener datos:", error)
       } finally {
@@ -177,11 +194,12 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
           profesion: formData.profesion,
           matricula: formData.matricula,
           telefono: formData.telefono,
-          departamentoId: Number.parseInt(formData.departamentoId),
-          equipoId: Number.parseInt(formData.equipoId),
-          escuelaId: formData.escuelaId ? Number.parseInt(formData.escuelaId) : null,
-          tipo: formData.tipo,
-          paqueteHorasId: formData.paqueteHorasId ? Number.parseInt(formData.paqueteHorasId) : null,
+          equiposIds: formData.equiposIds,
+          direccion: {
+            calle: formData.direccion.calle,
+            numero: parseInt(formData.direccion.numero),
+            departamentoId: parseInt(formData.direccion.departamentoId)
+          }
         }),
       })
 
@@ -584,14 +602,44 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
               />
             </div>
             <div>
-              <Label htmlFor="departamentoId">Departamento</Label>
+              <Label htmlFor="direccion.calle">Calle</Label>
+              <Input
+                id="direccion.calle"
+                name="direccion.calle"
+                value={formData.direccion.calle}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  direccion: { ...prev.direccion, calle: e.target.value }
+                }))}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="direccion.numero">Número</Label>
+              <Input
+                id="direccion.numero"
+                name="direccion.numero"
+                type="number"
+                value={formData.direccion.numero}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  direccion: { ...prev.direccion, numero: e.target.value }
+                }))}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="direccion.departamentoId">Departamento</Label>
               <Select
-                name="departamentoId"
-                onValueChange={(value) => handleSelectChange("departamentoId", value)}
-                value={formData.departamentoId}
+                name="direccion.departamentoId"
+                onValueChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  direccion: { ...prev.direccion, departamentoId: value }
+                }))}
+                value={formData.direccion.departamentoId}
                 required
               >
-                <SelectTrigger id="departamentoId">
+                <SelectTrigger id="direccion.departamentoId">
                   <SelectValue placeholder="Seleccione un departamento" />
                 </SelectTrigger>
                 <SelectContent>
@@ -604,15 +652,22 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
               </Select>
             </div>
             <div>
-              <Label htmlFor="equipoId">Equipo</Label>
+              <Label htmlFor="equiposIds">Equipos</Label>
               <Select
-                name="equipoId"
-                onValueChange={(value) => handleSelectChange("equipoId", value)}
-                value={formData.equipoId}
-                required
+                name="equiposIds"
+                onValueChange={(value) => {
+                  const equipoId = parseInt(value);
+                  setFormData(prev => ({
+                    ...prev,
+                    equiposIds: prev.equiposIds.includes(equipoId)
+                      ? prev.equiposIds.filter(id => id !== equipoId)
+                      : [...prev.equiposIds, equipoId]
+                  }))
+                }}
+                value=""
               >
-                <SelectTrigger id="equipoId">
-                  <SelectValue placeholder="Seleccione un equipo" />
+                <SelectTrigger id="equiposIds">
+                  <SelectValue placeholder="Seleccione equipos" />
                 </SelectTrigger>
                 <SelectContent>
                   {equipos.map((equipo) => (
@@ -622,6 +677,27 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
                   ))}
                 </SelectContent>
               </Select>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {formData.equiposIds.map(id => {
+                  const equipo = equipos.find(e => e.id === id);
+                  return equipo ? (
+                    <Badge key={id} variant="secondary" className="flex items-center gap-1">
+                      {equipo.nombre}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-4 w-4 p-0"
+                        onClick={() => setFormData(prev => ({
+                          ...prev,
+                          equiposIds: prev.equiposIds.filter(eid => eid !== id)
+                        }))}
+                      >
+                        <XIcon className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  ) : null;
+                })}
+              </div>
             </div>
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
