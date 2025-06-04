@@ -499,7 +499,7 @@ export default function ListaEscuelas() {
             <div>
               <Label htmlFor="filtroNombre">Filtrar por nombre</Label>
               <Input
-                id="filtroNombre"
+                id="filtroNombre" 
                 placeholder="Nombre de la escuela"
                 value={filtroNombre}
                 onChange={(e) => setFiltroNombre(e.target.value)}

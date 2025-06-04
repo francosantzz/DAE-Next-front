@@ -49,10 +49,7 @@ interface Equipo {
   id: number;
   nombre: string;
   profesionales: string[];
-  seccion: {
-    id: number;
-    nombre: string;
-  };
+
 }
 
 interface Professional {
@@ -66,7 +63,7 @@ interface Professional {
   direccion: Direccion;
   paquetesHoras: PaqueteHoras[];
   equipos: Equipo[];
-  totalHoras: number;
+  totalHorasProfesional: number;
 }
 
 
@@ -311,7 +308,7 @@ export function HomePage() {
                         {professional.equipos.map(equipo => (
                           <div key={equipo.id} className="flex items-center gap-2">
                             <UsersIcon className="w-4 h-4 text-muted-foreground" />
-                            <div>{equipo.nombre} ({equipo.seccion.nombre})</div>
+                            <div>{equipo.nombre} ({equipo.nombre})</div>
                           </div>
                         ))}
                       </div>
@@ -323,7 +320,7 @@ export function HomePage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                      <div className="font-medium">{professional.totalHoras}</div>
+                      <div className="font-medium">{professional.totalHorasProfesional}</div>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(professional)}>

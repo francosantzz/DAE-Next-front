@@ -21,7 +21,7 @@ const Dashboard = () => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.user?.token}`,
+          Authorization: `Bearer ${session?.user?.accessToken}`,
         },
       });
       const data = await res.json();
