@@ -17,6 +17,7 @@ import { PlusCircle, Pencil, Trash2, AlertCircle, Edit, XIcon } from "lucide-rea
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Layout from "./LayoutProf"
 import ErrorBoundary from "../ErrorBoundary"
+import { useSession } from "next-auth/react"
 
 // Interfaces (unchanged)
 interface Departamento {
@@ -80,6 +81,7 @@ interface Profesional {
 }
 
 export default function PerfilProfesional({ params }: { params: { id: string } }) {
+  const { data: session } = useSession()
   const [profesional, setProfesional] = useState<Profesional | null>(null)
   const [equipos, setEquipos] = useState<Equipo[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
@@ -127,10 +129,14 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
       setIsLoading(true)
       try {
         const [profesionalRes, equiposRes, departamentosRes, escuelasRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}`),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}`, {
+            headers: {Authorization: `Bearer ${session?.user?.accessToken}`}
+          }),
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`),
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas`),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas`, {
+            headers: { Authorization: `Bearer ${session?.user?.accessToken}`}
+          }),
         ])
 
         if (!profesionalRes.ok || !equiposRes.ok || !departamentosRes.ok || !escuelasRes.ok)
@@ -146,7 +152,7 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
         setProfesional(profesionalData)
         setEquipos(equiposData)
         setDepartamentos(departamentosData)
-        setEscuelas(escuelasData)
+        setEscuelas(escuelasData.data || [])
 
         // Cargar los datos del profesional en el formulario
         setFormData({
@@ -186,7 +192,10 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.user?.accessToken}`
+        },
         body: JSON.stringify({
           nombre: formData.nombre,
           apellido: formData.apellido,
@@ -285,7 +294,9 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
 
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json",
+          'Authorization': `Bearer ${session?.user?.accessToken}`
+         },
         body: JSON.stringify(requestData),
       })
 
@@ -520,9 +531,11 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
               <Button variant="outline" onClick={() => router.push('/profesionales')}>
                 Volver a la lista
               </Button>
+              {session?.user?.role === 'admin' && (
               <Button onClick={() => setIsDialogOpen(true)}>
                 <Pencil className="mr-2 h-4 w-4" /> Editar Perfil
               </Button>
+              )}
             </section>
           </div>
         ) : (
@@ -771,9 +784,9 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
                   <SelectTrigger id="escuelaId">
                     <SelectValue placeholder="Seleccione una escuela" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-60 overflow-y-auto">
                     <SelectItem value="none">Ninguna</SelectItem>
-                    {escuelas.map((escuela) => (
+                    {escuelas?.map((escuela) => (
                       <SelectItem key={escuela.id} value={escuela.id.toString()}>
                         {escuela.nombre}
                       </SelectItem>

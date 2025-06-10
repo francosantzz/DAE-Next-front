@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Edit, Save, X } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useSession } from "next-auth/react"
 
 interface ObservacionesEditorProps {
   escuelaId: number
@@ -17,9 +18,9 @@ interface ObservacionesEditorProps {
 export function ObservacionesEditor({
   escuelaId,
   observaciones,
-  isAdmin,
   onObservacionesUpdated,
 }: ObservacionesEditorProps) {
+  const { data: session } = useSession()
   const [isEditing, setIsEditing] = useState(false)
   const [editedObservaciones, setEditedObservaciones] = useState(observaciones || "")
   const [isSaving, setIsSaving] = useState(false)
@@ -75,7 +76,7 @@ export function ObservacionesEditor({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Estado del Espacio Físico</CardTitle>
-        {isAdmin && !isEditing && (
+        {session?.user?.role === 'admin' && (
           <Button variant="outline" size="sm" onClick={handleEdit}>
             <Edit className="mr-2 h-4 w-4" /> Editar
           </Button>

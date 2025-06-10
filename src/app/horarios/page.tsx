@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PlusIcon, FilePenIcon, TrashIcon, SearchIcon, UsersIcon, UserIcon } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import ErrorBoundary from "@/components/ErrorBoundary"
+import { useSession } from "next-auth/react"
 
 interface Profesional {
   id: number;
@@ -61,6 +62,7 @@ interface PaqueteHoras {
 }
 
 export default function GrillaHorarios() {
+  const { data: session} = useSession()
   const [paquetes, setPaquetes] = useState<PaqueteHoras[]>([])
   const [profesionales, setProfesionales] = useState<Profesional[]>([])
   const [profesionalesFiltrados, setProfesionalesFiltrados] = useState<Profesional[]>([])
@@ -102,8 +104,12 @@ export default function GrillaHorarios() {
       setIsLoading(true)
       try {
         const [escuelasRes, equiposRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas`),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`)
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas`, {
+            headers: { Authorization: `Bearer ${session?.user?.accessToken}`}
+          }),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`, {
+            headers: { Authorization: `Bearer ${session?.user?.accessToken}`}
+          }),
         ])
 
         if (!escuelasRes.ok || !equiposRes.ok) throw new Error('Error al obtener datos iniciales')
@@ -113,7 +119,7 @@ export default function GrillaHorarios() {
           equiposRes.json()
         ])
 
-        setEscuelas(escuelasData)
+        setEscuelas(escuelasData.data || [])
         setEquipos(equiposData)
       } catch (error) {
         console.error("Error fetching initial data:", error)
@@ -135,7 +141,9 @@ export default function GrillaHorarios() {
 
       setIsLoading(true)
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`, {
+          headers: { Authorization: `Bearer ${session?.user?.accessToken}`}
+        })
         if (!response.ok) throw new Error('Error al obtener profesionales')
         
         const profesionalesData = await response.json()
@@ -366,7 +374,7 @@ export default function GrillaHorarios() {
 
   return (
     <ErrorBoundary>
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto p-4">
       <Card>
         <CardHeader>
           <CardTitle>Grilla de Paquetes de Horas</CardTitle>
@@ -562,13 +570,13 @@ export default function GrillaHorarios() {
                     <SelectValue placeholder="Seleccione una escuela" />
                   </SelectTrigger>
                   <SelectContent className="max-h-30 overflow-y-auto">
-                  <ScrollArea className="h-[200px]">
-                    <SelectItem value="none">Ninguna</SelectItem>
-                    {escuelas.map((escuela) => (
-                      <SelectItem key={escuela.id} value={escuela.id.toString()}>
-                        {escuela.nombre}
-                      </SelectItem>
-                    ))}
+                    <ScrollArea className="h-[200px]">
+                      <SelectItem value="none">Ninguna</SelectItem>
+                      {escuelas?.map((escuela) => (
+                        <SelectItem key={escuela.id} value={escuela.id.toString()}>
+                          {escuela.nombre}
+                        </SelectItem>
+                      ))}
                     </ScrollArea>
                   </SelectContent>
                 </Select>

@@ -21,8 +21,9 @@ import {
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { PlusCircle, Edit, Trash2, X } from 'lucide-react'
+import { PlusCircle, Edit, Trash2, X, UserCheck, Building } from 'lucide-react'
 import ErrorBoundary from '@/components/ErrorBoundary'
+import { useSession } from 'next-auth/react'
 
 interface Profesional {
   id: number;
@@ -74,6 +75,7 @@ interface Escuela {
 }
 
 export function ListaEquiposPantallaCompleta() {
+  const { data: session } = useSession()
   const [equipos, setEquipos] = useState<Equipo[]>([])
   const [profesionales, setProfesionales] = useState<Profesional[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
@@ -95,16 +97,30 @@ export function ListaEquiposPantallaCompleta() {
   const [profesionalesSeleccionados, setProfesionalesSeleccionados] = useState<Profesional[]>([])
   const [escuelasSeleccionadas, setEscuelasSeleccionadas] = useState<Escuela[]>([])
   const [isEditing, setIsEditing] = useState(false)
- 
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const itemsPerPage = 10
+
   useEffect(() => {
     const fetchData = async () => {
+      if (!session?.user?.accessToken) return
+      
       setIsLoading(true)
       try {
         const [equiposRes, profesionalesRes, departamentosRes, escuelasRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas`)
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`, {
+            headers: { Authorization: `Bearer ${session.user.accessToken}` }
+          }),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`, {
+            headers: { Authorization: `Bearer ${session.user.accessToken}`}
+          }),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`, {
+            headers: { Authorization: `Bearer ${session.user.accessToken}`}
+          }),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas?page=${currentPage}&limit=${itemsPerPage}`, {
+            headers: { Authorization: `Bearer ${session.user.accessToken}`}
+          })
         ])
         
         if (!equiposRes.ok || !profesionalesRes.ok || !departamentosRes.ok || !escuelasRes.ok) 
@@ -120,7 +136,9 @@ export function ListaEquiposPantallaCompleta() {
         setEquipos(equiposData)
         setProfesionales(profesionalesData)
         setDepartamentos(departamentosData)
-        setEscuelas(escuelasData)
+        setEscuelas(escuelasData.data || [])
+        setTotalPages(escuelasData.meta.totalPages)
+        setTotalItems(escuelasData.meta.total)
       } catch (error) {
         console.error('Error al obtener datos:', error)
       } finally {
@@ -129,26 +147,24 @@ export function ListaEquiposPantallaCompleta() {
     }
 
     fetchData()
-  }, [])
+  }, [session?.user?.accessToken, currentPage])
 
-  const equiposFiltrados = equipos.filter(equipo => {
+  const equiposFiltrados = equipos?.filter(equipo => {
     const cumpleFiltroNombre = equipo.nombre.toLowerCase().includes(filtroNombre.toLowerCase())
     const cumpleFiltroDepartamento = filtroDepartamento === 'todos' || 
       (equipo.departamento && equipo.departamento.id === Number(filtroDepartamento))
     return cumpleFiltroNombre && cumpleFiltroDepartamento
-  })
-  console.log(equiposFiltrados);
-  
-  const profesionalesFiltrados = profesionales.filter(profesional => 
-    (profesional.nombre.toLowerCase().includes(profesionalSearch.toLowerCase()) ||
-     profesional.apellido.toLowerCase().includes(profesionalSearch.toLowerCase())) &&
-    !profesionalesSeleccionados.some(p => p.id === profesional.id)
-  )
+  }) || []
 
-  const escuelasFiltradas = escuelas.filter(escuela => 
+  const profesionalesFiltrados = profesionales?.filter(profesional => 
+    profesional.nombre.toLowerCase().includes(profesionalSearch.toLowerCase()) &&
+    !profesionalesSeleccionados.some(p => p.id === profesional.id)
+  ) || []
+
+  const escuelasFiltradas = escuelas?.filter(escuela => 
     escuela.nombre.toLowerCase().includes(escuelaSearch.toLowerCase()) &&
     !escuelasSeleccionadas.some(e => e.id === escuela.id)
-  )
+  ) || []
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -424,18 +440,23 @@ export function ListaEquiposPantallaCompleta() {
                       <Label>Profesionales seleccionados</Label>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {profesionalesSeleccionados.map((profesional) => (
-                          <Badge key={profesional.id} variant="secondary" className="flex items-center gap-1">
-                            {profesional.nombre} {profesional.apellido}
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-4 w-4 p-0"
-                              onClick={() => handleProfesionalRemove(profesional.id)}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </Badge>
+                           <Badge
+                           key={profesional.id}
+                           variant="secondary"
+                           className="bg-blue-100 text-blue-800 px-3 py-1"
+                         >
+                           <UserCheck className="h-3 w-3 mr-1" />
+                           {profesional.nombre} {profesional.apellido}
+                           <Button
+                             type="button"
+                             variant="ghost"
+                             size="sm"
+                             className="h-4 w-4 p-0 ml-2 hover:bg-blue-200"
+                             onClick={() => handleProfesionalRemove(profesional.id)}
+                           >
+                             <X className="h-3 w-3" />
+                           </Button>
+                         </Badge>
                         ))}
                       </div>
                     </div>
@@ -443,18 +464,23 @@ export function ListaEquiposPantallaCompleta() {
                       <Label>Escuelas seleccionadas</Label>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {escuelasSeleccionadas.map((escuela) => (
-                          <Badge key={escuela.id} variant="secondary" className="flex items-center gap-1">
-                            {escuela.nombre}
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-4 w-4 p-0"
-                              onClick={() => handleEscuelaRemove(escuela.id)}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </Badge>
+                           <Badge
+                           key={escuela.id}
+                           variant="secondary"
+                           className="bg-green-100 text-green-800 px-3 py-1"
+                         >
+                           <Building className="h-3 w-3 mr-1" />
+                           {escuela.nombre}
+                           <Button
+                             type="button"
+                             variant="ghost"
+                             size="sm"
+                             className="h-4 w-4 p-0 ml-2 hover:bg-green-200"
+                             onClick={() => handleEscuelaRemove(escuela.id)}
+                           >
+                             <X className="h-3 w-3" />
+                           </Button>
+                         </Badge>
                         ))}
                       </div>
                     </div>
@@ -467,7 +493,7 @@ export function ListaEquiposPantallaCompleta() {
         </div>
 
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          {equiposFiltrados.length > 0 ? (
+          {equiposFiltrados?.length > 0 ? (
             <Accordion type="multiple" className="w-full">
               {equiposFiltrados.map((equipo) => (
                 <AccordionItem key={equipo.id} value={String(equipo.id)}>
@@ -546,6 +572,28 @@ export function ListaEquiposPantallaCompleta() {
             <p className="text-center py-4">No se encontraron equipos con los filtros aplicados.</p>
           )}
         </div>
+
+        {escuelasFiltradas?.length > 0 && (
+          <div className="mt-4 flex justify-center items-center space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Anterior
+            </Button>
+            <span className="text-sm text-gray-600">
+              Página {currentPage} de {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Siguiente
+            </Button>
+          </div>
+        )}
       </div>
     </ErrorBoundary>
   )

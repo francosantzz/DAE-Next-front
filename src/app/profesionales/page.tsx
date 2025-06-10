@@ -26,6 +26,7 @@ import { ScrollArea } from '@radix-ui/react-scroll-area'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { Badge } from '@/components/ui/badge'
 import { XIcon } from 'lucide-react'
+import { useSession } from "next-auth/react"
 
 interface Departamento {
   id: number;
@@ -74,6 +75,7 @@ interface Profesional {
 }
 
 export default function ListaProfesionales() {
+  const { data: session } = useSession()
   const [profesionales, setProfesionales] = useState<Profesional[]>([])
   const [equipos, setEquipos] = useState<Equipo[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
@@ -105,9 +107,21 @@ export default function ListaProfesionales() {
       setIsLoading(true)
       try {
         const [profesionalesRes, equiposRes, departamentosRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`, {
+            headers: {
+              'Authorization': `Bearer ${session?.user?.accessToken}`
+            }
+          }),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`, {
+            headers: {
+              'Authorization': `Bearer ${session?.user?.accessToken}`
+            }
+          }),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`, {
+            headers: {
+              'Authorization': `Bearer ${session?.user?.accessToken}`
+            }
+          }),
         ])
 
         if (!profesionalesRes.ok || !equiposRes.ok || !departamentosRes.ok)
@@ -129,8 +143,10 @@ export default function ListaProfesionales() {
       }
     }
 
-    fetchData()
-  }, [])
+    if (session?.user?.accessToken) {
+      fetchData()
+    }
+  }, [session])
 
   const profesionalesFiltrados = profesionales.filter(profesional => {
     const cumpleFiltroNombre = 
@@ -184,7 +200,10 @@ export default function ListaProfesionales() {
 
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.user?.accessToken}`
+        },
         body: JSON.stringify({
           nombre: formData.nombre,
           apellido: formData.apellido,
@@ -237,7 +256,10 @@ export default function ListaProfesionales() {
     if (window.confirm('¿Estás seguro de que quieres eliminar este profesional?')) {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${id}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${session?.user?.accessToken}`
+          }
         })
 
         if (!response.ok) throw new Error('Error al eliminar el profesional')
@@ -307,9 +329,10 @@ export default function ListaProfesionales() {
             <div className="flex items-end">
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button onClick={() => {
-                    setCurrentProfesional(null)
-                    setFormData({
+                  {session?.user?.role === 'admin' && (
+                    <Button onClick={() => {
+                      setCurrentProfesional(null)
+                      setFormData({
                       id: 0,
                       nombre: '',
                       apellido: '',
@@ -327,6 +350,7 @@ export default function ListaProfesionales() {
                   }}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Agregar Profesional
                   </Button>
+                  )}
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
@@ -553,12 +577,16 @@ export default function ListaProfesionales() {
                         <Button onClick={() => router.push(`/perfil/${profesional.id}`)}>
                           Ver Perfil Detallado
                         </Button>
-                        <Button variant="outline" onClick={() => handleEdit(profesional)}>
-                          <Edit className="mr-2 h-4 w-4" /> Editar
-                        </Button>
-                        <Button variant="destructive" onClick={() => handleDelete(profesional.id)}>
-                          <Trash2 className="mr-2 h-4 w-4" /> Eliminar
-                        </Button>
+                        {session?.user?.role === 'admin' && (
+                          <>
+                            <Button variant="outline" onClick={() => handleEdit(profesional)}>
+                              <Edit className="mr-2 h-4 w-4" /> Editar
+                            </Button>
+                            <Button variant="destructive" onClick={() => handleDelete(profesional.id)}>
+                              <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </AccordionContent>

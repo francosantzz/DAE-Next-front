@@ -17,7 +17,12 @@ import {
   LayersIcon,
   ClockIcon,
   MenuIcon,
-  XIcon
+  XIcon,
+  PencilIcon,
+  Users,
+  LayoutDashboard,
+  BookOpen,
+  History
 } from 'lucide-react'
 import { useState } from "react"
 
@@ -71,8 +76,8 @@ export function Sidebar() {
 
   const items = [
     {
-      href: "/",
-      title: "Dashboard",
+      href: "/dashboard",
+      title: "Home",
       icon: HomeIcon,
       authRequired: true,
     },
@@ -89,12 +94,6 @@ export function Sidebar() {
       authRequired: true,
     },
     {
-      href: "/secciones",
-      title: "Secciones",
-      icon: LayersIcon,
-      authRequired: true,
-    },
-    {
       href: "/escuelas",
       title: "Escuelas",
       icon: SchoolIcon,
@@ -104,6 +103,18 @@ export function Sidebar() {
       href: "/horarios",
       title: "Horarios",
       icon: ClockIcon,
+      authRequired: true,
+    },
+    {
+      href: "/modificaciones",
+      title: "Modificaciones",
+      icon: PencilIcon,
+      authRequired: true,
+    },
+    {
+      href: "/usuarios",
+      title: "Usuarios",
+      icon: Users,
       authRequired: true,
     },
   ]
