@@ -112,7 +112,7 @@ export function ListaEquiposPantallaCompleta() {
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`, {
             headers: { Authorization: `Bearer ${session.user.accessToken}` }
           }),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`, {
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals?page=${currentPage}&limit=${itemsPerPage}`, {
             headers: { Authorization: `Bearer ${session.user.accessToken}`}
           }),
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`, {
@@ -134,7 +134,7 @@ export function ListaEquiposPantallaCompleta() {
         ])
 
         setEquipos(equiposData)
-        setProfesionales(profesionalesData)
+        setProfesionales(profesionalesData.data || [])
         setDepartamentos(departamentosData)
         setEscuelas(escuelasData.data || [])
         setTotalPages(escuelasData.meta.totalPages)

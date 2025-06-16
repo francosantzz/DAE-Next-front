@@ -9,10 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Calendar, User, FileText, Search, Filter, RefreshCw } from "lucide-react"
+import { Calendar, User, FileText, Search, Filter, RefreshCw, Eye } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useSession } from "next-auth/react"
 import { useDebounce } from "@/hooks/useDebounce"
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@radix-ui/react-accordion"
+import DetallesModificacion from "@/components/DetallesModificacion"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 interface Usuario {
   id: number
@@ -391,13 +394,24 @@ export default function ListaModificaciones() {
                             {modificacion.descripcion}
                           </p>
                         </TableCell>
-                        <TableCell className="max-w-[200px]">
+                        <TableCell className="max-w-[300px]">
                           {modificacion.detalles && (
-                            <p className="truncate text-xs text-gray-600" title={modificacion.detalles}>
-                              {modificacion.detalles}
-                            </p>
-                          )}
-                        </TableCell>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-auto p-1 text-xs">
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  Ver detalles
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80">
+                                <DetallesModificacion 
+                                  detalles={modificacion.detalles} 
+                                  entidad={modificacion.entidad} 
+                                />
+                              </PopoverContent>
+                            </Popover>
+                        )}
+                      </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

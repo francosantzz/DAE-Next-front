@@ -43,16 +43,10 @@ export enum Role {
 
 // Interfaces
 interface Permission {
-  roles: string[]
-  permissions: string[]
-  entities: string[]
-  rolePermissions: {
-    [key: string]: {
-      description: string
-      permissions: string[]
-      entities: string[]
-    }
-  }
+  [key: string]: {
+    entity: string;
+    permissions: string;
+  }[];
 }
 
 interface Usuario {
@@ -566,17 +560,17 @@ export default function ListaUsuarios() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            {permisos?.entities.map((entidad) => {
-              const permisosEntidad = permisos.rolePermissions[currentUsuario?.role || ""]?.permissions || []
+            {permisos && currentUsuario && permisos[currentUsuario.role]?.map((permiso) => {
+              const permisosArray = JSON.parse(permiso.permissions);
               return (
-                <Card key={entidad}>
+                <Card key={permiso.entity}>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">{entidad}</CardTitle>
+                    <CardTitle className="text-lg">{permiso.entity}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {permisosEntidad.length > 0 ? (
+                    {permisosArray.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
-                        {permisosEntidad.map((action) => (
+                        {permisosArray.map((action: string) => (
                           <Badge key={action} className={`${getActionColor(action)} flex items-center gap-1`}>
                             {getActionIcon(action)}
                             {action}

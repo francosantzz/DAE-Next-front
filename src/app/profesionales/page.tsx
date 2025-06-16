@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -27,6 +27,7 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 import { Badge } from '@/components/ui/badge'
 import { XIcon } from 'lucide-react'
 import { useSession } from "next-auth/react"
+import { useDebounce } from "@/hooks/useDebounce"
 
 interface Departamento {
   id: number;
@@ -80,11 +81,16 @@ export default function ListaProfesionales() {
   const [equipos, setEquipos] = useState<Equipo[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [filtroNombre, setFiltroNombre] = useState('')
+  const busqueda = useDebounce(filtroNombre, 1000)
   const [filtroEquipo, setFiltroEquipo] = useState('todos')
   const [filtroDepartamento, setFiltroDepartamento] = useState('todos')
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentProfesional, setCurrentProfesional] = useState<Profesional | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const itemsPerPage = 10
   const [formData, setFormData] = useState({
     id: 0,
     nombre: '',
@@ -102,65 +108,53 @@ export default function ListaProfesionales() {
   })
   const router = useRouter()
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true)
-      try {
-        const [profesionalesRes, equiposRes, departamentosRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`, {
-            headers: {
-              'Authorization': `Bearer ${session?.user?.accessToken}`
-            }
-          }),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`, {
-            headers: {
-              'Authorization': `Bearer ${session?.user?.accessToken}`
-            }
-          }),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`, {
-            headers: {
-              'Authorization': `Bearer ${session?.user?.accessToken}`
-            }
-          }),
-        ])
+  const fetchData = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const [profesionalesRes, equiposRes, departamentosRes] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals?page=${currentPage}&limit=${itemsPerPage}&search=${busqueda}${filtroEquipo !== 'todos' ? `&equipoId=${filtroEquipo}` : ''}${filtroDepartamento !== 'todos' ? `&departamentoId=${filtroDepartamento}` : ''}`, {
+          headers: {
+            'Authorization': `Bearer ${session?.user?.accessToken}`
+          }
+        }),
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`, {
+          headers: {
+            'Authorization': `Bearer ${session?.user?.accessToken}`
+          }
+        }),
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`, {
+          headers: {
+            'Authorization': `Bearer ${session?.user?.accessToken}`
+          }
+        }),
+      ])
 
-        if (!profesionalesRes.ok || !equiposRes.ok || !departamentosRes.ok)
-          throw new Error('Error al obtener los datos')
+      if (!profesionalesRes.ok || !equiposRes.ok || !departamentosRes.ok)
+        throw new Error('Error al obtener los datos')
 
-        const [profesionalesData, equiposData, departamentosData] = await Promise.all([
-          profesionalesRes.json(),
-          equiposRes.json(),
-          departamentosRes.json(),
-        ])
+      const [profesionalesData, equiposData, departamentosData] = await Promise.all([
+        profesionalesRes.json(),
+        equiposRes.json(),
+        departamentosRes.json(),
+      ])
 
-        setProfesionales(profesionalesData)
-        setEquipos(equiposData)
-        setDepartamentos(departamentosData)
-      } catch (error) {
-        console.error('Error al obtener datos:', error)
-      } finally {
-        setIsLoading(false)
-      }
+      setProfesionales(profesionalesData.data)
+      setTotalPages(profesionalesData.meta.totalPages)
+      setTotalItems(profesionalesData.meta.total)
+      setEquipos(equiposData)
+      setDepartamentos(departamentosData)
+    } catch (error) {
+      console.error('Error al obtener datos:', error)
+    } finally {
+      setIsLoading(false)
     }
+  }, [session?.user?.accessToken, currentPage, busqueda, filtroEquipo, filtroDepartamento])
 
+  useEffect(() => {
     if (session?.user?.accessToken) {
       fetchData()
     }
-  }, [session])
-
-  const profesionalesFiltrados = profesionales.filter(profesional => {
-    const cumpleFiltroNombre = 
-      profesional.nombre.toLowerCase().includes(filtroNombre.toLowerCase()) ||
-      profesional.apellido.toLowerCase().includes(filtroNombre.toLowerCase())
-    
-    const cumpleFiltroEquipo = filtroEquipo === 'todos' ||
-      profesional.equipos.some(equipo => equipo.id === Number(filtroEquipo))
-      
-    const cumpleFiltroDepartamento = filtroDepartamento === 'todos' || 
-      (profesional.direccion.departamento && profesional.direccion.departamento.id === Number(filtroDepartamento))
-    
-    return cumpleFiltroNombre && cumpleFiltroEquipo && cumpleFiltroDepartamento
-  })
+  }, [fetchData])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -531,68 +525,91 @@ export default function ListaProfesionales() {
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
           {isLoading ? (
             <p className="text-center py-4">Cargando profesionales...</p>
-          ) : profesionalesFiltrados.length > 0 ? (
-            <Accordion type="multiple" collapsible className="w-full">
-              {profesionalesFiltrados.map((profesional) => (
-                <AccordionItem key={profesional.id} value={String(profesional.id)}>
-                  <AccordionTrigger className="px-6 py-4 hover:bg-gray-50">
-                    <div className="flex justify-between w-full">
-                      <span className="font-medium">{`${profesional.nombre} ${profesional.apellido}`}</span>
-                      <span className="text-sm text-gray-500">{profesional.profesion}</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-6 py-4">
-                    <div className="space-y-4">
-                      <div>
-                        <strong>Equipos:</strong>
-                        {profesional.equipos && profesional.equipos.length > 0 ? (
-                          <ul className="list-disc pl-5 mt-2 space-y-1">
-                            {profesional.equipos.map((equipo) => (
-                              <li key={equipo.id}>
-                                {equipo.nombre}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p>No hay equipos asignados</p>
-                        )}
+          ) : profesionales.length > 0 ? (
+            <>
+              <Accordion type="multiple" className="w-full">
+                {profesionales.map((profesional) => (
+                  <AccordionItem key={profesional.id} value={String(profesional.id)}>
+                    <AccordionTrigger className="px-6 py-4 hover:bg-gray-50">
+                      <div className="flex justify-between w-full">
+                        <span className="font-medium">{`${profesional.nombre} ${profesional.apellido}`}</span>
+                        <span className="text-sm text-gray-500">{profesional.profesion}</span>
                       </div>
-                      <div>
-                        <strong>Paquetes de Horas:</strong>
-                        {profesional.paquetesHoras && profesional.paquetesHoras.length > 0 ? (
-                          <ul className="list-disc pl-5 mt-2 space-y-1">
-                            {profesional.paquetesHoras.map((paquete) => (
-                              <li key={paquete.id}>
-                                {paquete.tipo} - {paquete.cantidad} horas
-                                {paquete.escuela && ` - ${paquete.escuela.nombre}`}
-                                {` (${paquete.equipo?.nombre})`}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p>No hay paquetes de horas asignados</p>
-                        )}
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 py-4">
+                      <div className="space-y-4">
+                        <div>
+                          <strong>Equipos:</strong>
+                          {profesional.equipos && profesional.equipos.length > 0 ? (
+                            <ul className="list-disc pl-5 mt-2 space-y-1">
+                              {profesional.equipos.map((equipo) => (
+                                <li key={equipo.id}>
+                                  {equipo.nombre}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p>No hay equipos asignados</p>
+                          )}
+                        </div>
+                        <div>
+                          <strong>Paquetes de Horas:</strong>
+                          {profesional.paquetesHoras && profesional.paquetesHoras.length > 0 ? (
+                            <ul className="list-disc pl-5 mt-2 space-y-1">
+                              {profesional.paquetesHoras.map((paquete) => (
+                                <li key={paquete.id}>
+                                  {paquete.tipo} - {paquete.cantidad} horas
+                                  {paquete.escuela && ` - ${paquete.escuela.nombre}`}
+                                  {` (${paquete.equipo?.nombre})`}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p>No hay paquetes de horas asignados</p>
+                          )}
+                        </div>
+                        <div className="flex justify-end space-x-2">
+                          <Button onClick={() => router.push(`/perfil/${profesional.id}`)}>
+                            Ver Perfil Detallado
+                          </Button>
+                          {session?.user?.role === 'admin' && (
+                            <>
+                              <Button variant="outline" onClick={() => handleEdit(profesional)}>
+                                <Edit className="mr-2 h-4 w-4" /> Editar
+                              </Button>
+                              <Button variant="destructive" onClick={() => handleDelete(profesional.id)}>
+                                <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex justify-end space-x-2">
-                        <Button onClick={() => router.push(`/perfil/${profesional.id}`)}>
-                          Ver Perfil Detallado
-                        </Button>
-                        {session?.user?.role === 'admin' && (
-                          <>
-                            <Button variant="outline" onClick={() => handleEdit(profesional)}>
-                              <Edit className="mr-2 h-4 w-4" /> Editar
-                            </Button>
-                            <Button variant="destructive" onClick={() => handleDelete(profesional.id)}>
-                              <Trash2 className="mr-2 h-4 w-4" /> Eliminar
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+
+              {/* Paginación */}
+              <div className="mt-4 flex justify-center items-center space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Anterior
+                </Button>
+                <span className="text-sm text-gray-600">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Siguiente
+                </Button>
+              </div>
+            </>
           ) : (
             <p className="text-center py-4">No se encontraron profesionales con los filtros aplicados.</p>
           )}
