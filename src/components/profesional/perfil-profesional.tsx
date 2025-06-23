@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -18,6 +18,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import Layout from "./LayoutProf"
 import ErrorBoundary from "../ErrorBoundary"
 import { useSession } from "next-auth/react"
+import { ProtectedRoute } from "../ProtectedRoute"
+import { PermissionButton } from "../PermissionButton"
 
 // Interfaces (unchanged)
 interface Departamento {
@@ -86,6 +88,7 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
   const [equipos, setEquipos] = useState<Equipo[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [escuelas, setEscuelas] = useState<Escuela[]>([])
+  const [escuelasFiltradas, setEscuelasFiltradas] = useState<Escuela[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isPaqueteDialogOpen, setIsPaqueteDialogOpen] = useState(false)
@@ -126,14 +129,20 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!session?.user?.accessToken) return;
+      
       setIsLoading(true)
       try {
         const [profesionalRes, equiposRes, departamentosRes, escuelasRes] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}`, {
             headers: {Authorization: `Bearer ${session?.user?.accessToken}`}
           }),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`, {
+            headers: {Authorization: `Bearer ${session?.user?.accessToken}`}
+          }),
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`, {
+            headers: {Authorization: `Bearer ${session?.user?.accessToken}`}
+          }),
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas`, {
             headers: { Authorization: `Bearer ${session?.user?.accessToken}`}
           }),
@@ -149,8 +158,15 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
           escuelasRes.json(),
         ])
 
+        console.log('Datos recibidos:', {
+          profesional: profesionalData,
+          equipos: equiposData,
+          departamentos: departamentosData,
+          escuelas: escuelasData
+        });
+
         setProfesional(profesionalData)
-        setEquipos(equiposData)
+        setEquipos(equiposData.data || equiposData)
         setDepartamentos(departamentosData)
         setEscuelas(escuelasData.data || [])
 
@@ -177,7 +193,7 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
     }
 
     fetchData()
-  }, [params.id])
+  }, [params.id, session?.user?.accessToken])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -185,6 +201,30 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value })
+  }
+
+  const cargarEscuelasPorEquipo = async (equipoId: string) => {
+    if (!session?.user?.accessToken || !equipoId) {
+      setEscuelasFiltradas([])
+      return
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas/por-equipo/${equipoId}`, {
+        headers: { Authorization: `Bearer ${session.user.accessToken}` }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setEscuelasFiltradas(data)
+      } else {
+        console.error('Error al cargar escuelas por equipo')
+        setEscuelasFiltradas([])
+      }
+    } catch (error) {
+      console.error('Error al cargar escuelas por equipo:', error)
+      setEscuelasFiltradas([])
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -229,7 +269,7 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
       tipo: paquete.tipo,
       cantidad: paquete.cantidad.toString(),
       equipoId: paquete.equipo.id.toString(),
-      escuelaId: paquete.escuela.id.toString(),
+      escuelaId: paquete.escuela?.id?.toString() || "",
       dias: {
         lunes: paquete.dias.lunes || "",
         martes: paquete.dias.martes || "",
@@ -238,6 +278,10 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
         viernes: paquete.dias.viernes || "",
       },
     })
+    
+    // Cargar las escuelas correspondientes al equipo del paquete
+    cargarEscuelasPorEquipo(paquete.equipo.id.toString())
+    
     setIsPaqueteDialogOpen(true)
   }
 
@@ -248,6 +292,9 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}/paquetes/${paqueteId}`,
           {
             method: "DELETE",
+            headers: {
+              'Authorization': `Bearer ${session?.user?.accessToken}`
+            }
           }
         )
 
@@ -389,6 +436,16 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
       ...prev,
       [name]: value,
     }))
+
+    // Si se selecciona un equipo, cargar las escuelas correspondientes
+    if (name === "equipoId") {
+      cargarEscuelasPorEquipo(value)
+      // Limpiar la escuela seleccionada cuando cambia el equipo
+      setPaqueteFormData((prev) => ({
+        ...prev,
+        escuelaId: ""
+      }))
+    }
   }
 
   if (isLoading) {
@@ -400,6 +457,7 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
   }
 
   return (
+    <ProtectedRoute requiredPermission={{ entity: "profesional", action: "read" }}>
     <ErrorBoundary>
     <Layout>
       <div className="container mx-auto py-8">
@@ -453,7 +511,9 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-xl">Paquetes de Horas</CardTitle>
-                <Button onClick={() => {
+                <PermissionButton
+                requiredPermission={{entity: "paquetehoras", action: "create"}} 
+                onClick={() => {
                   setCurrentPaquete(null)
                   setPaqueteFormData({
                     id: 0,
@@ -469,10 +529,11 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
                       viernes: "",
                     },
                   })
+                  setEscuelasFiltradas([])
                   setIsPaqueteDialogOpen(true)
                 }}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Agregar Paquete
-                </Button>
+                </PermissionButton>
               </CardHeader>
               <CardContent>
                 {profesional.paquetesHoras && profesional.paquetesHoras.length > 0 ? (
@@ -499,12 +560,20 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
                             </div>
                           </div>
                           <div className="flex space-x-2">
-                            <Button variant="outline" size="sm" onClick={() => handlePaqueteEdit(paquete)}>
+                            <PermissionButton 
+                            requiredPermission={{entity: "paquetehoras", action: "update"}}
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handlePaqueteEdit(paquete)}>
                               <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="destructive" size="sm" onClick={() => handlePaqueteDelete(paquete.id)}>
+                            </PermissionButton>
+                            <PermissionButton 
+                            requiredPermission={{entity: "paquetehoras", action: "delete"}}
+                            variant="destructive" 
+                            size="sm" 
+                            onClick={() => handlePaqueteDelete(paquete.id)}>
                               <Trash2 className="h-4 w-4" />
-                            </Button>
+                            </PermissionButton>
                           </div>
                         </div>
                       </div>
@@ -531,11 +600,11 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
               <Button variant="outline" onClick={() => router.push('/profesionales')}>
                 Volver a la lista
               </Button>
-              {session?.user?.role === 'admin' && (
-              <Button onClick={() => setIsDialogOpen(true)}>
+              <PermissionButton 
+                requiredPermission={{entity: "profesional", action: "update"}}
+                onClick={() => setIsDialogOpen(true)}>
                 <Pencil className="mr-2 h-4 w-4" /> Editar Perfil
-              </Button>
-              )}
+              </PermissionButton>
             </section>
           </div>
         ) : (
@@ -552,6 +621,9 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
         <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Perfil</DialogTitle>
+            <DialogDescription>
+                        Al cambiar los equipos del profesional, los paquetes de horas en equipos removidos se eliminarán automáticamente.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -774,27 +846,6 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="escuelaId">Escuela</Label>
-                <Select
-                  name="escuelaId"
-                  value={paqueteFormData.escuelaId}
-                  onValueChange={(value) => handlePaqueteSelectChange("escuelaId", value)}
-                  disabled={paqueteFormData.tipo !== "Escuela"}
-                >
-                  <SelectTrigger id="escuelaId">
-                    <SelectValue placeholder="Seleccione una escuela" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60 overflow-y-auto">
-                    <SelectItem value="none">Ninguna</SelectItem>
-                    {escuelas?.map((escuela) => (
-                      <SelectItem key={escuela.id} value={escuela.id.toString()}>
-                        {escuela.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="equipoId">Equipo</Label>
                 <Select
                   name="equipoId"
@@ -809,6 +860,27 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
                     {profesional?.equipos?.map((equipo) => (
                       <SelectItem key={equipo.id} value={equipo.id.toString()}>
                         {equipo.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="escuelaId">Escuela</Label>
+                <Select
+                  name="escuelaId"
+                  value={paqueteFormData.escuelaId}
+                  onValueChange={(value) => handlePaqueteSelectChange("escuelaId", value)}
+                  disabled={paqueteFormData.tipo !== "Escuela" || !paqueteFormData.equipoId}
+                >
+                  <SelectTrigger id="escuelaId">
+                    <SelectValue placeholder={!paqueteFormData.equipoId ? "Primero seleccione un equipo" : "Seleccione una escuela"} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60 overflow-y-auto">
+                    <SelectItem value="none">Ninguna</SelectItem>
+                    {escuelasFiltradas?.map((escuela) => (
+                      <SelectItem key={escuela.id} value={escuela.id.toString()}>
+                        {escuela.nombre}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -846,5 +918,6 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
       </Dialog>
     </Layout>
     </ErrorBoundary>
+    </ProtectedRoute>
   )
 }

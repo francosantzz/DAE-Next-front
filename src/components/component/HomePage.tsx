@@ -92,6 +92,10 @@ export function HomePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [currentProfesional, setCurrentProfesional] = useState<Professional | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const itemsPerPage = 10
   const [formData, setFormData] = useState({
     nombre: '',
     apellido: '',
@@ -110,10 +114,10 @@ export function HomePage() {
       setIsLoading(true)
       try {
         const [professionalsRes, equiposRes, paquetesRes, departamentosRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`, {
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals?page=${currentPage}&limit=${itemsPerPage}`, {
             headers: { Authorization: `Bearer ${session?.user?.accessToken}` }
           }),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`, {
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos?page=1&limit=100`, {
             headers: { Authorization: `Bearer ${session?.user?.accessToken}` }
           }),
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes`, {
@@ -139,12 +143,13 @@ export function HomePage() {
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
         const firstDayOfWeek = new Date(now.setDate(now.getDate() - now.getDay()))
 
-        const newProfessionalsThisMonth = professionalsData.filter((p: Professional) => {
+        const newProfessionalsThisMonth = professionalsData.data.filter((p: Professional) => {
           const createdAt = new Date(p.createdAt)
           return createdAt >= firstDayOfMonth
         }).length
 
-        const newTeamsThisMonth = equiposData.filter((e: Equipo) => {
+        const equiposArray = equiposData.data || equiposData
+        const newTeamsThisMonth = equiposArray.filter((e: Equipo) => {
           const createdAt = new Date(e.createdAt)
           return createdAt >= firstDayOfMonth
         }).length
@@ -154,13 +159,15 @@ export function HomePage() {
           return createdAt >= firstDayOfWeek
         }).length
 
-        setProfessionals(professionalsData)
+        setProfessionals(professionalsData.data)
+        setTotalPages(professionalsData.meta.totalPages)
+        setTotalItems(professionalsData.meta.total)
         setDashboardData({
-          totalProfessionals: professionalsData.length,
+          totalProfessionals: professionalsData.meta.total,
           newProfessionalsThisMonth,
           totalTasks: paquetesData.length,
           newTasksThisWeek,
-          totalTeams: equiposData.length,
+          totalTeams: equiposArray.length,
           newTeamsThisMonth
         })
         setDepartamentos(departamentosData)
@@ -174,7 +181,7 @@ export function HomePage() {
     if (session?.user?.accessToken) {
       fetchData()
     }
-  }, [session?.user?.accessToken])
+  }, [session?.user?.accessToken, currentPage])
 
   const handleOpenModal = () => {
     // Reset current professional and form data before opening modal
@@ -484,6 +491,25 @@ export function HomePage() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+            <div className="mt-4 flex justify-center items-center space-x-2 p-4">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                Anterior
+              </Button>
+              <span className="text-sm text-gray-600">
+                Página {currentPage} de {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Siguiente
+              </Button>
             </div>
           </CardContent>
         </Card>

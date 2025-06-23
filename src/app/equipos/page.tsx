@@ -24,6 +24,8 @@ import { Badge } from "@/components/ui/badge"
 import { PlusCircle, Edit, Trash2, X, UserCheck, Building } from 'lucide-react'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { useSession } from 'next-auth/react'
+import { useDebounce } from '@/hooks/useDebounce'
+import { PermissionButton } from '@/components/PermissionButton'
 
 interface Profesional {
   id: number;
@@ -80,7 +82,8 @@ export function ListaEquiposPantallaCompleta() {
   const [profesionales, setProfesionales] = useState<Profesional[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [escuelas, setEscuelas] = useState<Escuela[]>([])
-  const [filtroNombre, setFiltroNombre] = useState('')
+  const [busquedaInput, setBusquedaInput] = useState('')
+  const busqueda = useDebounce(busquedaInput, 1000)
   const [filtroDepartamento, setFiltroDepartamento] = useState('todos')
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -102,62 +105,56 @@ export function ListaEquiposPantallaCompleta() {
   const [totalItems, setTotalItems] = useState(0)
   const itemsPerPage = 10
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!session?.user?.accessToken) return
+  const fetchData = useCallback(async () => {
+    if (!session?.user?.accessToken) return
+    
+    setIsLoading(true)
+    try {
+      const [equiposRes, profesionalesRes, departamentosRes, escuelasRes] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos?page=${currentPage}&limit=${itemsPerPage}&search=${busqueda}${filtroDepartamento !== 'todos' ? `&departamentoId=${filtroDepartamento}` : ''}`, {
+          headers: { Authorization: `Bearer ${session.user.accessToken}` }
+        }),
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals?page=1&limit=100`, {
+          headers: { Authorization: `Bearer ${session.user.accessToken}`}
+        }),
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`, {
+          headers: { Authorization: `Bearer ${session.user.accessToken}`}
+        }),
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas?page=1&limit=100`, {
+          headers: { Authorization: `Bearer ${session.user.accessToken}`}
+        })
+      ])
       
-      setIsLoading(true)
-      try {
-        const [equiposRes, profesionalesRes, departamentosRes, escuelasRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`, {
-            headers: { Authorization: `Bearer ${session.user.accessToken}` }
-          }),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals?page=${currentPage}&limit=${itemsPerPage}`, {
-            headers: { Authorization: `Bearer ${session.user.accessToken}`}
-          }),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`, {
-            headers: { Authorization: `Bearer ${session.user.accessToken}`}
-          }),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas?page=${currentPage}&limit=${itemsPerPage}`, {
-            headers: { Authorization: `Bearer ${session.user.accessToken}`}
-          })
-        ])
-        
-        if (!equiposRes.ok || !profesionalesRes.ok || !departamentosRes.ok || !escuelasRes.ok) 
-          throw new Error('Error al obtener los datos')
+      if (!equiposRes.ok || !profesionalesRes.ok || !departamentosRes.ok || !escuelasRes.ok) 
+        throw new Error('Error al obtener los datos')
 
-        const [equiposData, profesionalesData, departamentosData, escuelasData] = await Promise.all([
-          equiposRes.json(),
-          profesionalesRes.json(),
-          departamentosRes.json(),
-          escuelasRes.json()
-        ])
+      const [equiposData, profesionalesData, departamentosData, escuelasData] = await Promise.all([
+        equiposRes.json(),
+        profesionalesRes.json(),
+        departamentosRes.json(),
+        escuelasRes.json()
+      ])
 
-        setEquipos(equiposData)
-        setProfesionales(profesionalesData.data || [])
-        setDepartamentos(departamentosData)
-        setEscuelas(escuelasData.data || [])
-        setTotalPages(escuelasData.meta.totalPages)
-        setTotalItems(escuelasData.meta.total)
-      } catch (error) {
-        console.error('Error al obtener datos:', error)
-      } finally {
-        setIsLoading(false)
-      }
+      setEquipos(equiposData.data || [])
+      setTotalPages(equiposData.meta.totalPages)
+      setTotalItems(equiposData.meta.total)
+      setProfesionales(profesionalesData.data || [])
+      setDepartamentos(departamentosData)
+      setEscuelas(escuelasData.data || [])
+    } catch (error) {
+      console.error('Error al obtener datos:', error)
+    } finally {
+      setIsLoading(false)
     }
+  }, [session?.user?.accessToken, currentPage, busqueda, filtroDepartamento])
 
+  useEffect(() => {
     fetchData()
-  }, [session?.user?.accessToken, currentPage])
-
-  const equiposFiltrados = equipos?.filter(equipo => {
-    const cumpleFiltroNombre = equipo.nombre.toLowerCase().includes(filtroNombre.toLowerCase())
-    const cumpleFiltroDepartamento = filtroDepartamento === 'todos' || 
-      (equipo.departamento && equipo.departamento.id === Number(filtroDepartamento))
-    return cumpleFiltroNombre && cumpleFiltroDepartamento
-  }) || []
+  }, [fetchData])
 
   const profesionalesFiltrados = profesionales?.filter(profesional => 
-    profesional.nombre.toLowerCase().includes(profesionalSearch.toLowerCase()) &&
+    (profesional.nombre.toLowerCase().includes(profesionalSearch.toLowerCase()) ||
+    profesional.apellido.toLowerCase().includes(profesionalSearch.toLowerCase())) &&
     !profesionalesSeleccionados.some(p => p.id === profesional.id)
   ) || []
 
@@ -225,18 +222,21 @@ export function ListaEquiposPantallaCompleta() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    try {
-      const equipoData = {
-        ...formData,
-        departamentoId: formData.departamentoId || null,
-      }
+    if (!session?.user?.accessToken) return
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/${formData.id || ''}`, {
-        method: formData.id ? 'PATCH' : 'POST',
+    try {
+      const url = currentEquipo
+        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/${currentEquipo.id}`
+        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`
+      const method = currentEquipo ? 'PATCH' : 'POST'
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.user.accessToken}`
         },
-        body: JSON.stringify(equipoData),
+        body: JSON.stringify(formData)
       })
 
       if (!response.ok) {
@@ -244,38 +244,35 @@ export function ListaEquiposPantallaCompleta() {
       }
 
       setIsDialogOpen(false)
-      fetchEquipos()
+      fetchData()
       resetForm()
     } catch (error) {
-      console.error('Error:', error)
-      alert('Error al guardar el equipo')
+      console.error('Error al guardar el equipo:', error)
     }
   }
 
   const handleDelete = async (id: number) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar este equipo?')) {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/${id}`, {
-          method: 'DELETE'
-        })
+    if (!session?.user?.accessToken) return
 
-        if (!response.ok) throw new Error('Error al eliminar el equipo')
-
-        setEquipos(prev => prev.filter(e => e.id !== id))
-      } catch (error) {
-        console.error('Error al eliminar el equipo:', error)
-      }
+    if (!confirm('¿Estás seguro de que quieres eliminar este equipo?')) {
+      return
     }
-  }
 
-  const fetchEquipos = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`)
-      if (!response.ok) throw new Error('Error al obtener equipos')
-      const data = await response.json()
-      setEquipos(data)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${session.user.accessToken}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar el equipo')
+      }
+
+      fetchData()
     } catch (error) {
-      console.error('Error al obtener equipos:', error)
+      console.error('Error al eliminar el equipo:', error)
     }
   }
 
@@ -313,8 +310,8 @@ export function ListaEquiposPantallaCompleta() {
               <Input
                 id="filtroNombre"
                 placeholder="Nombre del equipo"
-                value={filtroNombre}
-                onChange={(e) => setFiltroNombre(e.target.value)}
+                value={busquedaInput}
+                onChange={(e) => setBusquedaInput(e.target.value)}
               />
             </div>
             <div>
@@ -493,107 +490,117 @@ export function ListaEquiposPantallaCompleta() {
         </div>
 
         <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          {equiposFiltrados?.length > 0 ? (
-            <Accordion type="multiple" className="w-full">
-              {equiposFiltrados.map((equipo) => (
-                <AccordionItem key={equipo.id} value={String(equipo.id)}>
-                  <AccordionTrigger className="px-6 py-4 hover:bg-gray-50">
-                    <div className="flex justify-between w-full">
-                      <span>{equipo.nombre}</span>
-                      <span className="text-sm text-gray-500">
-                        {equipo.departamento ? `Departamento: ${equipo.departamento.nombre}` : 'Sin departamento asignado'}
-                      </span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-6 py-4">
-                    <div className="space-y-4">
-                      <p>
-                        <strong>Departamento:</strong> 
-                        {equipo.departamento ? equipo.departamento.nombre : 'Sin departamento asignado'}
-                      </p>
-                      <div>
-                        <strong>Profesionales:</strong>
-                        {equipo.profesionales && equipo.profesionales.length > 0 ? (
-                          <ul className="list-disc pl-5 mt-2 space-y-1">
-                            {equipo.profesionales.map((profesional) => (
-                              <li key={profesional.id}>
-                                {profesional.nombre} {profesional.apellido}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p>No hay profesionales asignados</p>
-                        )}
+          {isLoading ? (
+            <p className="text-center py-4">Cargando equipos...</p>
+          ) : equipos.length > 0 ? (
+            <>
+              <Accordion type="multiple" className="w-full">
+                {equipos.map((equipo) => (
+                  <AccordionItem key={equipo.id} value={String(equipo.id)}>
+                    <AccordionTrigger className="px-6 py-4 hover:bg-gray-50">
+                      <div className="flex justify-between w-full">
+                        <span>{equipo.nombre}</span>
+                        <span className="text-sm text-gray-500">
+                          {equipo.departamento ? `Departamento: ${equipo.departamento.nombre}` : 'Sin departamento asignado'}
+                        </span>
                       </div>
-                      <div>
-                        <strong>Escuelas:</strong>
-                        {equipo.escuelas && equipo.escuelas.length > 0 ? (
-                          <ul className="list-disc pl-5 mt-2 space-y-1">
-                            {equipo.escuelas.map((escuela) => (
-                              <li key={escuela.id}>
-                                {escuela.nombre}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p>No hay escuelas asignadas</p>
-                        )}
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 py-4">
+                      <div className="space-y-4">
+                        <p>
+                          <strong>Departamento:</strong> 
+                          {equipo.departamento ? equipo.departamento.nombre : 'Sin departamento asignado'}
+                        </p>
+                        <div>
+                          <strong>Profesionales:</strong>
+                          {equipo.profesionales && equipo.profesionales.length > 0 ? (
+                            <ul className="list-disc pl-5 mt-2 space-y-1">
+                              {equipo.profesionales.map((profesional) => (
+                                <li key={profesional.id}>
+                                  {profesional.nombre} {profesional.apellido}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p>No hay profesionales asignados</p>
+                          )}
+                        </div>
+                        <div>
+                          <strong>Escuelas:</strong>
+                          {equipo.escuelas && equipo.escuelas.length > 0 ? (
+                            <ul className="list-disc pl-5 mt-2 space-y-1">
+                              {equipo.escuelas.map((escuela) => (
+                                <li key={escuela.id}>
+                                  {escuela.nombre}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p>No hay escuelas asignadas</p>
+                          )}
+                        </div>
+                        <div>
+                          <strong>Paquetes de Horas:</strong>
+                          {equipo.paquetesHoras && equipo.paquetesHoras.length > 0 ? (
+                            <ul className="list-disc pl-5 mt-2 space-y-1">
+                              {equipo.paquetesHoras.map((paquete) => (
+                                <li key={paquete.id}>
+                                  {paquete.tipo} - {paquete.cantidad} horas
+                                  {paquete.escuela && ` - ${paquete.escuela.nombre}`}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p>No hay paquetes de horas asignados</p>
+                          )}
+                        </div>
+                        <p><strong>Horas totales del Equipo:</strong> {equipo.totalHoras || 0}</p>
+                        <div className="flex justify-end space-x-2">
+                          <PermissionButton
+                          requiredPermission={{entity: "equipo", action: "update"}} 
+                          variant="outline" 
+                          onClick={() => handleEdit(equipo)}>
+                            <Edit className="mr-2 h-4 w-4" /> Editar
+                          </PermissionButton>
+                          <PermissionButton 
+                          requiredPermission={{entity: "equipo", action: "delete"}}
+                          variant="destructive" 
+                          onClick={() => handleDelete(equipo.id)}>
+                            <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                          </PermissionButton>
+                        </div>
                       </div>
-                      <div>
-                        <strong>Paquetes de Horas:</strong>
-                        {equipo.paquetesHoras && equipo.paquetesHoras.length > 0 ? (
-                          <ul className="list-disc pl-5 mt-2 space-y-1">
-                            {equipo.paquetesHoras.map((paquete) => (
-                              <li key={paquete.id}>
-                                {paquete.tipo} - {paquete.cantidad} horas
-                                {paquete.escuela && ` - ${paquete.escuela.nombre}`}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p>No hay paquetes de horas asignados</p>
-                        )}
-                      </div>
-                      <p><strong>Horas totales del Equipo:</strong> {equipo.totalHoras || 0}</p>
-                      <div className="flex justify-end space-x-2">
-                        <Button variant="outline" onClick={() => handleEdit(equipo)}>
-                          <Edit className="mr-2 h-4 w-4" /> Editar
-                        </Button>
-                        <Button variant="destructive" onClick={() => handleDelete(equipo.id)}>
-                          <Trash2 className="mr-2 h-4 w-4" /> Eliminar
-                        </Button>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+
+              <div className="mt-4 flex justify-center items-center space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Anterior
+                </Button>
+                <span className="text-sm text-gray-600">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Siguiente
+                </Button>
+              </div>
+            </>
           ) : (
-            <p className="text-center py-4">No se encontraron equipos con los filtros aplicados.</p>
+            <p className="text-center py-4 bg-white rounded-lg shadow">
+              No se encontraron equipos con los filtros aplicados.
+            </p>
           )}
         </div>
-
-        {escuelasFiltradas?.length > 0 && (
-          <div className="mt-4 flex justify-center items-center space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              Anterior
-            </Button>
-            <span className="text-sm text-gray-600">
-              Página {currentPage} de {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-            >
-              Siguiente
-            </Button>
-          </div>
-        )}
       </div>
     </ErrorBoundary>
   )

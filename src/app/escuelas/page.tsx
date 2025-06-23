@@ -25,6 +25,8 @@ import { EstadoFisicoCard } from "@/components/escuela/estado-fisico-card"
 import ErrorBoundary from "@/components/ErrorBoundary"
 import { useSession } from "next-auth/react"
 import { useDebounce } from "@/hooks/useDebounce"
+import { PermissionButton } from "@/components/PermissionButton"
+import { ProtectedRoute } from "@/components/ProtectedRoute"
 
 interface Profesional {
   id: number
@@ -140,7 +142,7 @@ export default function ListaEscuelas() {
             Authorization: `Bearer ${session.user.accessToken}`
           }
         }),
-        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`, {
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos?page=1&limit=100`, {
           headers: {
             Authorization: `Bearer ${session.user.accessToken}`
           }
@@ -170,7 +172,7 @@ export default function ListaEscuelas() {
       setEscuelas(escuelasData.data)
       setTotalPages(escuelasData.meta.totalPages)
       setTotalItems(escuelasData.meta.total)
-      setEquipos(equiposData)
+      setEquipos(equiposData.data || equiposData)
       setDepartamentos(departamentosData)
       setAnexos(anexosData)
     } catch (error) {
@@ -514,6 +516,7 @@ export default function ListaEscuelas() {
   }
 
   return (
+    <ProtectedRoute requiredPermission={{entity: "escuela", action: "read"}}>
     <ErrorBoundary>
       <div className="bg-gray-100">
         <header className="bg-white shadow">
@@ -523,14 +526,15 @@ export default function ListaEscuelas() {
               {session?.user?.role === 'admin' && (
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button
+                    <PermissionButton
+                    requiredPermission={{entity: "escuela", action: "create"}}
                       onClick={() => {
                         setCurrentEscuela(null)
                         resetForm()
                       }}
                     >
                       <PlusCircle className="mr-2 h-4 w-4" /> Agregar Escuela
-                    </Button>
+                    </PermissionButton>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
@@ -730,16 +734,21 @@ export default function ListaEscuelas() {
                           <Button variant="outline" onClick={() => handleViewDetails(escuela)}>
                             <Eye className="mr-2 h-4 w-4" /> Ver Detalles
                           </Button>
-                          {session?.user?.role === 'admin' && (
-                            <>
-                              <Button variant="outline" onClick={() => handleEdit(escuela)}>
+                           
+                              <PermissionButton 
+                              requiredPermission={{entity: "escuela", action: "update"}}
+                              variant="outline" 
+                              onClick={() => handleEdit(escuela)}>
                                 <Edit className="mr-2 h-4 w-4" /> Editar
-                              </Button>
-                              <Button variant="destructive" onClick={() => handleDelete(escuela.id)}>
+                              </PermissionButton>
+                              <PermissionButton
+                              requiredPermission={{entity: "escuela", action: "delete"}} 
+                              variant="destructive" 
+                              onClick={() => handleDelete(escuela.id)}>
                                 <Trash2 className="mr-2 h-4 w-4" /> Eliminar
-                              </Button>
-                            </>
-                          )}
+                              </PermissionButton>
+                           
+                          
                         </div>
                       </div>
                     </AccordionContent>
@@ -937,5 +946,6 @@ export default function ListaEscuelas() {
         </DialogContent>
       </Dialog>
     </ErrorBoundary>
+    </ProtectedRoute>
   )
 }

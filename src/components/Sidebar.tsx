@@ -5,7 +5,9 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { useSession, signOut } from "next-auth/react"
+import { usePermissions } from "@/hooks/usePermissions"
 import { 
   HomeIcon, 
   UsersIcon, 
@@ -32,14 +34,30 @@ interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
     title: string
     icon: React.ElementType
     authRequired?: boolean
+    requiredPermission?: {
+      entity: string
+      action: string
+    }
   }[]
 }
 
 export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const { canViewPage } = usePermissions()
 
-  const filteredItems = items.filter(item => !item.authRequired || session)
+  const filteredItems = items.filter(item => {
+    // Si requiere autenticación y no hay sesión, filtrar
+    if (item.authRequired && !session) return false
+    
+    // Si requiere un permiso específico, verificar
+    if (item.requiredPermission) {
+      const entity = item.requiredPermission.entity
+      return canViewPage(entity)
+    }
+    
+    return true
+  })
 
   return (
     <nav className={cn("flex flex-col space-y-1", className)} {...props}>
@@ -68,6 +86,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
+  const { getRoleDisplayName } = usePermissions()
 
   const handleSignOut = async () => {
     await signOut({ redirect: false })
@@ -80,42 +99,49 @@ export function Sidebar() {
       title: "Home",
       icon: HomeIcon,
       authRequired: true,
+      requiredPermission: { entity: "profesional", action: "read" }
     },
     {
       href: "/profesionales",
       title: "Profesionales",
       icon: UsersIcon,
       authRequired: true,
+      requiredPermission: { entity: "profesional", action: "read" }
     },
     {
       href: "/equipos",
       title: "Equipos",
       icon: Building2Icon,
       authRequired: true,
+      requiredPermission: { entity: "equipo", action: "read" }
     },
     {
       href: "/escuelas",
       title: "Escuelas",
       icon: SchoolIcon,
       authRequired: true,
+      requiredPermission: { entity: "escuela", action: "read" }
     },
     {
       href: "/horarios",
       title: "Horarios",
       icon: ClockIcon,
       authRequired: true,
+      requiredPermission: { entity: "paquetehoras", action: "read" }
     },
     {
       href: "/modificaciones",
       title: "Modificaciones",
       icon: PencilIcon,
       authRequired: true,
+      requiredPermission: { entity: "modificacion", action: "read" }
     },
     {
       href: "/usuarios",
       title: "Usuarios",
       icon: Users,
       authRequired: true,
+      requiredPermission: { entity: "user", action: "read" }
     },
   ]
 
@@ -145,6 +171,9 @@ export function Sidebar() {
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-medium">{session.user?.email}</span>
+                <Badge variant="secondary" className="text-xs w-fit">
+                  {getRoleDisplayName()}
+                </Badge>
               </div>
             </div>
             <Button variant="outline" className="w-full justify-start" onClick={handleSignOut}>

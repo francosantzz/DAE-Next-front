@@ -67,6 +67,7 @@ export default function GrillaHorarios() {
   const [profesionales, setProfesionales] = useState<Profesional[]>([])
   const [profesionalesFiltrados, setProfesionalesFiltrados] = useState<Profesional[]>([])
   const [escuelas, setEscuelas] = useState<Escuela[]>([])
+  const [escuelasDelEquipo, setEscuelasDelEquipo] = useState<Escuela[]>([])
   const [equipos, setEquipos] = useState<Equipo[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [openModal, setOpenModal] = useState(false)
@@ -103,24 +104,19 @@ export default function GrillaHorarios() {
     const fetchInitialData = async () => {
       setIsLoading(true)
       try {
-        const [escuelasRes, equiposRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas`, {
-            headers: { Authorization: `Bearer ${session?.user?.accessToken}`}
-          }),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`, {
+        const [equiposRes] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos?page=1&limit=100`, {
             headers: { Authorization: `Bearer ${session?.user?.accessToken}`}
           }),
         ])
 
-        if (!escuelasRes.ok || !equiposRes.ok) throw new Error('Error al obtener datos iniciales')
+        if (!equiposRes.ok) throw new Error('Error al obtener datos iniciales')
 
-        const [escuelasData, equiposData] = await Promise.all([
-          escuelasRes.json(),
+        const [equiposData] = await Promise.all([
           equiposRes.json()
         ])
 
-        setEscuelas(escuelasData.data || [])
-        setEquipos(equiposData)
+        setEquipos(equiposData.data || [])
       } catch (error) {
         console.error("Error fetching initial data:", error)
       } finally {
@@ -129,7 +125,29 @@ export default function GrillaHorarios() {
     }
 
     fetchInitialData()
-  }, [])
+  }, [session?.user?.accessToken])
+
+  // Cargar escuelas del equipo cuando se abre el modal
+  const fetchEscuelasDelEquipo = async (equipoId: string) => {
+    if (!equipoId) {
+      setEscuelasDelEquipo([])
+      return
+    }
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas/por-equipo/${equipoId}`, {
+        headers: { Authorization: `Bearer ${session?.user?.accessToken}`}
+      })
+      
+      if (!response.ok) throw new Error('Error al obtener escuelas del equipo')
+      
+      const escuelasData = await response.json()
+      setEscuelasDelEquipo(escuelasData.data || escuelasData)
+    } catch (error) {
+      console.error("Error fetching escuelas del equipo:", error)
+      setEscuelasDelEquipo([])
+    }
+  }
 
   // Cargar profesionales cuando se selecciona un equipo
   useEffect(() => {
@@ -141,12 +159,12 @@ export default function GrillaHorarios() {
 
       setIsLoading(true)
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals?page=1&limit=100`, {
           headers: { Authorization: `Bearer ${session?.user?.accessToken}`}
         })
         if (!response.ok) throw new Error('Error al obtener profesionales')
         
-        const profesionalesData = await response.json()
+        const { data: profesionalesData } = await response.json()
         const filtrados = profesionalesData.filter((prof: Profesional) => 
           prof.equipos.some(equipo => equipo.id.toString() === equipoSeleccionado)
         )
@@ -157,13 +175,15 @@ export default function GrillaHorarios() {
         setPaquetesCargados(false)
       } catch (error) {
         console.error("Error fetching profesionales:", error)
+        setProfesionales([])
+        setProfesionalesFiltrados([])
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchProfesionales()
-  }, [equipoSeleccionado])
+  }, [equipoSeleccionado, session?.user?.accessToken])
 
   // Cargar paquetes cuando se selecciona un profesional
   useEffect(() => {
@@ -234,6 +254,8 @@ export default function GrillaHorarios() {
           viernes: paquete.dias.viernes || ""
         }
       })
+      // Cargar escuelas del equipo del paquete
+      fetchEscuelasDelEquipo(paquete.equipo.id.toString())
     } else {
       setCurrentPaquete(null)
       setFormData({
@@ -249,6 +271,8 @@ export default function GrillaHorarios() {
           viernes: ""
         }
       })
+      // Cargar escuelas del equipo seleccionado
+      fetchEscuelasDelEquipo(equipoSeleccionado)
     }
     setOpenModal(true)
   }
@@ -358,14 +382,18 @@ export default function GrillaHorarios() {
     }
   }
 
+  const getNombreEquipoSeleccionado = () => {
+    const equipo = equipos.find(e => e.id.toString() === equipoSeleccionado)
+    return equipo ? equipo.nombre : ""
+  }
+
   const getNombreProfesionalSeleccionado = () => {
-    const profesional = profesionales.find((p) => p.id.toString() === profesionalSeleccionado)
+    const profesional = profesionalesFiltrados.find(p => p.id.toString() === profesionalSeleccionado)
     return profesional ? `${profesional.nombre} ${profesional.apellido}` : ""
   }
 
-  const getNombreEquipoSeleccionado = () => {
-    const equipo = equipos.find((e) => e.id.toString() === equipoSeleccionado)
-    return equipo ? equipo.nombre : ""
+  const getTotalHoras = () => {
+    return filteredPaquetes.reduce((total, paquete) => total + paquete.cantidad, 0)
   }
 
   if (isLoading) {
@@ -397,7 +425,7 @@ export default function GrillaHorarios() {
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccione un equipo" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-80 overflow-y-auto">
                       {equipos.map((equipo) => (
                         <SelectItem key={equipo.id} value={equipo.id.toString()}>
                           {equipo.nombre}
@@ -440,13 +468,19 @@ export default function GrillaHorarios() {
             <TabsContent value="horarios">
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <div className="flex items-center space-x-2">
-                    <UsersIcon className="h-5 w-5" />
-                    <span className="font-semibold">{getNombreEquipoSeleccionado()}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <UserIcon className="h-5 w-5" />
-                    <span className="font-semibold">{getNombreProfesionalSeleccionado()}</span>
+                  <div className="flex items-center space-x-6">
+                    <div className="flex items-center space-x-2">
+                      <UsersIcon className="h-5 w-5" />
+                      <span className="font-semibold">{getNombreEquipoSeleccionado()}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <UserIcon className="h-5 w-5" />
+                      <span className="font-semibold">{getNombreProfesionalSeleccionado()}</span>
+                    </div>
+                    <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-lg">
+                      <span className="text-sm font-medium text-blue-700">Total:</span>
+                      <span className="text-lg font-bold text-blue-800">{getTotalHoras()} horas</span>
+                    </div>
                   </div>
                 </div>
 
@@ -569,10 +603,10 @@ export default function GrillaHorarios() {
                   <SelectTrigger id="escuelaId">
                     <SelectValue placeholder="Seleccione una escuela" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-30 overflow-y-auto">
-                    <ScrollArea className="h-[200px]">
+                  <SelectContent className="max-h-60 overflow-y-auto">
+                    <ScrollArea className="max-h-60">
                       <SelectItem value="none">Ninguna</SelectItem>
-                      {escuelas?.map((escuela) => (
+                      {escuelasDelEquipo?.map((escuela) => (
                         <SelectItem key={escuela.id} value={escuela.id.toString()}>
                           {escuela.nombre}
                         </SelectItem>
@@ -584,7 +618,7 @@ export default function GrillaHorarios() {
               <div className="space-y-2">
                 <Label>Días de la semana</Label>
                 <div className="grid grid-cols-2 gap-4">
-                  {["lunes", "martes", "miercoles", "jueves", "viernes"].map((dia) => (
+                  {(["lunes", "martes", "miercoles", "jueves", "viernes"] as const).map((dia) => (
                     <div className="space-y-2" key={dia}>
                       <Label htmlFor={`dias.${dia}`}>{dia.charAt(0).toUpperCase() + dia.slice(1)}</Label>
                       <Input
