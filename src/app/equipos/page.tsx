@@ -21,16 +21,22 @@ import {
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { PlusCircle, Edit, Trash2, X, UserCheck, Building } from 'lucide-react'
+import { PlusCircle, Edit, Trash2, X, UserCheck, Building, Eye } from 'lucide-react'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { useSession } from 'next-auth/react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { PermissionButton } from '@/components/PermissionButton'
+import { DetalleEquipoDialog } from '@/components/equipo/detalle-equipo-dialog'
 
 interface Profesional {
   id: number;
   nombre: string;
   apellido: string;
+}
+
+interface Region {
+  id: number;
+  nombre: string;
 }
 
 interface Seccion {
@@ -69,6 +75,7 @@ interface Equipo {
 interface Departamento {
   id: number;
   nombre: string;
+  region?: Region;
 }
 
 interface Escuela {
@@ -84,6 +91,7 @@ export function ListaEquiposPantallaCompleta() {
   const [escuelas, setEscuelas] = useState<Escuela[]>([])
   const [busquedaInput, setBusquedaInput] = useState('')
   const busqueda = useDebounce(busquedaInput, 1000)
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
   const [filtroDepartamento, setFiltroDepartamento] = useState('todos')
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -99,11 +107,13 @@ export function ListaEquiposPantallaCompleta() {
   const [escuelaSearch, setEscuelaSearch] = useState('')
   const [profesionalesSeleccionados, setProfesionalesSeleccionados] = useState<Profesional[]>([])
   const [escuelasSeleccionadas, setEscuelasSeleccionadas] = useState<Escuela[]>([])
+  const [selectedEquipo, setSelectedEquipo] = useState<Equipo | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
   const itemsPerPage = 10
+
 
   const fetchData = useCallback(async () => {
     if (!session?.user?.accessToken) return
@@ -289,6 +299,15 @@ export function ListaEquiposPantallaCompleta() {
     setIsEditing(false)
   }
 
+  const handleViewDetails = (equipo: Equipo) => {
+    if (!equipo || !equipo.id) {
+      console.error("Equipo inválido:", equipo)
+      return
+    }
+    setSelectedEquipo(equipo)
+    setIsDetailDialogOpen(true)
+  }
+
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>
   }
@@ -333,7 +352,8 @@ export function ListaEquiposPantallaCompleta() {
             <div className="flex items-end">
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button
+                  <PermissionButton
+                  requiredPermission={{ entity: 'equipo', action: 'create'}}
                     onClick={() => {
                       setCurrentEquipo(null)
                       resetForm()
@@ -341,7 +361,7 @@ export function ListaEquiposPantallaCompleta() {
                     }}
                   >
                     <PlusCircle className="mr-2 h-4 w-4" /> Agregar Equipo
-                  </Button>
+                  </PermissionButton>
                 </DialogTrigger>
 
                 <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
@@ -556,6 +576,16 @@ export function ListaEquiposPantallaCompleta() {
                         </div>
                         <p><strong>Horas totales del Equipo:</strong> {equipo.totalHoras || 0}</p>
                         <div className="flex justify-end space-x-2">
+                        <PermissionButton
+                          requiredPermission={{ entity: 'equipo', action: 'read'}}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewDetails(equipo)}
+                          className="hover:bg-green-50 hover:border-green-300 text-green-600"
+                        >
+                          <Eye className="mr-1 h-3 w-3" />
+                          Ver Detalles
+                        </PermissionButton>
                           <PermissionButton
                           requiredPermission={{entity: "equipo", action: "update"}} 
                           variant="outline" 
@@ -602,6 +632,14 @@ export function ListaEquiposPantallaCompleta() {
           )}
         </div>
       </div>
+      <DetalleEquipoDialog
+        equipo={selectedEquipo}
+        isOpen={isDetailDialogOpen}
+        onClose={() => {
+          setIsDetailDialogOpen(false)
+          setSelectedEquipo(null)
+        }}
+      />
     </ErrorBoundary>
   )
 }

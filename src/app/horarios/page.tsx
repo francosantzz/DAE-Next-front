@@ -14,6 +14,7 @@ import { PlusIcon, FilePenIcon, TrashIcon, SearchIcon, UsersIcon, UserIcon } fro
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import ErrorBoundary from "@/components/ErrorBoundary"
 import { useSession } from "next-auth/react"
+import { PermissionButton } from "@/components/PermissionButton"
 
 interface Profesional {
   id: number;
@@ -458,9 +459,11 @@ export default function GrillaHorarios() {
 
               {profesionalSeleccionado && (
                 <div className="flex justify-end">
-                  <Button onClick={() => setActiveTab("horarios")}>
+                  <PermissionButton 
+                    requiredPermission={{ entity: 'paquetehoras', action: 'read'}}
+                    onClick={() => setActiveTab("horarios")}>
                     Ver Paquetes
-                  </Button>
+                  </PermissionButton>
                 </div>
               )}
             </TabsContent>
@@ -494,10 +497,12 @@ export default function GrillaHorarios() {
                       className="pl-8"
                     />
                   </div>
-                  <Button onClick={() => handleOpenModal()}>
+                  <PermissionButton 
+                    requiredPermission={{ entity: 'paquetehoras', action: 'create'}}
+                    onClick={() => handleOpenModal()}>
                     <PlusIcon className="h-4 w-4 mr-2" />
                     Agregar Paquete
-                  </Button>
+                  </PermissionButton>
                 </div>
 
                 <div className="border rounded-md">
@@ -527,20 +532,22 @@ export default function GrillaHorarios() {
                           <TableCell>{paquete.dias.jueves || "-"}</TableCell>
                           <TableCell>{paquete.dias.viernes || "-"}</TableCell>
                           <TableCell className="text-right">
-                            <Button
+                            <PermissionButton
+                              requiredPermission={{ entity: 'paquetehoras', action: 'update'}}
                               variant="ghost"
                               size="icon"
                               onClick={() => handleOpenModal(paquete)}
                             >
                               <FilePenIcon className="h-4 w-4" />
-                            </Button>
-                            <Button
+                            </PermissionButton>
+                            <PermissionButton
+                              requiredPermission={{ entity: 'paquetehoras', action: 'delete'}}
                               variant="ghost"
                               size="icon"
                               onClick={() => handleDelete(paquete.id)}
                             >
                               <TrashIcon className="h-4 w-4" />
-                            </Button>
+                            </PermissionButton>
                           </TableCell>
                         </TableRow>
                       ))}

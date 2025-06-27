@@ -30,6 +30,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import ErrorBoundary from "@/components/ErrorBoundary"
 import { useDebounce } from "@/hooks/useDebounce"
+import { PermissionButton } from "@/components/PermissionButton"
 
 // Enum de roles
 export enum Role {
@@ -308,10 +309,12 @@ export default function ListaUsuarios() {
           <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center">
               <h1 className="text-3xl font-bold text-gray-900">Gestión de Usuarios</h1>
-              <Button onClick={() => handleOpenDialog()}>
+              <PermissionButton 
+                requiredPermission={{ entity: 'user', action: 'create'}}
+                onClick={() => handleOpenDialog()}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Agregar Usuario
-              </Button>
+              </PermissionButton>
             </div>
           </div>
         </header>
@@ -435,12 +438,20 @@ export default function ListaUsuarios() {
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
-                              <Button variant="outline" size="icon" onClick={() => handleOpenDialog(usuario)}>
+                              <PermissionButton 
+                                requiredPermission={{ entity: 'user', action: 'update'}}
+                                variant="outline" 
+                                size="icon" 
+                                onClick={() => handleOpenDialog(usuario)}>
                                 <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="outline" size="icon" onClick={() => handleOpenDeleteDialog(usuario)}>
+                              </PermissionButton>
+                              <PermissionButton 
+                                requiredPermission={{entity: 'user', action: 'delete'}}
+                                variant="outline" 
+                                size="icon" 
+                                onClick={() => handleOpenDeleteDialog(usuario)}>
                                 <Trash2 className="h-4 w-4" />
-                              </Button>
+                              </PermissionButton>
                             </div>
                           </TableCell>
                         </TableRow>

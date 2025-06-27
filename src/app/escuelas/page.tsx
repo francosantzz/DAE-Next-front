@@ -27,6 +27,7 @@ import { useSession } from "next-auth/react"
 import { useDebounce } from "@/hooks/useDebounce"
 import { PermissionButton } from "@/components/PermissionButton"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
+import { usePermissions } from "@/hooks/usePermissions"
 
 interface Profesional {
   id: number
@@ -98,11 +99,12 @@ const userRoles = {
 
 export default function ListaEscuelas() {
   const { data: session } = useSession()
+  const { hasPermission, userRole } = usePermissions()
   const [escuelas, setEscuelas] = useState<Escuela[]>([])
   const [equipos, setEquipos] = useState<Equipo[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [anexos, setAnexos] = useState<Anexo[]>([])
-  const [busquedaInput, setBusquedaInput] = useState("")
+  const [busquedaInput, setBusquedaInput] = useState('')
   const busqueda = useDebounce(busquedaInput, 1000)
   const [filtroEquipo, setFiltroEquipo] = useState("todos")
   const [isLoading, setIsLoading] = useState(true)
@@ -511,6 +513,17 @@ export default function ListaEscuelas() {
     }
   }
 
+  // Función para verificar si el usuario puede editar completamente una escuela
+  // El rol equipo solo puede editar observaciones, no otros campos
+  const canEditEscuelaCompletely = () => {
+    return hasPermission("escuela", "update") && userRole !== "equipo"
+  }
+
+  // Función para verificar si el usuario puede eliminar escuelas
+  const canDeleteEscuela = () => {
+    return hasPermission("escuela", "delete")
+  }
+
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>
   }
@@ -523,7 +536,6 @@ export default function ListaEscuelas() {
           <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center">
               <h1 className="text-3xl font-bold text-gray-900">Gestión de Escuelas</h1>
-              {session?.user?.role === 'admin' && (
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
                     <PermissionButton
@@ -622,7 +634,6 @@ export default function ListaEscuelas() {
                     </form>
                   </DialogContent>
                 </Dialog>
-              )}
             </div>
           </div>
         </header>
@@ -677,6 +688,24 @@ export default function ListaEscuelas() {
                             <Badge variant="outline" className={`ml-2 ${estadoEspacio.color} border-current`}>
                               <EstadoIcon className="w-3 h-3 mr-1" />
                               {estadoEspacio.label}
+                            </Badge>
+                          )}
+                          {(!escuela.paquetesHoras || escuela.paquetesHoras.length === 0) ? (
+                            <Badge 
+                              variant="destructive" 
+                              className="ml-2 flex items-center gap-1 bg-red-500 text-white hover:bg-red-600"
+                            >
+                              <AlertTriangle className="w-3 h-3 mr-1" />
+                              Sin profesionales asignados
+                            </Badge>
+                          ) : (
+                            <Badge 
+                              variant="outline" 
+                              className="ml-2 flex items-center gap-1 border-blue-500 text-blue-700"
+                            >
+                              <span className="font-semibold">
+                                {escuela.paquetesHoras.reduce((total, ph) => total + ph.cantidad, 0)}h asignadas
+                              </span>
                             </Badge>
                           )}
                         </div>
@@ -735,18 +764,22 @@ export default function ListaEscuelas() {
                             <Eye className="mr-2 h-4 w-4" /> Ver Detalles
                           </Button>
                            
-                              <PermissionButton 
-                              requiredPermission={{entity: "escuela", action: "update"}}
-                              variant="outline" 
-                              onClick={() => handleEdit(escuela)}>
-                                <Edit className="mr-2 h-4 w-4" /> Editar
-                              </PermissionButton>
-                              <PermissionButton
-                              requiredPermission={{entity: "escuela", action: "delete"}} 
-                              variant="destructive" 
-                              onClick={() => handleDelete(escuela.id)}>
-                                <Trash2 className="mr-2 h-4 w-4" /> Eliminar
-                              </PermissionButton>
+                              {canEditEscuelaCompletely() && (
+                                <PermissionButton 
+                                requiredPermission={{entity: "escuela", action: "update"}}
+                                variant="outline" 
+                                onClick={() => handleEdit(escuela)}>
+                                  <Edit className="mr-2 h-4 w-4" /> Editar
+                                </PermissionButton>
+                              )}
+                              {canDeleteEscuela() && (
+                                <PermissionButton
+                                requiredPermission={{entity: "escuela", action: "delete"}} 
+                                variant="destructive" 
+                                onClick={() => handleDelete(escuela.id)}>
+                                  <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                                </PermissionButton>
+                              )}
                            
                           
                         </div>
@@ -812,7 +845,6 @@ export default function ListaEscuelas() {
               <ObservacionesEditor
                 escuelaId={selectedEscuela.id}
                 observaciones={selectedEscuela.observaciones}
-                isAdmin={userRoles.isAdmin || userRoles.isAuthorized}
                 onObservacionesUpdated={(newObservaciones) =>
                   handleObservacionesUpdated(selectedEscuela.id, newObservaciones)
                 }
@@ -832,28 +864,33 @@ export default function ListaEscuelas() {
                           <span>
                             {anexo.nombre} - Matrícula: {anexo.matricula}
                           </span>
-                          {session?.user?.role === 'admin' && (
                           <div>
-                            <Button variant="outline" size="sm" className="mr-2" onClick={() => handleEditAnexo(anexo)}>
+                            <PermissionButton 
+                              requiredPermission={{ entity: 'anexo', action: 'update'}}
+                              variant="outline" 
+                              size="sm" 
+                              className="mr-2" 
+                              onClick={() => handleEditAnexo(anexo)}
+                            >
                               <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
+                            </PermissionButton>
+                            <PermissionButton
+                              requiredPermission={{ entity: 'anexo', action: 'delete'}}
                               variant="destructive"
                               size="sm"
                               onClick={() => handleDeleteAnexo(anexo.id)}
                             >
                               <Trash2 className="h-4 w-4" />
-                            </Button>
+                            </PermissionButton>
                           </div>
-                          )}
                         </li>
                       ))}
                     </ul>
                   ) : (
                     <p>No hay anexos para esta escuela.</p>
                   )}
-                  {session?.user?.role === 'admin' && (
-                  <Button
+                  <PermissionButton
+                    requiredPermission={{ entity: 'anexo', action: 'create'}}
                     className="mt-4"
                     onClick={() => {
                       setAnexoFormData({ id: undefined, nombre: "", matricula: "" })
@@ -862,8 +899,7 @@ export default function ListaEscuelas() {
                     }}
                   >
                     <PlusCircle className="mr-2 h-4 w-4" /> Agregar Anexo
-                  </Button>
-                  )}
+                  </PermissionButton>
                 </CardContent>
               </Card>
 
@@ -941,7 +977,12 @@ export default function ListaEscuelas() {
                 que requiera atención.
               </p>
             </div>
-            <Button type="submit">Guardar Observaciones</Button>
+            <PermissionButton
+              requiredPermission={{ entity: "escuela", action: "update" }}
+              type="submit"
+            >
+              Guardar Observaciones
+            </PermissionButton>
           </form>
         </DialogContent>
       </Dialog>

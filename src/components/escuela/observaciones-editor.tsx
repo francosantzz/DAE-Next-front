@@ -7,11 +7,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { Edit, Save, X } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useSession } from "next-auth/react"
+import { usePermissions } from "@/hooks/usePermissions"
 
 interface ObservacionesEditorProps {
   escuelaId: number
   observaciones: string | undefined
-  isAdmin: boolean
   onObservacionesUpdated: (newObservaciones: string) => void
 }
 
@@ -21,11 +21,17 @@ export function ObservacionesEditor({
   onObservacionesUpdated,
 }: ObservacionesEditorProps) {
   const { data: session } = useSession()
+  const { hasPermission } = usePermissions()
   const [isEditing, setIsEditing] = useState(false)
   const [editedObservaciones, setEditedObservaciones] = useState(observaciones || "")
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+
+  // Verificar si el usuario puede editar observaciones de escuelas
+  // Nota: El rol "equipo" tiene permiso "escuela.update" pero solo puede editar observaciones,
+  // no otros campos de la escuela (esto se maneja en el frontend)
+  const canEditObservaciones = hasPermission("escuela", "update")
 
   const handleEdit = () => {
     setEditedObservaciones(observaciones || "")
@@ -40,6 +46,11 @@ export function ObservacionesEditor({
   }
 
   const handleSave = async () => {
+    if (!session?.user?.accessToken) {
+      setError("No tienes permisos para realizar esta acción")
+      return
+    }
+
     setIsSaving(true)
     setError(null)
     setSuccessMessage(null)
@@ -47,7 +58,10 @@ export function ObservacionesEditor({
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas/${escuelaId}/observaciones`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.user.accessToken}`
+        },
         body: JSON.stringify({ observaciones: editedObservaciones }),
       })
 
@@ -76,7 +90,7 @@ export function ObservacionesEditor({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Estado del Espacio Físico</CardTitle>
-        {session?.user?.role === 'admin' && (
+        {canEditObservaciones && (
           <Button variant="outline" size="sm" onClick={handleEdit}>
             <Edit className="mr-2 h-4 w-4" /> Editar
           </Button>

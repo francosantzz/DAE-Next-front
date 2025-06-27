@@ -38,7 +38,7 @@ export const rolePermissions: RolePermissions = {
   ],
   equipo: [
     { entity: "persona", actions: ["read"] },
-    { entity: "escuela", actions: ["read"] },
+    { entity: "escuela", actions: ["read", "update"] },
     { entity: "departamento", actions: ["read"] },
     { entity: "equipo", actions: ["read"] },
     { entity: "profesional", actions: ["read"] },

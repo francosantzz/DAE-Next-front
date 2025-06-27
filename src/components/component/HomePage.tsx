@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { UsersIcon, BriefcaseIcon, CalendarIcon, PlusIcon, FilePenIcon, TrashIcon, TrendingUpIcon, PhoneIcon, MapPinIcon, ClockIcon, UserCheckIcon } from 'lucide-react'
+import { UsersIcon, BriefcaseIcon, CalendarIcon, PlusIcon, FilePenIcon, TrashIcon, TrendingUpIcon, PhoneIcon, MapPinIcon, ClockIcon, UserCheckIcon, XIcon } from 'lucide-react'
 import { useSession } from "next-auth/react"
 import { Badge } from "@/components/ui/badge"
 
@@ -24,13 +24,13 @@ interface Region {
 interface Departamento {
   id: number;
   nombre: string;
-  region: Region;
+  region?: Region;
 }
 
 interface Direccion {
   id: number;
   calle: string;
-  numero: number;
+  numero: string;
   departamento: Departamento;
 }
 
@@ -45,27 +45,35 @@ interface PaqueteHoras {
   cantidad: number;
   escuela: Escuela;
   equipo: string;
+  createdAt?: string;
 }
 
 interface Equipo {
   id: number;
   nombre: string;
   profesionales: string[];
-
+  createdAt?: string;
 }
 
 interface Professional {
   id: number;
   nombre: string;
   apellido: string;
-  cuil: number;
+  cuil: string;
   profesion: string;
   matricula: string;
-  telefono: number;
+  telefono: string;
   direccion: Direccion;
   paquetesHoras: PaqueteHoras[];
   equipos: Equipo[];
   totalHorasProfesional: number;
+  createdAt?: string;
+  correoElectronico?: string;
+  fechaNacimiento?: string;
+  dni?: string;
+  fechaVencimientoMatricula?: string;
+  fechaVencimientoPsicofisico?: string;
+  cargosHoras?: CargoHoras[];
 }
 
 interface DashboardData {
@@ -77,6 +85,11 @@ interface DashboardData {
   newTeamsThisMonth: number;
 }
 
+interface CargoHoras {
+  id?: number;
+  tipo: 'comunes' | 'investigacion' | 'mision_especial' | 'regimen_27';
+  cantidadHoras: number;
+}
 
 export function HomePage() {
   const [openModal, setOpenModal] = useState(false)
@@ -103,11 +116,21 @@ export function HomePage() {
     profesion: '',
     matricula: '',
     telefono: '',
-    'direccion.calle': '',
-    'direccion.numero': '',
-    'direccion.departamentoId': '',
+    direccion: {
+      calle: '',
+      numero: '',
+      departamentoId: ''
+    },
+    correoElectronico: '',
+    fechaNacimiento: '',
+    dni: '',
+    fechaVencimientoMatricula: '',
+    fechaVencimientoPsicofisico: '',
+    equiposIds: [] as number[],
+    cargosHoras: [] as CargoHoras[],
   })
   const { data: session } = useSession()
+  const [equipos, setEquipos] = useState<Equipo[]>([])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -144,19 +167,22 @@ export function HomePage() {
         const firstDayOfWeek = new Date(now.setDate(now.getDate() - now.getDay()))
 
         const newProfessionalsThisMonth = professionalsData.data.filter((p: Professional) => {
-          const createdAt = new Date(p.createdAt)
-          return createdAt >= firstDayOfMonth
+          if (!(p as any).createdAt) return false;
+          const createdAtProf = new Date((p as any).createdAt);
+          return createdAtProf >= firstDayOfMonth;
         }).length
 
         const equiposArray = equiposData.data || equiposData
         const newTeamsThisMonth = equiposArray.filter((e: Equipo) => {
-          const createdAt = new Date(e.createdAt)
-          return createdAt >= firstDayOfMonth
+          if (!(e as any).createdAt) return false;
+          const createdAtEq = new Date((e as any).createdAt);
+          return createdAtEq >= firstDayOfMonth;
         }).length
 
         const newTasksThisWeek = paquetesData.filter((p: PaqueteHoras) => {
-          const createdAt = new Date(p.createdAt)
-          return createdAt >= firstDayOfWeek
+          if (!(p as any).createdAt) return false;
+          const createdAtPack = new Date((p as any).createdAt);
+          return createdAtPack >= firstDayOfWeek;
         }).length
 
         setProfessionals(professionalsData.data)
@@ -170,7 +196,8 @@ export function HomePage() {
           totalTeams: equiposArray.length,
           newTeamsThisMonth
         })
-        setDepartamentos(departamentosData)
+        setEquipos(equiposData.data || equiposData)
+        setDepartamentos(departamentosData.data || departamentosData)
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {
@@ -208,24 +235,31 @@ export function HomePage() {
       const method = currentProfesional ? 'PATCH' : 'POST'
       
       const payload = {
-        nombre: formData.nombre,
-        apellido: formData.apellido,
-        cuil: parseInt(formData.cuil),
-        profesion: formData.profesion,
-        matricula: formData.matricula,
-        telefono: parseInt(formData.telefono),
-        direccion: {
-          calle: formData['direccion.calle'],
-          numero: parseInt(formData['direccion.numero']),
-          departamento: {
-            id: parseInt(formData['direccion.departamentoId'])
+          nombre: formData.nombre,
+          apellido: formData.apellido,
+          cuil: formData.cuil,
+          profesion: formData.profesion,
+          matricula: formData.matricula,
+          telefono: formData.telefono,
+          fechaNacimiento: formData.fechaNacimiento,
+          dni: formData.dni,
+          fechaVencimientoMatricula: formData.fechaVencimientoMatricula,
+          fechaVencimientoPsicofisico: formData.fechaVencimientoPsicofisico,
+          correoElectronico: formData.correoElectronico,
+          equiposIds: formData.equiposIds,
+          cargosHoras: formData.cargosHoras,
+          direccion: {
+            calle: formData.direccion.calle,
+            numero: formData.direccion.numero,
+            departamentoId: parseInt(formData.direccion.departamentoId)
           }
-        }
       }
   
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.user?.accessToken}`
+         },
         body: JSON.stringify(payload)
       })
   
@@ -257,9 +291,18 @@ export function HomePage() {
       profesion: '',
       matricula: '',
       telefono: '',
-      'direccion.calle': '',
-      'direccion.numero': '',
-      'direccion.departamentoId': '',
+      direccion: {
+        calle: '',
+        numero: '',
+        departamentoId: ''
+      },
+      correoElectronico: '',
+      fechaNacimiento: '',
+      dni: '',
+      fechaVencimientoMatricula: '',
+      fechaVencimientoPsicofisico: '',
+      equiposIds: [],
+      cargosHoras: [],
     })
   }
 
@@ -268,13 +311,22 @@ export function HomePage() {
     setFormData({
       nombre: professional.nombre,
       apellido: professional.apellido,
-      cuil: professional.cuil.toString(),
+      cuil: professional.cuil,
       profesion: professional.profesion,
       matricula: professional.matricula,
-      telefono: professional.telefono.toString(),
-      'direccion.calle': professional.direccion.calle,
-      'direccion.numero': professional.direccion.numero.toString(),
-      'direccion.departamentoId': professional.direccion.departamento.id.toString(),
+      telefono: professional.telefono,
+      direccion: {
+        calle: professional.direccion.calle,
+        numero: professional.direccion.numero,
+        departamentoId: professional.direccion.departamento.id.toString()
+      },
+      correoElectronico: professional.correoElectronico ?? '',
+      fechaNacimiento: professional.fechaNacimiento ?? '',
+      dni: professional.dni ?? '',
+      fechaVencimientoMatricula: professional.fechaVencimientoMatricula ?? '',
+      fechaVencimientoPsicofisico: professional.fechaVencimientoPsicofisico ?? '',
+      equiposIds: professional.equipos.map(e => Number(e.id)),
+      cargosHoras: professional.cargosHoras ?? [],
     })
     setOpenModal(true)
   }
@@ -388,6 +440,7 @@ export function HomePage() {
                     <TableHead className="font-semibold text-gray-700">Equipo</TableHead>
                     <TableHead className="font-semibold text-gray-700">Ubicación</TableHead>
                     <TableHead className="text-center font-semibold text-gray-700">Horas</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Correo</TableHead>
                     <TableHead className="text-right font-semibold text-gray-700">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -465,6 +518,7 @@ export function HomePage() {
                           <div className="text-xs text-blue-600">horas</div>
                         </div>
                       </TableCell>
+                      <TableCell>{professional.correoElectronico}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
                           <Button
@@ -616,12 +670,14 @@ export function HomePage() {
                   Calle
                 </Label>
                 <Input
-                  id="direccion.calle"
-                  name="direccion.calle"
-                  value={formData["direccion.calle"]}
-                  onChange={handleInputChange}
-                  className="border-gray-300 focus:border-blue-500"
-                  required
+                   id="direccion.calle"
+                   name="direccion.calle"
+                   value={formData.direccion.calle}
+                   onChange={(e) => setFormData(prev => ({
+                     ...prev,
+                     direccion: { ...prev.direccion, calle: e.target.value }
+                   }))}
+                   required
                 />
               </div>
               <div className="space-y-2">
@@ -629,37 +685,207 @@ export function HomePage() {
                   Número
                 </Label>
                 <Input
-                  id="direccion.numero"
-                  name="direccion.numero"
-                  value={formData["direccion.numero"]}
+                 id="direccion.numero"
+                 name="direccion.numero"
+                 type="number"
+                 value={formData.direccion.numero}
+                 onChange={(e) => setFormData(prev => ({
+                   ...prev,
+                   direccion: { ...prev.direccion, numero: e.target.value }
+                 }))}
+                 required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="correoElectronico" className="text-sm font-medium text-gray-700">Correo electrónico</Label>
+                <Input
+                  id="correoElectronico"
+                  name="correoElectronico"
+                  value={formData.correoElectronico}
                   onChange={handleInputChange}
                   className="border-gray-300 focus:border-blue-500"
                   required
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="direccion.departamentoId" className="text-sm font-medium text-gray-700">
-                Departamento
-              </Label>
-              <Select
-                name="direccion.departamentoId"
-                onValueChange={(value) => handleSelectChange("direccion.departamentoId", value)}
-                value={formData["direccion.departamentoId"]}
-              >
-                <SelectTrigger id="direccion.departamentoId" className="border-gray-300 focus:border-blue-500">
-                  <SelectValue placeholder="Selecciona un departamento" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  <ScrollArea className="h-[200px]">
-                    {departamentos.map((departamento) => (
-                      <SelectItem key={departamento.id} value={departamento.id.toString()}>
-                        {departamento.nombre}
-                      </SelectItem>
-                    ))}
-                  </ScrollArea>
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                <Label htmlFor="fechaNacimiento" className="text-sm font-medium text-gray-700">Fecha de nacimiento</Label>
+                <Input
+                  id="fechaNacimiento"
+                  name="fechaNacimiento"
+                  type="date"
+                  value={formData.fechaNacimiento}
+                  onChange={handleInputChange}
+                  className="border-gray-300 focus:border-blue-500"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dni" className="text-sm font-medium text-gray-700">DNI</Label>
+                <Input
+                  id="dni"
+                  name="dni"
+                  value={formData.dni}
+                  onChange={handleInputChange}
+                  className="border-gray-300 focus:border-blue-500"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fechaVencimientoMatricula" className="text-sm font-medium text-gray-700">Vencimiento Matrícula</Label>
+                <Input
+                  id="fechaVencimientoMatricula"
+                  name="fechaVencimientoMatricula"
+                  type="date"
+                  value={formData.fechaVencimientoMatricula}
+                  onChange={handleInputChange}
+                  className="border-gray-300 focus:border-blue-500"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fechaVencimientoPsicofisico" className="text-sm font-medium text-gray-700">Vencimiento Psicofísico</Label>
+                <Input
+                  id="fechaVencimientoPsicofisico"
+                  name="fechaVencimientoPsicofisico"
+                  type="date"
+                  value={formData.fechaVencimientoPsicofisico}
+                  onChange={handleInputChange}
+                  className="border-gray-300 focus:border-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                        <Label htmlFor="equiposIds">Equipos</Label>
+                        <Select
+                          name="equiposIds"
+                          onValueChange={(value) => {
+                            const equipoId = parseInt(value);
+                            setFormData(prev => ({
+                              ...prev,
+                              equiposIds: prev.equiposIds.includes(equipoId)
+                                ? prev.equiposIds.filter(id => id !== equipoId)
+                                : [...prev.equiposIds, equipoId]
+                            }))
+                          }}
+                          value=""
+                        >
+                          <SelectTrigger id="equiposIds">
+                            <SelectValue placeholder="Seleccione equipos" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {equipos.map((equipo) => (
+                              <SelectItem key={equipo.id} value={equipo.id.toString()}>
+                                {equipo.nombre}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {formData.equiposIds.map(id => {
+                            const equipo = equipos.find(e => e.id === id);
+                            return equipo ? (
+                              <Badge key={id} variant="secondary" className="flex items-center gap-1">
+                                {equipo.nombre}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-4 w-4 p-0"
+                                  onClick={() => setFormData(prev => ({
+                                    ...prev,
+                                    equiposIds: prev.equiposIds.filter(eid => eid !== id)
+                                  }))}
+                                >
+                                  <XIcon className="h-3 w-3" />
+                                </Button>
+                              </Badge>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">Cargos de Horas</Label>
+                        {formData.cargosHoras.map((cargo, idx) => (
+                          <div key={idx} className="flex gap-2 items-center mb-2">
+                            <Select
+                              value={cargo.tipo}
+                              onValueChange={value => {
+                                const updated = [...formData.cargosHoras];
+                                updated[idx] = { ...cargo, tipo: value as CargoHoras['tipo'] };
+                                setFormData(prev => ({ ...prev, cargosHoras: updated }));
+                              }}
+                            >
+                              <SelectTrigger className="w-40 border-gray-300 focus:border-blue-500">
+                                <SelectValue placeholder="Tipo" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="comunes">Comunes</SelectItem>
+                                <SelectItem value="investigacion">Investigación</SelectItem>
+                                <SelectItem value="mision_especial">Misión Especial</SelectItem>
+                                <SelectItem value="regimen_27">Régimen 27</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              type="number"
+                              min={0}
+                              className="w-24 border-gray-300 focus:border-blue-500"
+                              value={cargo.cantidadHoras}
+                              onChange={e => {
+                                const updated = [...formData.cargosHoras];
+                                updated[idx] = { ...cargo, cantidadHoras: Number(e.target.value) };
+                                setFormData(prev => ({ ...prev, cargosHoras: updated }));
+                              }}
+                              placeholder="Horas"
+                              required
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              onClick={() => setFormData(prev => ({
+                                ...prev,
+                                cargosHoras: prev.cargosHoras.filter((_, i) => i !== idx)
+                              }))}
+                            >
+                              <XIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setFormData(prev => ({
+                            ...prev,
+                            cargosHoras: [...prev.cargosHoras, { tipo: 'comunes', cantidadHoras: 0 }]
+                          }))}
+                        >
+                          Agregar Cargo de Horas
+                        </Button>
+                      </div>
+              <div className="space-y-2">
+                <Label htmlFor="direccion.departamentoId" className="text-sm font-medium text-gray-700">
+                  Departamento
+                </Label>
+                <Select
+                          name="direccion.departamentoId"
+                          onValueChange={(value) => setFormData(prev => ({
+                            ...prev,
+                            direccion: { ...prev.direccion, departamentoId: value }
+                          }))}
+                          value={formData.direccion.departamentoId}
+                          required
+                        >
+                          <SelectTrigger id="direccion.departamentoId">
+                            <SelectValue placeholder="Seleccione un departamento" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {departamentos.map((departamento) => (
+                              <SelectItem key={departamento.id} value={departamento.id.toString()}>
+                                {departamento.nombre}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+              </div>
             </div>
             <div className="flex justify-end space-x-4 pt-6 border-t">
               <Button

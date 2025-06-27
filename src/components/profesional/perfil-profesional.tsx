@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { PlusCircle, Pencil, Trash2, AlertCircle, Edit, XIcon } from "lucide-react"
+import { PlusCircle, Pencil, Trash2, AlertCircle, Edit, XIcon, BriefcaseIcon, CalendarIcon, ClockIcon, FilePenIcon, MapPinIcon, PhoneIcon, TrendingUpIcon, UserCheckIcon, UsersIcon, Plus, X } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Layout from "./LayoutProf"
 import ErrorBoundary from "../ErrorBoundary"
@@ -37,7 +37,7 @@ interface Direccion {
   calle: string
   numero: string
   departamento: Departamento
-  region: Region
+  region?: Region
 }
 
 interface Escuela {
@@ -68,6 +68,12 @@ interface PaqueteHoras {
   dias: Dias
 }
 
+interface CargoHoras {
+  id?: number;
+  tipo: 'comunes' | 'investigacion' | 'mision_especial' | 'regimen_27';
+  cantidadHoras: number;
+}
+
 interface Profesional {
   id: number
   nombre: string
@@ -76,10 +82,16 @@ interface Profesional {
   profesion: string
   matricula: string
   telefono: string
+  fechaNacimiento: string
+  dni: string
+  fechaVencimientoMatricula: string
+  fechaVencimientoPsicofisico: string
+  correoElectronico: string
+  totalHoras: number
+  cargosHoras: CargoHoras[]
   equipos: Equipo[]
   paquetesHoras: PaqueteHoras[]
   direccion: Direccion
-  totalHorasProfesional: number
 }
 
 export default function PerfilProfesional({ params }: { params: { id: string } }) {
@@ -102,7 +114,13 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
     profesion: "",
     matricula: "",
     telefono: "",
+    fechaNacimiento: "",
+    dni: "",
+    fechaVencimientoMatricula: "",
+    fechaVencimientoPsicofisico: "",
+    correoElectronico: "",
     equiposIds: [] as number[],
+    cargosHoras: [] as CargoHoras[],
     direccion: {
       calle: "",
       numero: "",
@@ -178,7 +196,13 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
           profesion: profesionalData.profesion,
           matricula: profesionalData.matricula,
           telefono: profesionalData.telefono,
+          fechaNacimiento: profesionalData.fechaNacimiento,
+          dni: profesionalData.dni,
+          fechaVencimientoMatricula: profesionalData.fechaVencimientoMatricula,
+          fechaVencimientoPsicofisico: profesionalData.fechaVencimientoPsicofisico,
+          correoElectronico: profesionalData.correoElectronico,
           equiposIds: profesionalData.equipos.map((e: Equipo) => e.id),
+          cargosHoras: profesionalData.cargosHoras,
           direccion: {
             calle: profesionalData.direccion.calle,
             numero: profesionalData.direccion.numero,
@@ -201,6 +225,26 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value })
+  }
+
+  const handleCargoHorasChange = (index: number, field: keyof CargoHoras, value: string | number) => {
+    const updatedCargos = [...formData.cargosHoras]
+    updatedCargos[index] = { ...updatedCargos[index], [field]: value }
+    setFormData({ ...formData, cargosHoras: updatedCargos })
+  }
+
+  const addCargoHoras = () => {
+    setFormData({
+      ...formData,
+      cargosHoras: [...formData.cargosHoras, { tipo: 'comunes', cantidadHoras: 0 }]
+    })
+  }
+
+  const removeCargoHoras = (index: number) => {
+    setFormData({
+      ...formData,
+      cargosHoras: formData.cargosHoras.filter((_, i) => i !== index)
+    })
   }
 
   const cargarEscuelasPorEquipo = async (equipoId: string) => {
@@ -243,7 +287,13 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
           profesion: formData.profesion,
           matricula: formData.matricula,
           telefono: formData.telefono,
+          fechaNacimiento: formData.fechaNacimiento,
+          dni: formData.dni,
+          fechaVencimientoMatricula: formData.fechaVencimientoMatricula,
+          fechaVencimientoPsicofisico: formData.fechaVencimientoPsicofisico,
+          correoElectronico: formData.correoElectronico,
           equiposIds: formData.equiposIds,
+          cargosHoras: formData.cargosHoras,
           direccion: {
             calle: formData.direccion.calle,
             numero: parseInt(formData.direccion.numero),
@@ -309,7 +359,7 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
           setProfesional({
             ...profesional,
             paquetesHoras: updatedPaquetes,
-            totalHorasProfesional: updatedPaquetes.reduce((sum, p) => sum + p.cantidad, 0),
+            totalHoras: updatedPaquetes.reduce((sum, p) => sum + p.cantidad, 0),
           })
         }
       } catch (error) {
@@ -359,21 +409,7 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
         (p: PaqueteHoras) => p.id === (currentPaquete?.id || updatedProfesional.paquetesHoras[updatedProfesional.paquetesHoras.length - 1].id)
       )
 
-      // Encontrar el equipo correspondiente
-      const equipo = equipos.find(e => e.id === Number(paqueteFormData.equipoId))
-
-      // Construir el paquete actualizado con la información completa
-      const paqueteCompleto = {
-        ...updatedPaquete,
-        equipo: equipo || { id: Number(paqueteFormData.equipoId), nombre: "Equipo no encontrado" },
-        dias: updatedPaquete.dias || {
-          lunes: "",
-          martes: "",
-          miercoles: "",
-          jueves: "",
-          viernes: ""
-        }
-      }
+      const paqueteCompleto = updatedPaquete;
 
       // Actualizar el estado local inmediatamente
       if (profesional) {
@@ -384,7 +420,7 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
         setProfesional({
           ...profesional,
           paquetesHoras: updatedPaquetes,
-          totalHorasProfesional: updatedPaquetes.reduce((sum, p) => sum + p.cantidad, 0),
+          totalHoras: updatedPaquetes.reduce((sum, p) => sum + p.cantidad, 0),
         })
       }
 
@@ -460,59 +496,227 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
     <ProtectedRoute requiredPermission={{ entity: "profesional", action: "read" }}>
     <ErrorBoundary>
     <Layout>
-      <div className="container mx-auto py-8">
-        {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-8 w-1/3" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-        ) : profesional ? (
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl">
-                  {profesional.nombre} {profesional.apellido}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Información Personal</h3>
-                    <div className="space-y-2">
-                      <p><strong>CUIL:</strong> {profesional.cuil}</p>
-                      <p><strong>Profesión:</strong> {profesional.profesion}</p>
-                      <p><strong>Matrícula:</strong> {profesional.matricula}</p>
-                      <p><strong>Teléfono:</strong> {profesional.telefono}</p>
-                      <p><strong>Dirección:</strong> {profesional.direccion.calle} {profesional.direccion.numero}</p>
-                      <p><strong>Departamento:</strong> {profesional.direccion.departamento.nombre}</p>
-                      <p><strong>Región:</strong> {profesional.direccion.region.nombre}</p>
+  <div className="container mx-auto py-8 bg-gray-50">
+    {isLoading ? (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-1/3 bg-gray-200 rounded-lg" />
+        <Skeleton className="h-32 w-full bg-gray-200 rounded-lg" />
+        <Skeleton className="h-32 w-full bg-gray-200 rounded-lg" />
+      </div>
+    ) : profesional ? (
+      <div className="space-y-6">
+        {/* Tarjeta de Información Personal - Mejorada */}
+        <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="bg-white border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-50 rounded-full p-2">
+                <UserCheckIcon className="w-5 h-5 text-blue-600" />
+              </div>
+              <CardTitle className="text-xl font-semibold text-gray-800">
+                Información Personal
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className="bg-blue-50 text-base text-blue-700 border-blue-200">
+                  {profesional.profesion}
+                </Badge>
+                <span className="text-base">Mat: {profesional.matricula}</span>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="bg-gray-100 p-2 rounded-full">
+                    <UserCheckIcon className="w-4 h-4 text-gray-600" />
+                  </div>
+                  <p className="text-gray-700">
+                    <span className="font-medium">Nombre:</span> {profesional.nombre} {profesional.apellido}
+                  </p>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <div className="bg-gray-100 p-2 rounded-full">
+                    <FilePenIcon className="w-4 h-4 text-gray-600" />
+                  </div>
+                  <p className="text-gray-700">
+                    <span className="font-medium">DNI:</span> {profesional.dni}
+                  </p>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <div className="bg-gray-100 p-2 rounded-full">
+                    <FilePenIcon className="w-4 h-4 text-gray-600" />
+                  </div>
+                  <p className="text-gray-700">
+                    <span className="font-medium">CUIL:</span> {profesional.cuil}
+                  </p>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <div className="bg-gray-100 p-2 rounded-full">
+                    <PhoneIcon className="w-4 h-4 text-gray-600" />
+                  </div>
+                  <p className="text-gray-700">
+                    <span className="font-medium">Teléfono:</span> {profesional.telefono}
+                  </p>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <div className="bg-gray-100 p-2 rounded-full">
+                    <FilePenIcon className="w-4 h-4 text-gray-600" />
+                  </div>
+                  <p className="text-gray-700">
+                    <span className="font-medium">Correo:</span> {profesional.correoElectronico}
+                  </p>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <div className="bg-gray-100 p-2 rounded-full">
+                    <CalendarIcon className="w-4 h-4 text-gray-600" />
+                  </div>
+                  <p className="text-gray-700">
+                    <span className="font-medium">Fecha Nacimiento:</span> {profesional.fechaNacimiento}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="bg-orange-50 rounded-full p-2">
+                  <MapPinIcon className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-800">Dirección</h4>
+                  <p className="text-base text-gray-600">
+                    {profesional.direccion.calle} {profesional.direccion.numero}
+                  </p>
+                  <p className="text-base text-gray-600">
+                    {profesional.direccion.departamento.nombre}
+                    {profesional.direccion.region?.nombre && `, ${profesional.direccion.region.nombre}`}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="bg-gray-100 p-2 rounded-full">
+                    <CalendarIcon className="w-4 h-4 text-gray-600" />
+                  </div>
+                  <p className="text-gray-700">
+                    <span className="font-medium">Venc. Matrícula:</span> {profesional.fechaVencimientoMatricula}
+                  </p>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <div className="bg-gray-100 p-2 rounded-full">
+                    <CalendarIcon className="w-4 h-4 text-gray-600" />
+                  </div>
+                  <p className="text-gray-700">
+                    <span className="font-medium">Venc. Psicofísico:</span> {profesional.fechaVencimientoPsicofisico}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tarjeta de Equipos - Mejorada */}
+        <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="bg-white border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="bg-purple-50 rounded-full p-2">
+                <UsersIcon className="w-5 h-5 text-purple-600" />
+              </div>
+              <CardTitle className="text-xl font-semibold text-gray-800">
+                Equipos
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            {profesional.equipos && profesional.equipos.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {profesional.equipos.map((equipo) => (
+                  <div key={equipo.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-semibold text-base text-gray-800">{equipo.nombre}</h4>
+                        <div className="flex items-center mt-2 gap-2">
+                          <div className="bg-gray-100 p-1 rounded-full">
+                            <MapPinIcon className="w-3 h-3 text-base text-gray-600" />
+                          </div>
+                          <p className="text-base text-gray-600">{equipo.departamento.nombre}</p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="bg-purple-50 text-base text-purple-700 border-purple-200">
+                        Miembro
+                      </Badge>
                     </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">Equipos</h3>
-                    {profesional.equipos && profesional.equipos.length > 0 ? (
-                      <div className="space-y-4">
-                        {profesional.equipos.map((equipo) => (
-                          <div key={equipo.id} className="p-4 border rounded-lg">
-                            <h4 className="font-semibold">{equipo.nombre}</h4>
-                            <p>Departamento: {equipo.departamento.nombre}</p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p>No hay equipos asignados</p>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No hay equipos asignados</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-xl">Paquetes de Horas</CardTitle>
-                <PermissionButton
-                requiredPermission={{entity: "paquetehoras", action: "create"}} 
+        {/* Tarjeta de Cargos de Horas - Nueva */}
+        <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="bg-white border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="bg-indigo-50 rounded-full p-2">
+                <ClockIcon className="w-5 h-5 text-indigo-600" />
+              </div>
+              <CardTitle className="text-xl font-semibold text-gray-800">
+                Cargos de Horas
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            {profesional.cargosHoras && profesional.cargosHoras.length > 0 ? (
+              <div className="space-y-3">
+                {profesional.cargosHoras.map((cargo, index) => (
+                  <div key={index} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border">
+                    <div className="flex items-center gap-3">
+                      <Badge 
+                        variant="outline" 
+                        className="bg-indigo-50 text-indigo-700 border-indigo-200 capitalize"
+                      >
+                        {cargo.tipo.replace('_', ' ')}
+                      </Badge>
+                      <span className="text-gray-700 font-medium">{cargo.cantidadHoras} horas</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No hay cargos de horas asignados</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Tarjeta de Paquetes de Horas - Mejorada */}
+        <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="bg-white border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-green-50 rounded-full p-2">
+                  <ClockIcon className="w-5 h-5 text-green-600" />
+                </div>
+                <CardTitle className="text-xl font-semibold text-gray-800">
+                  Paquetes de Horas
+                </CardTitle>
+              </div>
+              <PermissionButton
+                requiredPermission={{entity: "paquetehoras", action: "create"}}
+                className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                 onClick={() => {
                   setCurrentPaquete(null)
                   setPaqueteFormData({
@@ -531,91 +735,175 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
                   })
                   setEscuelasFiltradas([])
                   setIsPaqueteDialogOpen(true)
-                }}>
-                  <PlusCircle className="mr-2 h-4 w-4" /> Agregar Paquete
-                </PermissionButton>
-              </CardHeader>
-              <CardContent>
-                {profesional.paquetesHoras && profesional.paquetesHoras.length > 0 ? (
-                  <div className="space-y-4">
-                    {profesional.paquetesHoras.map((paquete) => (
-                      <div key={paquete.id} className="p-4 border rounded-lg">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-semibold">{paquete.tipo}</h4>
-                            <p>Cantidad: {paquete.cantidad} horas</p>
-                            <p>Equipo: {paquete.equipo.nombre}</p>
-                            {paquete.escuela && <p>Escuela: {paquete.escuela.nombre}</p>}
-                            <div className="mt-2">
-                              <p className="font-semibold">Días:</p>
-                              <ul className="list-disc pl-5">
-                                {Object.entries(paquete.dias).map(([dia, horario]) => (
-                                  horario && (
-                                    <li key={dia}>
-                                      {dia.charAt(0).toUpperCase() + dia.slice(1)}: {horario}
-                                    </li>
-                                  )
-                                ))}
-                              </ul>
+                }}
+              >
+                <PlusCircle className="mr-2 h-4 w-4" /> Agregar Paquete
+              </PermissionButton>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            {profesional.paquetesHoras && profesional.paquetesHoras.length > 0 ? (
+              <div className="space-y-4">
+                {profesional.paquetesHoras.map((paquete) => (
+                  <div 
+                    key={paquete.id} 
+                    className={`
+                      border-2 rounded-lg p-4 
+                      hover:shadow-lg transition-shadow 
+                      ${paquete.tipo === "Escuela" ? "border-green-300 ring-1 ring-green-300" : 
+                        paquete.tipo === "Trabajo Interdisciplinario" ? "border-purple-300 ring-1 ring-purple-300" : 
+                        "border-orange-300 ring-1 ring-orange-300"}
+                    `}>
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <Badge 
+                            variant="outline" 
+                            className={
+                              paquete.tipo === "Escuela" ? "bg-green-50 text-base text-green-700 border-green-200" :
+                              paquete.tipo === "Trabajo Interdisciplinario" ? "bg-purple-50 text-base text-purple-700 border-purple-200" :
+                              "bg-orange-50 text-base text-orange-700 border-orange-200"
+                            }
+                          >
+                            {paquete.tipo}
+                          </Badge>
+                          <div className="bg-blue-50 rounded-lg px-3 py-1">
+                            <div className="font-bold text-lg text-blue-700">
+                              {paquete.cantidad}
+                              <span className="text-base ml-1">horas</span>
                             </div>
                           </div>
-                          <div className="flex space-x-2">
-                            <PermissionButton 
-                            requiredPermission={{entity: "paquetehoras", action: "update"}}
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => handlePaqueteEdit(paquete)}>
-                              <Edit className="h-4 w-4" />
-                            </PermissionButton>
-                            <PermissionButton 
-                            requiredPermission={{entity: "paquetehoras", action: "delete"}}
-                            variant="destructive" 
-                            size="sm" 
-                            onClick={() => handlePaqueteDelete(paquete.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </PermissionButton>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <div className="bg-gray-100 p-1 rounded-full">
+                            <UsersIcon className="w-3 h-3 text-gray-600" />
                           </div>
+                          <p className="text-base text-gray-700">{paquete.equipo.nombre}</p>
+                        </div>
+                        
+                        {paquete.escuela && (
+                          <div className="flex items-center gap-2">
+                            <div className="bg-gray-100 p-1 rounded-full">
+                              <BriefcaseIcon className="w-3 h-3 text-gray-600" />
+                            </div>
+                            <p className="text-base text-gray-700">{paquete.escuela.nombre}</p>
+                          </div>
+                        )}
+                        
+                        <div className="mt-2">
+                          <p className="text-base font-medium text-gray-700">Horarios:</p>
+                          <ul className="mt-1 space-y-1">
+                            {Object.entries(paquete.dias).map(([dia, horario]) => (
+                              horario && (
+                                <li key={dia} className="flex items-center gap-2 text-base text-gray-600">
+                                  <div className="bg-gray-100 p-1 rounded-full">
+                                    <CalendarIcon className="w-3 h-3 text-gray-600" />
+                                  </div>
+                                  <span>
+                                    {dia.charAt(0).toUpperCase() + dia.slice(1)}: {horario}
+                                  </span>
+                                </li>
+                              )
+                            ))}
+                          </ul>
                         </div>
                       </div>
-                    ))}
+                      <div className="flex space-x-2">
+                        <PermissionButton 
+                          requiredPermission={{entity: "paquetehoras", action: "update"}}
+                          variant="outline" 
+                          size="sm"
+                          className="hover:bg-blue-50 hover:border-blue-300"
+                          onClick={() => handlePaqueteEdit(paquete)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </PermissionButton>
+                        <PermissionButton 
+                          requiredPermission={{entity: "paquetehoras", action: "delete"}}
+                          variant="outline" 
+                          size="sm"
+                          className="hover:bg-red-50 hover:border-red-300 text-red-600"
+                          onClick={() => handlePaqueteDelete(paquete.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </PermissionButton>
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <p>No hay paquetes de horas asignados</p>
-                )}
-              </CardContent>
-            </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No hay paquetes de horas asignados</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-xl">Resumen de Horas</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p>
-                  <strong>Horas totales:</strong> {profesional.paquetesHoras.reduce((sum, p) => sum + p.cantidad, 0)}
-                </p>
-              </CardContent>
-            </Card>
+        {/* Tarjeta de Resumen - Mejorada */}
+        <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="bg-white border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-50 rounded-full p-2">
+                <TrendingUpIcon className="w-5 h-5 text-blue-600" />
+              </div>
+              <CardTitle className="text-xl font-semibold text-gray-800">
+                Resumen de Horas
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-center gap-6">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-700">
+                  {profesional.totalHoras}
+                </div>
+                <p className="text-base text-gray-600">Horas totales</p>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-gray-800">
+                  {profesional.paquetesHoras.length}
+                </div>
+                <p className="text-base text-gray-600">Paquetes</p>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-indigo-700">
+                  {profesional.cargosHoras.length}
+                </div>
+                <p className="text-base text-gray-600">Cargos</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-            <section className="flex justify-between items-center">
-              <Button variant="outline" onClick={() => router.push('/profesionales')}>
-                Volver a la lista
-              </Button>
-              <PermissionButton 
-                requiredPermission={{entity: "profesional", action: "update"}}
-                onClick={() => setIsDialogOpen(true)}>
-                <Pencil className="mr-2 h-4 w-4" /> Editar Perfil
-              </PermissionButton>
-            </section>
-          </div>
-        ) : (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              No se encontró el profesional solicitado.
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Botones de acción - Mejorados */}
+        <div className="flex justify-between items-center pt-4">
+          <Button 
+            variant="outline" 
+            className="border-gray-300 hover:bg-gray-100"
+            onClick={() => router.push('/profesionales')}
+          >
+            Volver a la lista
+          </Button>
+          <PermissionButton 
+            requiredPermission={{entity: "profesional", action: "update"}}
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+            onClick={() => setIsDialogOpen(true)}
+          >
+            <Pencil className="mr-2 h-4 w-4" /> Editar Perfil
+          </PermissionButton>
+        </div>
       </div>
+    ) : (
+      <Alert variant="destructive" className="border-red-200 bg-red-50">
+        <AlertCircle className="h-4 w-4 text-red-600" />
+        <AlertDescription className="text-red-700">
+          No se encontró el profesional solicitado.
+        </AlertDescription>
+      </Alert>
+    )}
+  </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
@@ -687,6 +975,60 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
               />
             </div>
             <div>
+              <Label htmlFor="fechaNacimiento">Fecha de Nacimiento</Label>
+              <Input
+                id="fechaNacimiento"
+                name="fechaNacimiento"
+                type="date"
+                value={formData.fechaNacimiento}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="dni">DNI</Label>
+              <Input
+                id="dni"
+                name="dni"
+                value={formData.dni}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="fechaVencimientoMatricula">Fecha de Vencimiento de Matrícula</Label>
+              <Input
+                id="fechaVencimientoMatricula"
+                name="fechaVencimientoMatricula"
+                type="date"
+                value={formData.fechaVencimientoMatricula}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="fechaVencimientoPsicofisico">Fecha de Vencimiento Psicofísico</Label>
+              <Input
+                id="fechaVencimientoPsicofisico"
+                name="fechaVencimientoPsicofisico"
+                type="date"
+                value={formData.fechaVencimientoPsicofisico}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="correoElectronico">Correo Electrónico</Label>
+              <Input
+                id="correoElectronico"
+                name="correoElectronico"
+                type="email"
+                value={formData.correoElectronico}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            <div>
               <Label htmlFor="direccion.calle">Calle</Label>
               <Input
                 id="direccion.calle"
@@ -735,6 +1077,59 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>Cargos de Horas</Label>
+              <div className="space-y-3">
+                {formData.cargosHoras.map((cargo, index) => (
+                  <div key={index} className="flex gap-2 items-end border p-3 rounded-lg">
+                    <div className="flex-1">
+                      <Label htmlFor={`cargo-tipo-${index}`}>Tipo de Cargo</Label>
+                      <Select
+                        value={cargo.tipo}
+                        onValueChange={(value) => handleCargoHorasChange(index, 'tipo', value as any)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="comunes">Comunes</SelectItem>
+                          <SelectItem value="investigacion">Investigación</SelectItem>
+                          <SelectItem value="mision_especial">Misión Especial</SelectItem>
+                          <SelectItem value="regimen_27">Régimen 27</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex-1">
+                      <Label htmlFor={`cargo-horas-${index}`}>Cantidad de Horas</Label>
+                      <Input
+                        id={`cargo-horas-${index}`}
+                        type="number"
+                        value={cargo.cantidadHoras}
+                        onChange={(e) => handleCargoHorasChange(index, 'cantidadHoras', parseInt(e.target.value) || 0)}
+                        min="0"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => removeCargoHoras(index)}
+                      className="mb-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addCargoHoras}
+                  className="w-full"
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Agregar Cargo de Horas
+                </Button>
+              </div>
             </div>
             <div>
               <Label htmlFor="equiposIds">Equipos</Label>

@@ -20,7 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { PlusCircle, Edit, Trash2 } from 'lucide-react'
+import { PlusCircle, Edit, Trash2, Plus, X } from 'lucide-react'
 import Layout from '../../components/profesional/LayoutProf'
 import { ScrollArea } from '@radix-ui/react-scroll-area'
 import ErrorBoundary from '@/components/ErrorBoundary'
@@ -63,19 +63,30 @@ interface PaqueteHoras {
   equipo?: Equipo;
 }
 
+interface CargoHoras {
+  id?: number;
+  tipo: 'comunes' | 'investigacion' | 'mision_especial' | 'regimen_27';
+  cantidadHoras: number;
+}
+
 interface Profesional {
   id: number;
   nombre: string;
   apellido: string;
-  email: string;
-  telefono: string;
-  direccion: Direccion;
-  equipos: Equipo[];
-  paquetesHoras: PaqueteHoras[];
-  totalHorasProfesional: number;
   cuil: string;
   profesion: string;
   matricula: string;
+  telefono: string;
+  fechaNacimiento: string;
+  dni: string;
+  fechaVencimientoMatricula: string;
+  fechaVencimientoPsicofisico: string;
+  correoElectronico: string;
+  totalHoras: number;
+  cargosHoras: CargoHoras[];
+  equipos: Equipo[];
+  paquetesHoras: PaqueteHoras[];
+  direccion: Direccion;
 }
 
 export default function ListaProfesionales() {
@@ -102,7 +113,13 @@ export default function ListaProfesionales() {
     profesion: '',
     matricula: '',
     telefono: '',
+    fechaNacimiento: '',
+    dni: '',
+    fechaVencimientoMatricula: '',
+    fechaVencimientoPsicofisico: '',
+    correoElectronico: '',
     equiposIds: [] as number[],
+    cargosHoras: [] as CargoHoras[],
     direccion: {
       calle: '',
       numero: '',
@@ -167,7 +184,35 @@ export default function ListaProfesionales() {
     setFormData({ ...formData, [name]: value })
   }
 
+  const handleCargoHorasChange = (index: number, field: keyof CargoHoras, value: string | number) => {
+    const updatedCargos = [...formData.cargosHoras]
+    updatedCargos[index] = { ...updatedCargos[index], [field]: value }
+    setFormData({ ...formData, cargosHoras: updatedCargos })
+    console.log('Cargo de horas actualizado:', updatedCargos[index])
+  }
+
+  const addCargoHoras = () => {
+    const newCargos = [...formData.cargosHoras, { tipo: 'comunes' as const, cantidadHoras: 0 }]
+    setFormData({
+      ...formData,
+      cargosHoras: newCargos
+    })
+    console.log('Nuevo cargo de horas agregado:', newCargos)
+  }
+
+  const removeCargoHoras = (index: number) => {
+    setFormData({
+      ...formData,
+      cargosHoras: formData.cargosHoras.filter((_, i) => i !== index)
+    })
+  }
+
   const handleEdit = (profesional: Profesional) => {
+    console.log('Profesional a editar:', profesional)
+    console.log('Cargos de horas del profesional:', profesional.cargosHoras)
+    console.log('Tipo de cargosHoras:', typeof profesional.cargosHoras)
+    console.log('Es array:', Array.isArray(profesional.cargosHoras))
+    console.log('Longitud del array:', profesional.cargosHoras?.length)
     setCurrentProfesional(profesional)
     setFormData({
       id: profesional.id,
@@ -177,7 +222,13 @@ export default function ListaProfesionales() {
       profesion: profesional.profesion,
       matricula: profesional.matricula,
       telefono: profesional.telefono,
+      fechaNacimiento: profesional.fechaNacimiento,
+      dni: profesional.dni,
+      fechaVencimientoMatricula: profesional.fechaVencimientoMatricula,
+      fechaVencimientoPsicofisico: profesional.fechaVencimientoPsicofisico,
+      correoElectronico: profesional.correoElectronico,
       equiposIds: profesional.equipos.map(e => e.id),
+      cargosHoras: profesional.cargosHoras,
       direccion: {
         calle: profesional.direccion.calle,
         numero: profesional.direccion.numero,
@@ -208,7 +259,13 @@ export default function ListaProfesionales() {
           profesion: formData.profesion,
           matricula: formData.matricula,
           telefono: formData.telefono,
+          fechaNacimiento: formData.fechaNacimiento,
+          dni: formData.dni,
+          fechaVencimientoMatricula: formData.fechaVencimientoMatricula,
+          fechaVencimientoPsicofisico: formData.fechaVencimientoPsicofisico,
+          correoElectronico: formData.correoElectronico,
           equiposIds: formData.equiposIds,
+          cargosHoras: formData.cargosHoras,
           direccion: {
             calle: formData.direccion.calle,
             numero: parseInt(formData.direccion.numero),
@@ -220,12 +277,43 @@ export default function ListaProfesionales() {
       if (!response.ok) throw new Error('Error al guardar el profesional')
 
       const updatedProfesional = await response.json()
+      console.log('Respuesta del backend:', updatedProfesional)
+      console.log('Cargos de horas en la respuesta:', updatedProfesional.cargosHoras)
 
-      setProfesionales(prev =>
-        currentProfesional
-          ? prev.map(p => p.id === updatedProfesional.id ? updatedProfesional : p)
-          : [...prev, updatedProfesional]
-      )
+      // Obtener el profesional completo desde el endpoint específico, igual que en el perfil profesional
+      if (currentProfesional) {
+        try {
+          const getResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${currentProfesional.id}`, {
+            headers: {
+              'Authorization': `Bearer ${session?.user?.accessToken}`
+            }
+          })
+          
+          if (getResponse.ok) {
+            const completeProfesional = await getResponse.json()
+            console.log('Profesional completo obtenido:', completeProfesional)
+            
+            // Actualizar el estado local con los datos completos
+            setProfesionales(prev =>
+              prev.map(p => p.id === completeProfesional.id ? completeProfesional : p)
+            )
+          } else {
+            // Si falla, usar la respuesta del endpoint de actualización
+            setProfesionales(prev =>
+              prev.map(p => p.id === updatedProfesional.id ? updatedProfesional : p)
+            )
+          }
+        } catch (error) {
+          console.error('Error al obtener el profesional completo:', error)
+          // Si falla, usar la respuesta del endpoint de actualización
+          setProfesionales(prev =>
+            prev.map(p => p.id === updatedProfesional.id ? updatedProfesional : p)
+          )
+        }
+      } else {
+        // Para nuevos profesionales, usar la respuesta del endpoint de creación
+        setProfesionales(prev => [...prev, updatedProfesional])
+      }
 
       setIsDialogOpen(false)
       setCurrentProfesional(null)
@@ -237,7 +325,13 @@ export default function ListaProfesionales() {
         profesion: '',
         matricula: '',
         telefono: '',
+        fechaNacimiento: '',
+        dni: '',
+        fechaVencimientoMatricula: '',
+        fechaVencimientoPsicofisico: '',
+        correoElectronico: '',
         equiposIds: [],
+        cargosHoras: [],
         direccion: {
           calle: '',
           numero: '',
@@ -339,7 +433,13 @@ export default function ListaProfesionales() {
                         profesion: '',
                         matricula: '',
                         telefono: '',
+                        fechaNacimiento: '',
+                        dni: '',
+                        fechaVencimientoMatricula: '',
+                        fechaVencimientoPsicofisico: '',
+                        correoElectronico: '',
                         equiposIds: [],
+                        cargosHoras: [],
                         direccion: {
                           calle: '',
                           numero: '',
@@ -421,6 +521,59 @@ export default function ListaProfesionales() {
                         />
                       </div>
                       <div>
+                        <Label htmlFor="fechaNacimiento">Fecha de Nacimiento</Label>
+                        <Input
+                          id="fechaNacimiento"
+                          name="fechaNacimiento"
+                          type="date"
+                          value={formData.fechaNacimiento}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="dni">DNI</Label>
+                        <Input
+                          id="dni"
+                          name="dni"
+                          value={formData.dni}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="fechaVencimientoMatricula">Fecha de Vencimiento de Matrícula</Label>
+                        <Input
+                          id="fechaVencimientoMatricula"
+                          name="fechaVencimientoMatricula"
+                          type="date"
+                          value={formData.fechaVencimientoMatricula}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="fechaVencimientoPsicofisico">Fecha de Vencimiento Psicofísico</Label>
+                        <Input
+                          id="fechaVencimientoPsicofisico"
+                          name="fechaVencimientoPsicofisico"
+                          type="date"
+                          value={formData.fechaVencimientoPsicofisico}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="correoElectronico">Correo Electrónico</Label>
+                        <Input
+                          id="correoElectronico"
+                          name="correoElectronico"
+                          value={formData.correoElectronico}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                      <div>
                         <Label htmlFor="direccion.calle">Calle</Label>
                         <Input
                           id="direccion.calle"
@@ -469,6 +622,59 @@ export default function ListaProfesionales() {
                             ))}
                           </SelectContent>
                         </Select>
+                      </div>
+                      <div>
+                        <Label>Cargos de Horas</Label>
+                        <div className="space-y-3">
+                          {formData.cargosHoras.map((cargo, index) => (
+                            <div key={index} className="flex gap-2 items-end border p-3 rounded-lg">
+                              <div className="flex-1">
+                                <Label htmlFor={`cargo-tipo-${index}`}>Tipo de Cargo</Label>
+                                <Select
+                                  value={cargo.tipo}
+                                  onValueChange={(value) => handleCargoHorasChange(index, 'tipo', value as any)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Seleccione tipo" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="comunes">Comunes</SelectItem>
+                                    <SelectItem value="investigacion">Investigación</SelectItem>
+                                    <SelectItem value="mision_especial">Misión Especial</SelectItem>
+                                    <SelectItem value="regimen_27">Régimen 27</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="flex-1">
+                                <Label htmlFor={`cargo-horas-${index}`}>Cantidad de Horas</Label>
+                                <Input
+                                  id={`cargo-horas-${index}`}
+                                  type="number"
+                                  value={cargo.cantidadHoras}
+                                  onChange={(e) => handleCargoHorasChange(index, 'cantidadHoras', parseInt(e.target.value) || 0)}
+                                  min="0"
+                                />
+                              </div>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => removeCargoHoras(index)}
+                                className="mb-0"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={addCargoHoras}
+                            className="w-full"
+                          >
+                            <Plus className="mr-2 h-4 w-4" /> Agregar Cargo de Horas
+                          </Button>
+                        </div>
                       </div>
                       <div>
                         <Label htmlFor="equiposIds">Equipos</Label>
@@ -548,6 +754,22 @@ export default function ListaProfesionales() {
                         </AccordionTrigger>
                         <AccordionContent className="px-6 py-4">
                           <div className="space-y-4">
+                            <div>
+                              <strong>Cargos de Horas:</strong>
+                              {profesional.cargosHoras && profesional.cargosHoras.length > 0 ? (
+                                <div className="mt-2 space-y-2">
+                                  {profesional.cargosHoras.map((cargo, index) => (
+                                    <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                                      <span className="capitalize">{cargo.tipo.replace('_', ' ')}</span>
+                                      <Badge variant="outline">{cargo.cantidadHoras} horas</Badge>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p>No hay cargos de horas asignados</p>
+                              )}
+                            </div>
+                            
                             <div>
                               <strong>Equipos:</strong>
                               {profesional.equipos && profesional.equipos.length > 0 ? (
