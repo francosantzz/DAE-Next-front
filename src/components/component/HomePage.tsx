@@ -687,7 +687,6 @@ export function HomePage() {
                 <Input
                  id="direccion.numero"
                  name="direccion.numero"
-                 type="number"
                  value={formData.direccion.numero}
                  onChange={(e) => setFormData(prev => ({
                    ...prev,
@@ -739,7 +738,6 @@ export function HomePage() {
                   value={formData.fechaVencimientoMatricula}
                   onChange={handleInputChange}
                   className="border-gray-300 focus:border-blue-500"
-                  required
                 />
               </div>
               <div className="space-y-2">
@@ -751,7 +749,6 @@ export function HomePage() {
                   value={formData.fechaVencimientoPsicofisico}
                   onChange={handleInputChange}
                   className="border-gray-300 focus:border-blue-500"
-                  required
                 />
               </div>
               <div>

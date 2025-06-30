@@ -199,7 +199,10 @@ export default function GrillaHorarios() {
       setIsLoading(true)
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes?profesionalId=${profesionalSeleccionado}`
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes?profesionalId=${profesionalSeleccionado}`,
+          {
+            headers: { Authorization: `Bearer ${session?.user.accessToken}`}
+          }
         )
         
         if (!response.ok) throw new Error('Error al obtener paquetes')
@@ -317,7 +320,9 @@ export default function GrillaHorarios() {
 
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.user.accessToken}`
+         },
         body: JSON.stringify({
           tipo: formData.tipo,
           cantidad: Number.parseInt(formData.cantidad),
@@ -338,7 +343,10 @@ export default function GrillaHorarios() {
 
       // Recargar los paquetes
       const updatedResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes?profesionalId=${profesionalSeleccionado}`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes?profesionalId=${profesionalSeleccionado}`,
+        {
+          headers: { Authorization: `Bearer ${session?.user.accessToken}`}
+        }
       )
       if (!updatedResponse.ok) throw new Error('Error al actualizar los paquetes')
       
@@ -363,13 +371,19 @@ export default function GrillaHorarios() {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes/${id}`, {
         method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session?.user.accessToken}`
+        }
       })
 
       if (!response.ok) throw new Error('Error al eliminar el paquete')
 
       // Recargar los paquetes
       const updatedResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes?profesionalId=${profesionalSeleccionado}`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes?profesionalId=${profesionalSeleccionado}`,
+        {
+          headers: { Authorization: `Bearer ${session?.user.accessToken}`}
+        }
       )
       if (!updatedResponse.ok) throw new Error('Error al actualizar los paquetes')
       

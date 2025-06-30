@@ -24,7 +24,8 @@ import {
   Users,
   LayoutDashboard,
   BookOpen,
-  History
+  History,
+  TrendingUpIcon
 } from 'lucide-react'
 import { useState } from "react"
 
@@ -128,6 +129,13 @@ export function Sidebar() {
       icon: ClockIcon,
       authRequired: true,
       requiredPermission: { entity: "paquetehoras", action: "read" }
+    },
+    {
+      title: "Altas y Bajas",
+      href: "/altas-bajas",
+      icon: TrendingUpIcon,
+      authRequired: true,
+      requiredPermission: { entity: "modificacion", action: "read"}
     },
     {
       href: "/modificaciones",

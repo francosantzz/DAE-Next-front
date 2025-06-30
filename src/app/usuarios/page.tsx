@@ -144,6 +144,11 @@ export default function ListaUsuarios() {
     }
   }, [fetchData, session?.user?.accessToken])
 
+  // Resetear página cuando cambie la búsqueda
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [busqueda, filtroRol])
+
   const handleOpenDialog = (usuario?: Usuario) => {
     if (usuario) {
       setCurrentUsuario(usuario)

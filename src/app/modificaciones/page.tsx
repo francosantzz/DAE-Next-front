@@ -179,6 +179,11 @@ export default function ListaModificaciones() {
     }
   }, [fetchData, session?.user?.accessToken])
 
+  // Resetear página cuando cambie la búsqueda
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [busqueda, filtroAccion, filtroFecha])
+
   const modificacionesFiltradas = modificaciones
 
   const formatearFecha = (fecha: string) => {

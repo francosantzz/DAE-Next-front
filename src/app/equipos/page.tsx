@@ -162,6 +162,11 @@ export function ListaEquiposPantallaCompleta() {
     fetchData()
   }, [fetchData])
 
+  // Resetear página cuando cambie la búsqueda
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [busqueda, filtroDepartamento])
+
   const profesionalesFiltrados = profesionales?.filter(profesional => 
     (profesional.nombre.toLowerCase().includes(profesionalSearch.toLowerCase()) ||
     profesional.apellido.toLowerCase().includes(profesionalSearch.toLowerCase())) &&

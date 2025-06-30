@@ -48,7 +48,7 @@ interface Anexo {
 interface Direccion {
   id: number
   calle: string
-  numero: number
+  numero: string
   departamento: {
     id: number
     nombre: string
@@ -84,6 +84,12 @@ interface Equipo {
 interface Escuela {
   id: number
   nombre: string
+  CUE?: number
+  Numero?: number
+  telefono?: string
+  matricula?: number
+  IVE?: string
+  Ambito?: string
   direccion: Direccion
   equipo: Equipo
   anexos: Anexo[]
@@ -103,7 +109,6 @@ export default function ListaEscuelas() {
   const [escuelas, setEscuelas] = useState<Escuela[]>([])
   const [equipos, setEquipos] = useState<Equipo[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
-  const [anexos, setAnexos] = useState<Anexo[]>([])
   const [busquedaInput, setBusquedaInput] = useState('')
   const busqueda = useDebounce(busquedaInput, 1000)
   const [filtroEquipo, setFiltroEquipo] = useState("todos")
@@ -112,6 +117,12 @@ export default function ListaEscuelas() {
   const [currentEscuela, setCurrentEscuela] = useState<Escuela | null>(null)
   const [formData, setFormData] = useState({
     nombre: "",
+    CUE: "",
+    Numero: "",
+    telefono: "",
+    matricula: "",
+    IVE: "",
+    Ambito: "",
     "direccion.calle": "",
     "direccion.numero": "",
     departamentoId: "",
@@ -176,7 +187,6 @@ export default function ListaEscuelas() {
       setTotalItems(escuelasData.meta.total)
       setEquipos(equiposData.data || equiposData)
       setDepartamentos(departamentosData)
-      setAnexos(anexosData)
     } catch (error) {
       console.error("Error al obtener datos:", error)
     } finally {
@@ -187,6 +197,11 @@ export default function ListaEscuelas() {
   useEffect(() => {
     fetchData()
   }, [fetchData])
+
+  // Resetear página cuando cambie la búsqueda
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [busqueda, filtroEquipo])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -212,9 +227,16 @@ export default function ListaEscuelas() {
   
       const payload = {
         nombre: formData.nombre,
+        CUE: formData.CUE ? Number(formData.CUE) : undefined,
+        Numero: formData.Numero ? Number(formData.Numero) : undefined,
+        telefono: formData.telefono || undefined,
+        matricula: formData.matricula ? Number(formData.matricula) : undefined,
+        IVE: formData.IVE || undefined,
+        Ambito: formData.Ambito || undefined,
         direccion: {
+          id: currentEscuela?.direccion?.id,
           calle: formData["direccion.calle"],
-          numero: Number(formData["direccion.numero"]),
+          numero: formData["direccion.numero"],
           departamentoId: Number(formData.departamentoId)
         },
         equipoId: Number(formData.equipoId),
@@ -257,6 +279,12 @@ export default function ListaEscuelas() {
   const resetForm = () => {
     setFormData({
       nombre: "",
+      CUE: "",
+      Numero: "",
+      telefono: "",
+      matricula: "",
+      IVE: "",
+      Ambito: "",
       "direccion.calle": "",
       "direccion.numero": "",
       departamentoId: "",
@@ -269,8 +297,14 @@ export default function ListaEscuelas() {
     setCurrentEscuela(escuela)
     setFormData({
       nombre: escuela.nombre,
+      CUE: escuela.CUE?.toString() || "",
+      Numero: escuela.Numero?.toString() || "",
+      telefono: escuela.telefono || "",
+      matricula: escuela.matricula?.toString() || "",
+      IVE: escuela.IVE || "",
+      Ambito: escuela.Ambito || "",
       "direccion.calle": escuela.direccion.calle,
-      "direccion.numero": escuela.direccion.numero.toString(),
+      "direccion.numero": escuela.direccion.numero,
       departamentoId: escuela.direccion.departamento.id.toString(),
       equipoId: escuela.equipo?.id?.toString() || '',
       observaciones: escuela.observaciones || ""
@@ -315,98 +349,81 @@ export default function ListaEscuelas() {
     [escuelas],
   )
 
-  const getAnexosForEscuela = useCallback(
-    (escuelaId: number) => {
-      return anexos.filter((anexo) => anexo?.escuela && anexo.escuela.id === escuelaId)
-    },
-    [anexos],
-  )
 
   const handleAnexoSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
+    if (!selectedEscuela?.id || !session?.user?.accessToken) return;
+  
     try {
       const url = isEditingAnexo
-        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/anexos/${anexoFormData.id}`
-        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/anexos`
-      const method = isEditingAnexo ? "PATCH" : "POST"
-
+        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas/${selectedEscuela.id}/anexos/${anexoFormData.id}`
+        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas/${selectedEscuela.id}/anexos`;
+      const method = isEditingAnexo ? "PATCH" : "POST";
+  
       const payload = {
         nombre: anexoFormData.nombre,
-        matricula: Number(anexoFormData.matricula),
-        escuelaId: selectedEscuela?.id
-      }
-
+        matricula: Number(anexoFormData.matricula)
+      };
+  
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.user.accessToken}`
+        },
         body: JSON.stringify(payload)
-      })
-
-      if (!response.ok) throw new Error("Error al guardar el anexo")
-
-      const updatedAnexo = await response.json()
-
-      // Actualizar el estado de anexos
-      setAnexos(prev => 
-        isEditingAnexo
-          ? prev.map(a => a.id === updatedAnexo.id ? updatedAnexo : a)
-          : [...prev, updatedAnexo]
-      )
-
+      });
+  
+      if (!response.ok) throw new Error("Error al guardar el anexo");
+  
+      const updatedEscuela = await response.json();
+  
       // Actualizar la escuela seleccionada
-      if (selectedEscuela) {
-        const updatedEscuela = {
-          ...selectedEscuela,
-          anexos: isEditingAnexo
-            ? selectedEscuela.anexos.map(a => a.id === updatedAnexo.id ? updatedAnexo : a)
-            : [...selectedEscuela.anexos, updatedAnexo]
-        }
-        setSelectedEscuela(updatedEscuela)
-
-        // Actualizar también en la lista de escuelas
-        setEscuelas(prev => 
-          prev.map(e => e.id === selectedEscuela.id ? updatedEscuela : e)
-        )
-      }
-
-      setIsAnexoDialogOpen(false)
-      setAnexoFormData({ id: undefined, nombre: "", matricula: "" })
-      setIsEditingAnexo(false)
+      setSelectedEscuela(updatedEscuela);
+      
+      // Actualizar la lista de escuelas
+      setEscuelas(prev => 
+        prev.map(e => e.id === selectedEscuela.id ? updatedEscuela : e)
+      );
+  
+      setIsAnexoDialogOpen(false);
+      setAnexoFormData({ id: undefined, nombre: "", matricula: "" });
+      setIsEditingAnexo(false);
     } catch (error) {
-      console.error("Error al guardar el anexo:", error)
+      console.error("Error al guardar el anexo:", error);
     }
-  }
+  };
 
   const handleDeleteAnexo = async (anexoId: number) => {
-    if (!window.confirm("¿Estás seguro de que quieres eliminar este anexo?")) return
-
+    if (!window.confirm("¿Estás seguro de que quieres eliminar este anexo?") || !session?.user?.accessToken) return;
+  
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/anexos/${anexoId}`, {
-        method: "DELETE"
-      })
-
-      if (!response.ok) throw new Error("Error al eliminar el anexo")
-
-      // Actualizar el estado de anexos
-      setAnexos(prev => prev.filter(a => a.id !== anexoId))
-
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${session.user.accessToken}`
+        }
+      });
+  
+      if (!response.ok) throw new Error("Error al eliminar el anexo");
+  
       // Actualizar la escuela seleccionada
       if (selectedEscuela) {
         const updatedEscuela = {
           ...selectedEscuela,
           anexos: selectedEscuela.anexos.filter(a => a.id !== anexoId)
-        }
-        setSelectedEscuela(updatedEscuela)
-
+        };
+        setSelectedEscuela(updatedEscuela);
+  
         // Actualizar también en la lista de escuelas
         setEscuelas(prev => 
           prev.map(e => e.id === selectedEscuela.id ? updatedEscuela : e)
-        )
+        );
       }
     } catch (error) {
-      console.error("Error al eliminar el anexo:", error)
+      console.error("Error al eliminar el anexo:", error);
     }
-  }
+  };
 
   const handleEditAnexo = (anexo: Anexo) => {
     setAnexoFormData({
@@ -436,7 +453,10 @@ export default function ListaEscuelas() {
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas/${currentEscuela.id}/observaciones`,
         {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.user?.accessToken}`
+          },
           body: JSON.stringify({
             observaciones: formData.observaciones,
           }),
@@ -556,69 +576,115 @@ export default function ListaEscuelas() {
                       </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4">
-                      <div>
-                        <Label htmlFor="nombre">Nombre</Label>
-                        <Input id="nombre" name="nombre" value={formData.nombre} onChange={handleInputChange} required />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="nombre">Nombre</Label>
+                          <Input id="nombre" name="nombre" value={formData.nombre} onChange={handleInputChange} required />
+                        </div>
+                        <div>
+                          <Label htmlFor="CUE">CUE</Label>
+                          <Input id="CUE" name="CUE" value={formData.CUE} onChange={handleInputChange} type="number" />
+                        </div>
+                        <div>
+                          <Label htmlFor="Numero">Número Anexo</Label>
+                          <Input id="Numero" name="Numero" value={formData.Numero} onChange={handleInputChange} type="number" />
+                        </div>
+                        <div>
+                          <Label htmlFor="telefono">Teléfono</Label>
+                          <Input id="telefono" name="telefono" value={formData.telefono} onChange={handleInputChange} />
+                        </div>
+                        <div>
+                          <Label htmlFor="matricula">Matrícula</Label>
+                          <Input id="matricula" name="matricula" value={formData.matricula} onChange={handleInputChange} type="number" />
+                        </div>
+                        <div>
+                          <Label htmlFor="IVE">IVE</Label>
+                          <Select
+                            name="IVE"
+                            onValueChange={(value) => handleSelectChange("IVE", value)}
+                            value={formData.IVE}
+                          >
+                            <SelectTrigger id="IVE">
+                              <SelectValue placeholder="Selecciona el IVE" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="alto">Alto</SelectItem>
+                              <SelectItem value="medio">Medio</SelectItem>
+                              <SelectItem value="bajo">Bajo</SelectItem>
+                              <SelectItem value="sin ive">Sin IVE</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="Ambito">Ámbito</Label>
+                          <Input id="Ambito" name="Ambito" value={formData.Ambito} onChange={handleInputChange} />
+                        </div>
                       </div>
-                      <div>
-                        <Label htmlFor="direccion.calle">Calle</Label>
-                        <Input
-                          id="direccion.calle"
-                          name="direccion.calle"
-                          value={formData["direccion.calle"]}
-                          onChange={handleInputChange}
-                          required
-                        />
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="direccion.calle">Calle</Label>
+                          <Input
+                            id="direccion.calle"
+                            name="direccion.calle"
+                            value={formData["direccion.calle"]}
+                            onChange={handleInputChange}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="direccion.numero">Número</Label>
+                          <Input
+                            id="direccion.numero"
+                            name="direccion.numero"
+                            value={formData["direccion.numero"]}
+                            onChange={handleInputChange}
+                            required
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <Label htmlFor="direccion.numero">Número</Label>
-                        <Input
-                          id="direccion.numero"
-                          name="direccion.numero"
-                          value={formData["direccion.numero"]}
-                          onChange={handleInputChange}
-                          required
-                          type="number"
-                        />
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="departamentoId">Departamento</Label>
+                          <Select
+                            name="departamentoId"
+                            onValueChange={(value) => handleSelectChange("departamentoId", value)}
+                            value={formData.departamentoId}
+                          >
+                            <SelectTrigger id="departamentoId">
+                              <SelectValue placeholder="Selecciona un departamento" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {departamentos.map((departamento) => (
+                                <SelectItem key={departamento.id} value={departamento.id.toString()}>
+                                  {departamento.nombre}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="equipoId">Equipo</Label>
+                          <Select
+                            name="equipoId"
+                            onValueChange={(value) => handleSelectChange("equipoId", value)}
+                            value={formData.equipoId}
+                          >
+                            <SelectTrigger id="equipoId">
+                              <SelectValue placeholder="Selecciona un equipo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {equipos.map((equipo) => (
+                                <SelectItem key={equipo.id} value={equipo.id.toString()}>
+                                  {equipo.nombre}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                      <div>
-                        <Label htmlFor="departamentoId">Departamento</Label>
-                        <Select
-                          name="departamentoId"
-                          onValueChange={(value) => handleSelectChange("departamentoId", value)}
-                          value={formData.departamentoId}
-                        >
-                          <SelectTrigger id="departamentoId">
-                            <SelectValue placeholder="Selecciona un departamento" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {departamentos.map((departamento) => (
-                              <SelectItem key={departamento.id} value={departamento.id.toString()}>
-                                {departamento.nombre}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="equipoId">Equipo</Label>
-                        <Select
-                          name="equipoId"
-                          onValueChange={(value) => handleSelectChange("equipoId", value)}
-                          value={formData.equipoId}
-                        >
-                          <SelectTrigger id="equipoId">
-                            <SelectValue placeholder="Selecciona un equipo" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {equipos.map((equipo) => (
-                              <SelectItem key={equipo.id} value={equipo.id.toString()}>
-                                {equipo.nombre}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      
                       <div>
                         <Label htmlFor="observaciones">Observaciones sobre el espacio físico (opcional)</Label>
                         <Textarea
@@ -642,10 +708,10 @@ export default function ListaEscuelas() {
         <div className="bg-white shadow-md rounded-lg p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <Label htmlFor="busqueda">Filtrar por nombre</Label>
+              <Label htmlFor="busqueda">Filtrar por nombre o número de escuela</Label>
               <Input
                 id="busqueda" 
-                placeholder="Nombre de la escuela"
+                placeholder="Nombre/Número de la escuela"
                 value={busquedaInput}
                 onChange={(e) => setBusquedaInput(e.target.value)}
               />
@@ -683,7 +749,7 @@ export default function ListaEscuelas() {
                     <AccordionTrigger className="px-6 py-4 hover:bg-gray-50">
                       <div className="flex justify-between w-full">
                         <div className="flex items-center">
-                          <span>{escuela.nombre}</span>
+                          <span>{escuela.nombre} - {escuela.Numero} </span>
                           {escuela.observaciones && (
                             <Badge variant="outline" className={`ml-2 ${estadoEspacio.color} border-current`}>
                               <EstadoIcon className="w-3 h-3 mr-1" />
@@ -733,9 +799,9 @@ export default function ListaEscuelas() {
 
                         <div>
                           <strong>Anexos:</strong>
-                          {getAnexosForEscuela(escuela.id).length > 0 ? (
+                          {escuela.anexos && escuela.anexos.length > 0 ? (
                             <ul className="list-disc pl-5 mt-2 space-y-1">
-                              {getAnexosForEscuela(escuela.id).map((anexo) => (
+                              {escuela.anexos.map((anexo) => (
                                 <li key={anexo.id}>
                                   {anexo.nombre} - Matrícula: {anexo.matricula}
                                 </li>
@@ -831,14 +897,44 @@ export default function ListaEscuelas() {
                 </CardHeader>
                 <CardContent>
                   <p>
-                    <strong>Dirección:</strong> {selectedEscuela.direccion.calle} {selectedEscuela.direccion.numero}
+                    <strong>Dirección:</strong> {selectedEscuela.direccion?.calle} {selectedEscuela.direccion?.numero}
                   </p>
                   <p>
-                    <strong>Departamento:</strong> {selectedEscuela.direccion.departamento.nombre}
+                    <strong>Departamento:</strong> {selectedEscuela.direccion?.departamento?.nombre || 'No asignado'}
                   </p>
                   <p>
-                    <strong>Equipo:</strong> {selectedEscuela.equipo.nombre}
+                    <strong>Equipo:</strong> {selectedEscuela.equipo?.nombre || 'No asignado'}
                   </p>
+                  {selectedEscuela.CUE && (
+                    <p>
+                      <strong>CUE:</strong> {selectedEscuela.CUE}
+                    </p>
+                  )}
+                  {selectedEscuela.Numero && (
+                    <p>
+                      <strong>Número:</strong> {selectedEscuela.Numero}
+                    </p>
+                  )}
+                  {selectedEscuela.telefono && (
+                    <p>
+                      <strong>Teléfono:</strong> {selectedEscuela.telefono}
+                    </p>
+                  )}
+                  {selectedEscuela.matricula && (
+                    <p>
+                      <strong>Matrícula:</strong> {selectedEscuela.matricula}
+                    </p>
+                  )}
+                  {selectedEscuela.IVE && (
+                    <p>
+                      <strong>IVE:</strong> {selectedEscuela.IVE}
+                    </p>
+                  )}
+                  {selectedEscuela.Ambito && (
+                    <p>
+                      <strong>Ámbito:</strong> {selectedEscuela.Ambito}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -857,38 +953,38 @@ export default function ListaEscuelas() {
                   <CardTitle>Anexos</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {getAnexosForEscuela(selectedEscuela.id).length > 0 ? (
-                    <ul className="space-y-2">
-                      {getAnexosForEscuela(selectedEscuela.id).map((anexo) => (
-                        <li key={anexo.id} className="flex justify-between items-center">
-                          <span>
-                            {anexo.nombre} - Matrícula: {anexo.matricula}
-                          </span>
-                          <div>
-                            <PermissionButton 
-                              requiredPermission={{ entity: 'anexo', action: 'update'}}
-                              variant="outline" 
-                              size="sm" 
-                              className="mr-2" 
-                              onClick={() => handleEditAnexo(anexo)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </PermissionButton>
-                            <PermissionButton
-                              requiredPermission={{ entity: 'anexo', action: 'delete'}}
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteAnexo(anexo.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </PermissionButton>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>No hay anexos para esta escuela.</p>
-                  )}
+                {selectedEscuela.anexos && selectedEscuela.anexos.length > 0 ? (
+                  <ul className="space-y-2">
+                    {selectedEscuela.anexos.map((anexo) => (
+                      <li key={anexo.id} className="flex justify-between items-center">
+                        <span>
+                          {anexo.nombre} - Matrícula: {anexo.matricula}
+                        </span>
+                        <div>
+                          <PermissionButton 
+                            requiredPermission={{ entity: 'anexo', action: 'update'}}
+                            variant="outline" 
+                            size="sm" 
+                            className="mr-2" 
+                            onClick={() => handleEditAnexo(anexo)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </PermissionButton>
+                          <PermissionButton
+                            requiredPermission={{ entity: 'anexo', action: 'delete'}}
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteAnexo(anexo.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </PermissionButton>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No hay anexos para esta escuela.</p>
+                )}
                   <PermissionButton
                     requiredPermission={{ entity: 'anexo', action: 'create'}}
                     className="mt-4"

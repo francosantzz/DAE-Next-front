@@ -296,7 +296,7 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
           cargosHoras: formData.cargosHoras,
           direccion: {
             calle: formData.direccion.calle,
-            numero: parseInt(formData.direccion.numero),
+            numero: formData.direccion.numero,
             departamentoId: parseInt(formData.direccion.departamentoId)
           }
         }),
@@ -1003,7 +1003,6 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
                 type="date"
                 value={formData.fechaVencimientoMatricula}
                 onChange={handleInputChange}
-                required
               />
             </div>
             <div>
@@ -1014,7 +1013,6 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
                 type="date"
                 value={formData.fechaVencimientoPsicofisico}
                 onChange={handleInputChange}
-                required
               />
             </div>
             <div>
@@ -1046,7 +1044,6 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
               <Input
                 id="direccion.numero"
                 name="direccion.numero"
-                type="number"
                 value={formData.direccion.numero}
                 onChange={(e) => setFormData(prev => ({
                   ...prev,

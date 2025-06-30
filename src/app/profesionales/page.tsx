@@ -176,6 +176,11 @@ export default function ListaProfesionales() {
     }
   }, [fetchData])
 
+  // Resetear página cuando cambie la búsqueda
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [busqueda, filtroEquipo, filtroDepartamento])
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
@@ -268,7 +273,7 @@ export default function ListaProfesionales() {
           cargosHoras: formData.cargosHoras,
           direccion: {
             calle: formData.direccion.calle,
-            numero: parseInt(formData.direccion.numero),
+            numero: formData.direccion.numero,
             departamentoId: parseInt(formData.direccion.departamentoId)
           }
         }),
@@ -549,7 +554,6 @@ export default function ListaProfesionales() {
                           type="date"
                           value={formData.fechaVencimientoMatricula}
                           onChange={handleInputChange}
-                          required
                         />
                       </div>
                       <div>
@@ -560,7 +564,6 @@ export default function ListaProfesionales() {
                           type="date"
                           value={formData.fechaVencimientoPsicofisico}
                           onChange={handleInputChange}
-                          required
                         />
                       </div>
                       <div>
@@ -591,7 +594,6 @@ export default function ListaProfesionales() {
                         <Input
                           id="direccion.numero"
                           name="direccion.numero"
-                          type="number"
                           value={formData.direccion.numero}
                           onChange={(e) => setFormData(prev => ({
                             ...prev,

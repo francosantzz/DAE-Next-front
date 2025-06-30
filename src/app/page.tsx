@@ -41,9 +41,6 @@ export default function Home() {
           <Button onClick={() => router.push("/login")} className="w-full">
             Iniciar Sesión
           </Button>
-          <Button variant="outline" onClick={() => router.push("/register")} className="w-full">
-            Registrarse
-          </Button>
         </CardContent>
       </Card>
     </div>
