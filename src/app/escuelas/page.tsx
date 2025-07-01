@@ -21,7 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { PlusCircle, Edit, Trash2, Eye, AlertTriangle, CheckCircle, Info } from "lucide-react"
 import { ObservacionesEditor } from "@/components/escuela/observaciones-editor"
-import { EstadoFisicoCard } from "@/components/escuela/estado-fisico-card"
+import { determinarEstado, EstadoFisicoCard, getIconAndColor } from "@/components/escuela/estado-fisico-card"
 import ErrorBoundary from "@/components/ErrorBoundary"
 import { useSession } from "next-auth/react"
 import { useDebounce } from "@/hooks/useDebounce"
@@ -491,48 +491,6 @@ export default function ListaEscuelas() {
     },
     [selectedEscuela],
   )
-
-  // Función para determinar el estado del espacio físico basado en las observaciones
-  const determinarEstadoEspacio = (observaciones?: string) => {
-    if (!observaciones) return { estado: "sin-info", label: "Sin información", icon: Info, color: "text-gray-500" }
-
-    const texto = observaciones.toLowerCase()
-
-    if (texto.includes("urgente") || texto.includes("peligro") || texto.includes("grave")) {
-      return {
-        estado: "critico",
-        label: "Estado crítico",
-        icon: AlertTriangle,
-        color: "text-red-500",
-      }
-    }
-
-    if (texto.includes("problema") || texto.includes("reparación") || texto.includes("falta")) {
-      return {
-        estado: "requiere-atencion",
-        label: "Requiere atención",
-        icon: Info,
-        color: "text-amber-500",
-      }
-    }
-
-    if (texto.includes("buen") || texto.includes("óptimo") || texto.includes("adecuado")) {
-      return {
-        estado: "optimo",
-        label: "Estado óptimo",
-        icon: CheckCircle,
-        color: "text-green-500",
-      }
-    }
-
-    return {
-      estado: "normal",
-      label: "Estado normal",
-      icon: Info,
-      color: "text-blue-500",
-    }
-  }
-
   // Función para verificar si el usuario puede editar completamente una escuela
   // El rol equipo solo puede editar observaciones, no otros campos
   const canEditEscuelaCompletely = () => {
@@ -741,9 +699,8 @@ export default function ListaEscuelas() {
           <>
             <Accordion type="multiple" className="w-full">
               {escuelas.map((escuela) => {
-                const estadoEspacio = determinarEstadoEspacio(escuela.observaciones)
-                const EstadoIcon = estadoEspacio.icon
-
+                const { estado, label } = determinarEstado(escuela.observaciones);
+                const { icon: EstadoIcon, color } = getIconAndColor(estado);
                 return (
                   <AccordionItem key={escuela.id} value={String(escuela.id)}>
                     <AccordionTrigger className="px-6 py-4 hover:bg-gray-50">
@@ -751,9 +708,9 @@ export default function ListaEscuelas() {
                         <div className="flex items-center">
                           <span>{escuela.nombre} - {escuela.Numero} </span>
                           {escuela.observaciones && (
-                            <Badge variant="outline" className={`ml-2 ${estadoEspacio.color} border-current`}>
+                            <Badge variant="outline" className={`ml-2 ${color} border-current`}>
                               <EstadoIcon className="w-3 h-3 mr-1" />
-                              {estadoEspacio.label}
+                              {label}
                             </Badge>
                           )}
                           {(!escuela.paquetesHoras || escuela.paquetesHoras.length === 0) ? (

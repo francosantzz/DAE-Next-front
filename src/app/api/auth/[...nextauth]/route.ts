@@ -1,7 +1,15 @@
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
+// Log para verificar el ambiente
+console.log('NODE_ENV:', process.env.NODE_ENV);
+
 const handler = NextAuth({
+  secret: process.env.NEXTAUTH_SECRET,
+  // Verificar que el secret esté configurado
+  ...(process.env.NODE_ENV === 'development' && {
+    debug: true,
+  }),
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -16,7 +24,7 @@ const handler = NextAuth({
           }
 
           const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-          console.log('URL del backend:', backendUrl);
+          // console.log('URL del backend:', backendUrl);
 
           if (!backendUrl) {
             throw new Error('La URL del backend no está configurada');
@@ -35,12 +43,24 @@ const handler = NextAuth({
             });
 
             if (!res.ok) {
-              const errorData = await res.json().catch(() => ({}));
-              throw new Error(errorData.message || `Error del servidor: ${res.status}`);
+              let errorMessage = `Error del servidor: ${res.status}`;
+              try {
+                const errorData = await res.json();
+                errorMessage = errorData.message || errorMessage;
+              } catch (e) {
+                // Si no es JSON, usa el mensaje por defecto
+              }
+              if (res.status === 429) {
+                errorMessage = 'Demasiados intentos. Por favor, intente de nuevo más tarde.';
+              }
+              if (res.status === 401) {
+                errorMessage = 'No autorizado: credenciales inválidas.';
+              }
+              throw new Error(errorMessage);
             }
 
             const data = await res.json();
-            console.log('Respuesta del backend:', data);
+            // console.log('Respuesta del backend:', data);
 
             if (data) {
               return {
@@ -57,6 +77,9 @@ const handler = NextAuth({
             console.error('Error al conectar con el backend:', error);
             if (error instanceof Error && 'code' in error && error.code === 'ECONNREFUSED') {
               throw new Error('No se pudo conectar con el servidor. Por favor, verifica que el backend esté corriendo.');
+            }
+            if (error instanceof Error) {
+              throw new Error(error.message || 'Error al conectar con el servidor');
             }
             throw new Error('Error al conectar con el servidor');
           }

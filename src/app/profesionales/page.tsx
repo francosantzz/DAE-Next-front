@@ -473,6 +473,7 @@ export default function ListaProfesionales() {
                           value={formData.nombre}
                           onChange={handleInputChange}
                           required
+                          className="border border-gray-600 rounded px-2 py-1"
                         />
                       </div>
                       <div>
@@ -483,6 +484,7 @@ export default function ListaProfesionales() {
                           value={formData.apellido}
                           onChange={handleInputChange}
                           required
+                          className="border border-gray-600 rounded px-2 py-1"
                         />
                       </div>
                       <div>
@@ -805,9 +807,12 @@ export default function ListaProfesionales() {
                             </div>
                             
                             <div className="flex justify-end space-x-2">
-                              <Button onClick={() => router.push(`/perfil/${profesional.id}`)}>
-                                Ver Perfil Detallado
-                              </Button>
+                            <Button onClick={() => {
+                              console.log('ID profesional:', profesional.id, profesional)
+                              router.push(`/perfil/${profesional.id}`)
+                            }}>
+                              Ver Perfil Detallado
+                            </Button>
                               <PermissionButton
                                 requiredPermission={{ entity: "profesional", action: "update" }}
                                 variant="outline"

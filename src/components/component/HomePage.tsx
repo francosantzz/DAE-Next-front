@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { UsersIcon, BriefcaseIcon, CalendarIcon, PlusIcon, FilePenIcon, TrashIcon, TrendingUpIcon, PhoneIcon, MapPinIcon, ClockIcon, UserCheckIcon, XIcon } from 'lucide-react'
 import { useSession } from "next-auth/react"
 import { Badge } from "@/components/ui/badge"
+import { PermissionButton } from '../PermissionButton'
 
 
 interface Region {
@@ -421,13 +422,14 @@ export function HomePage() {
                 <CardTitle className="text-xl font-semibold text-gray-800">Profesionales</CardTitle>
                 <p className="text-gray-600 mt-1">Gestión de profesionales del sistema</p>
               </div>
-              <Button
+              <PermissionButton
+                requiredPermission={{entity: 'profesional', action: 'create'}}
                 onClick={handleOpenModal}
                 className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
               >
                 <PlusIcon className="w-4 h-4 mr-2" />
                 Agregar Profesional
-              </Button>
+              </PermissionButton>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -521,7 +523,8 @@ export function HomePage() {
                       <TableCell>{professional.correoElectronico}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
-                          <Button
+                          <PermissionButton
+                            requiredPermission={{ entity: 'profesional', action: 'update'}}
                             variant="outline"
                             size="icon"
                             onClick={() => handleEdit(professional)}
@@ -529,8 +532,9 @@ export function HomePage() {
                           >
                             <FilePenIcon className="w-4 h-4" />
                             <span className="sr-only">Editar</span>
-                          </Button>
-                          <Button
+                          </PermissionButton>
+                          <PermissionButton
+                            requiredPermission={{ entity: 'profesional', action: 'delete'}}
                             variant="outline"
                             size="icon"
                             onClick={() => handleDelete(professional.id)}
@@ -538,7 +542,7 @@ export function HomePage() {
                           >
                             <TrashIcon className="w-4 h-4" />
                             <span className="sr-only">Eliminar</span>
-                          </Button>
+                          </PermissionButton>
                         </div>
                       </TableCell>
                     </TableRow>

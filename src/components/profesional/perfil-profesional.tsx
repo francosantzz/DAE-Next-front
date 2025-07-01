@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -94,8 +94,10 @@ interface Profesional {
   direccion: Direccion
 }
 
-export default function PerfilProfesional({ params }: { params: { id: string } }) {
+export default function PerfilProfesional() {
   const { data: session } = useSession()
+  const params = useParams();
+  const id = params?.id; // Esto sí será el id correcto como string
   const [profesional, setProfesional] = useState<Profesional | null>(null)
   const [equipos, setEquipos] = useState<Equipo[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
@@ -152,7 +154,7 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
       setIsLoading(true)
       try {
         const [profesionalRes, equiposRes, departamentosRes, escuelasRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}`, {
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${id}`, {
             headers: {Authorization: `Bearer ${session?.user?.accessToken}`}
           }),
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`, {
@@ -176,12 +178,6 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
           escuelasRes.json(),
         ])
 
-        console.log('Datos recibidos:', {
-          profesional: profesionalData,
-          equipos: equiposData,
-          departamentos: departamentosData,
-          escuelas: escuelasData
-        });
 
         setProfesional(profesionalData)
         setEquipos(equiposData.data || equiposData)
@@ -217,7 +213,7 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
     }
 
     fetchData()
-  }, [params.id, session?.user?.accessToken])
+  }, [id, session?.user?.accessToken])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -274,7 +270,7 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${id}`, {
         method: "PATCH",
         headers: { 
           'Content-Type': 'application/json',
@@ -339,7 +335,7 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
     if (window.confirm("¿Estás seguro de que quieres eliminar este paquete de horas?")) {
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}/paquetes/${paqueteId}`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${id}/paquetes/${paqueteId}`,
           {
             method: "DELETE",
             headers: {
@@ -385,8 +381,8 @@ export default function PerfilProfesional({ params }: { params: { id: string } }
       }
 
       const url = currentPaquete
-        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}/paquetes/${currentPaquete.id}`
-        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${params.id}/paquetes`
+        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${id}/paquetes/${currentPaquete.id}`
+        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${id}/paquetes`
       const method = currentPaquete ? "PATCH" : "POST"
 
       const response = await fetch(url, {

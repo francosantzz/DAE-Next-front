@@ -564,21 +564,6 @@ export function ListaEquiposPantallaCompleta() {
                             <p>No hay escuelas asignadas</p>
                           )}
                         </div>
-                        <div>
-                          <strong>Paquetes de Horas:</strong>
-                          {equipo.paquetesHoras && equipo.paquetesHoras.length > 0 ? (
-                            <ul className="list-disc pl-5 mt-2 space-y-1">
-                              {equipo.paquetesHoras.map((paquete) => (
-                                <li key={paquete.id}>
-                                  {paquete.tipo} - {paquete.cantidad} horas
-                                  {paquete.escuela && ` - ${paquete.escuela.nombre}`}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p>No hay paquetes de horas asignados</p>
-                          )}
-                        </div>
                         <p><strong>Horas totales del Equipo:</strong> {equipo.totalHoras || 0}</p>
                         <div className="flex justify-end space-x-2">
                         <PermissionButton

@@ -222,21 +222,53 @@ export function DetalleEquipoDialog({ equipo, isOpen, onClose }: DetalleEquipoDi
             <CardContent>
               {escuelas.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {escuelas.map((escuela) => (
-                    <div
-                      key={escuela.id}
-                      className="flex items-center space-x-3 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100"
-                    >
-                      <div className="bg-indigo-100 p-2 rounded-lg">
-                        <Building className="h-4 w-4 text-indigo-600" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900">{escuela.nombre}</p>
-                        <p className="text-sm text-gray-600">ID: {escuela.id}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    {escuelas.map((escuela) => {
+                      // Filtramos los paquetes de horas de esta escuela
+                      const paquetesDeEstaEscuela = paquetesHoras.filter(
+                        (paquete) => paquete.escuela?.id === escuela.id
+                      );
+
+                      // Calculamos el total de horas asignadas
+                      const totalHoras = paquetesDeEstaEscuela.reduce(
+                        (sum, paquete) => sum + paquete.cantidad,
+                        0
+                      );
+
+                      // Verificamos si tiene paquetes
+                      const tienePaquete = paquetesDeEstaEscuela.length > 0;
+
+                      return (
+                        <div
+                          key={escuela.id}
+                          className={
+                            "flex items-center space-x-3 p-3 rounded-lg border " +
+                            (tienePaquete
+                              ? "bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-100"
+                              : "bg-yellow-100 border-yellow-400 ring-2 ring-yellow-400")
+                          }
+                        >
+                          <div className="bg-indigo-100 p-2 rounded-lg">
+                            <Building className="h-4 w-4 text-indigo-600" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900">{escuela.nombre}</p>
+                            <p className="text-sm text-gray-600">ID: {escuela.id}</p>
+                          </div>
+                          
+                          {/* Mostramos horas asignadas o "Sin horas" */}
+                          {tienePaquete ? (
+                            <span className="ml-2 px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-xs font-bold">
+                              {totalHoras} horas asignadas
+                            </span>
+                          ) : (
+                            <span className="ml-2 px-2 py-1 bg-yellow-300 text-yellow-900 rounded text-xs font-bold">
+                              Sin horas asignadas
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
               ) : (
                 <div className="text-center py-8">
                   <Building className="h-12 w-12 text-gray-300 mx-auto mb-3" />
