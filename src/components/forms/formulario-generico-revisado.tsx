@@ -81,7 +81,7 @@ export default function FormularioGenerico({ title, fields, onSubmit }: Formular
                   <SelectTrigger className={errors[field.name] ? 'border-red-500' : ''}>
                     <SelectValue placeholder={`Selecciona ${field.label.toLowerCase()}`} />
                   </SelectTrigger>
-                  <SelectContent portalled={true} style={{ zIndex: 1050 }}>
+                  <SelectContent style={{ zIndex: 1050 }}>
                     {field.options?.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
