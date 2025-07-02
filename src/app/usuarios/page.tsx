@@ -31,53 +31,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import ErrorBoundary from "@/components/ErrorBoundary"
 import { useDebounce } from "@/hooks/useDebounce"
 import { PermissionButton } from "@/components/PermissionButton"
+import { Role, Usuario, Permission, roleLabels, roleColors } from "@/types/roles"
 
-// Enum de roles
-export enum Role {
-  ADMIN = "admin",
-  EQUIPO = "equipo",
-  TECNICO = "tecnico",
-  OBSERVATORIO = "observatorio",
-  DIRECTORA = "directora",
-  USER = "user",
-}
-
-// Interfaces
-interface Permission {
-  [key: string]: {
-    entity: string;
-    permissions: string;
-  }[];
-}
-
-interface Usuario {
-  id: number
-  name: string
-  email: string
-  role: Role
-  createdAt: string
-  updatedAt: string
-}
-
-// Labels para roles
-const roleLabels = {
-  [Role.ADMIN]: "Administrador",
-  [Role.EQUIPO]: "Equipo",
-  [Role.TECNICO]: "Técnico",
-  [Role.OBSERVATORIO]: "Observatorio",
-  [Role.DIRECTORA]: "Directora",
-  [Role.USER]: "Usuario",
-}
-
-// Colores para roles
-const roleColors = {
-  [Role.ADMIN]: "bg-red-100 text-red-800",
-  [Role.EQUIPO]: "bg-blue-100 text-blue-800",
-  [Role.TECNICO]: "bg-green-100 text-green-800",
-  [Role.OBSERVATORIO]: "bg-purple-100 text-purple-800",
-  [Role.DIRECTORA]: "bg-yellow-100 text-yellow-800",
-  [Role.USER]: "bg-gray-100 text-gray-800",
-}
 
 export default function ListaUsuarios() {
   const { data: session } = useSession()
