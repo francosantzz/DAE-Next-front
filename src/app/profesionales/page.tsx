@@ -174,7 +174,7 @@ export default function ListaProfesionales() {
     if (session?.user?.accessToken) {
       fetchData()
     }
-  }, [fetchData])
+  }, [fetchData, session?.user?.accessToken])
 
   // Resetear página cuando cambie la búsqueda
   useEffect(() => {

@@ -83,7 +83,7 @@ interface Escuela {
   nombre: string;
 }
 
-export function ListaEquiposPantallaCompleta() {
+export default function ListaEquiposPantallaCompleta() {
   const { data: session } = useSession()
   const [equipos, setEquipos] = useState<Equipo[]>([])
   const [profesionales, setProfesionales] = useState<Profesional[]>([])
@@ -633,5 +633,3 @@ export function ListaEquiposPantallaCompleta() {
     </ErrorBoundary>
   )
 }
-
-export default ListaEquiposPantallaCompleta;

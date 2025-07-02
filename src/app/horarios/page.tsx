@@ -225,7 +225,7 @@ export default function GrillaHorarios() {
     }
 
     fetchPaquetes()
-  }, [profesionalSeleccionado, equipoSeleccionado])
+  }, [profesionalSeleccionado, equipoSeleccionado, session?.user.accessToken])
 
   // Filtrar paquetes cuando cambia el término de búsqueda
   useEffect(() => {
