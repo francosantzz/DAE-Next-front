@@ -499,17 +499,28 @@ export function HomePage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <div className="bg-orange-50 rounded-full p-1">
-                            <MapPinIcon className="w-3 h-3 text-orange-600" />
-                          </div>
-                          <div className="text-sm">
-                            <div className="font-medium text-gray-700">
-                              {professional.direccion.departamento.nombre}
-                            </div>
-                            <div className="text-gray-500 text-xs">
-                              {professional.direccion.calle} {professional.direccion.numero}
-                            </div>
-                          </div>
+                          {professional.direccion?.departamento && (
+                            <>
+                              <div className="bg-orange-50 rounded-full p-1">
+                                <MapPinIcon className="w-3 h-3 text-orange-600" />
+                              </div>
+                              <div className="text-sm">
+                                <div className="font-medium text-gray-700">
+                                  {professional.direccion?.departamento?.nombre ?? "Sin departamento"}
+                                </div>
+                                {professional.direccion?.calle && professional.direccion?.numero ? (
+                                  <div className="text-gray-500 text-xs">
+                                    {`${professional.direccion.calle} ${professional.direccion.numero}`}
+                                  </div>
+                                ) : (
+                                  <div className="text-gray-400 text-xs">Sin dirección</div>
+                                )}
+                              </div>
+                            </>
+                          )}
+                          {!professional.direccion?.departamento && (
+                            <div className="text-gray-400 text-sm">Sin ubicación</div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-center">

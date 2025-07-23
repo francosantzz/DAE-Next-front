@@ -586,13 +586,21 @@ export default function PerfilProfesional() {
                 </div>
                 <div>
                   <h4 className="font-medium text-gray-800">Dirección</h4>
-                  <p className="text-base text-gray-600">
-                    {profesional.direccion.calle} {profesional.direccion.numero}
-                  </p>
-                  <p className="text-base text-gray-600">
-                    {profesional.direccion.departamento.nombre}
-                    {profesional.direccion.region?.nombre && `, ${profesional.direccion.region.nombre}`}
-                  </p>
+                  {profesional.direccion ? (
+                    <>
+                      <p className="text-base text-gray-600">
+                        {profesional.direccion.calle || 'Sin calle'} {profesional.direccion.numero || ''}
+                      </p>
+                      <p className="text-base text-gray-600">
+                        {profesional.direccion.departamento?.nombre || ''}
+                        {profesional.direccion.region?.nombre && profesional.direccion.departamento?.nombre 
+                          ? `, ${profesional.direccion.region.nombre}` 
+                          : profesional.direccion.region?.nombre || ''}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-base text-gray-600">No especificada</p>
+                  )}
                 </div>
               </div>
               

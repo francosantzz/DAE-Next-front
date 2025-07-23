@@ -532,7 +532,16 @@ export default function ListaUsuarios() {
           </DialogHeader>
           <div className="space-y-4">
             {permisos && currentUsuario && permisos[currentUsuario.role]?.map((permiso) => {
-              const permisosArray = JSON.parse(permiso.permissions);
+              let permisosArray;
+              if (Array.isArray(permiso.permissions)) {
+                permisosArray = permiso.permissions;
+              } else {
+                try {
+                  permisosArray = JSON.parse(permiso.permissions);
+                } catch {
+                  permisosArray = permiso.permissions.split(",");
+                }
+              }
               return (
                 <Card key={permiso.entity}>
                   <CardHeader className="pb-2">
