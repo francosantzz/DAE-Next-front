@@ -613,7 +613,7 @@ export default function ListaEscuelas() {
                             <SelectTrigger id="departamentoId">
                               <SelectValue placeholder="Selecciona un departamento" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="max-h-60 overflow-y-auto">
                               {departamentos.map((departamento) => (
                                 <SelectItem key={departamento.id} value={departamento.id.toString()}>
                                   {departamento.nombre}

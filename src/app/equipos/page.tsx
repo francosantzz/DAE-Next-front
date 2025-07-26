@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -113,6 +113,10 @@ export default function ListaEquiposPantallaCompleta() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
   const itemsPerPage = 10
+  const [profesionalesBusqueda, setProfesionalesBusqueda] = useState<Profesional[]>([])
+  const [escuelasBusqueda, setEscuelasBusqueda] = useState<Escuela[]>([])
+  const profesionalSearchTimeout = useRef<NodeJS.Timeout | null>(null)
+  const escuelaSearchTimeout = useRef<NodeJS.Timeout | null>(null)
 
 
   const fetchData = useCallback(async () => {
@@ -120,37 +124,27 @@ export default function ListaEquiposPantallaCompleta() {
     
     setIsLoading(true)
     try {
-      const [equiposRes, profesionalesRes, departamentosRes, escuelasRes] = await Promise.all([
+      const [equiposRes, departamentosRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos?page=${currentPage}&limit=${itemsPerPage}&search=${busqueda}${filtroDepartamento !== 'todos' ? `&departamentoId=${filtroDepartamento}` : ''}`, {
           headers: { Authorization: `Bearer ${session.user.accessToken}` }
         }),
-        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals?page=1&limit=100`, {
-          headers: { Authorization: `Bearer ${session.user.accessToken}`}
-        }),
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`, {
-          headers: { Authorization: `Bearer ${session.user.accessToken}`}
-        }),
-        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas?page=1&limit=100`, {
           headers: { Authorization: `Bearer ${session.user.accessToken}`}
         })
       ])
       
-      if (!equiposRes.ok || !profesionalesRes.ok || !departamentosRes.ok || !escuelasRes.ok) 
+      if (!equiposRes.ok || !departamentosRes.ok) 
         throw new Error('Error al obtener los datos')
 
-      const [equiposData, profesionalesData, departamentosData, escuelasData] = await Promise.all([
+      const [equiposData, departamentosData] = await Promise.all([
         equiposRes.json(),
-        profesionalesRes.json(),
-        departamentosRes.json(),
-        escuelasRes.json()
+        departamentosRes.json()
       ])
 
       setEquipos(equiposData.data || [])
       setTotalPages(equiposData.meta.totalPages)
       setTotalItems(equiposData.meta.total)
-      setProfesionales(profesionalesData.data || [])
       setDepartamentos(departamentosData)
-      setEscuelas(escuelasData.data || [])
     } catch (error) {
       console.error('Error al obtener datos:', error)
     } finally {
@@ -167,16 +161,66 @@ export default function ListaEquiposPantallaCompleta() {
     setCurrentPage(1)
   }, [busqueda, filtroDepartamento])
 
-  const profesionalesFiltrados = profesionales?.filter(profesional => 
-    (profesional.nombre.toLowerCase().includes(profesionalSearch.toLowerCase()) ||
-    profesional.apellido.toLowerCase().includes(profesionalSearch.toLowerCase())) &&
-    !profesionalesSeleccionados.some(p => p.id === profesional.id)
-  ) || []
+  // Buscar profesionales dinámicamente
+  useEffect(() => {
+    if (!profesionalSearch || !session?.user?.accessToken) {
+      setProfesionalesBusqueda([])
+      return
+    }
+    if (profesionalSearchTimeout.current) clearTimeout(profesionalSearchTimeout.current)
+    profesionalSearchTimeout.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals?page=1&limit=20&search=${encodeURIComponent(profesionalSearch)}`, {
+          headers: { Authorization: `Bearer ${session.user.accessToken}` }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          // Asegurarse de que los seleccionados estén presentes
+          const seleccionados = profesionalesSeleccionados.filter(sel => !data.data.some((p: Profesional) => p.id === sel.id))
+          setProfesionalesBusqueda([...seleccionados, ...data.data])
+        } else {
+          setProfesionalesBusqueda([])
+        }
+      } catch {
+        setProfesionalesBusqueda([])
+      }
+    }, 400)
+    // eslint-disable-next-line
+  }, [profesionalSearch, session?.user?.accessToken, profesionalesSeleccionados])
 
-  const escuelasFiltradas = escuelas?.filter(escuela => 
-    escuela.nombre.toLowerCase().includes(escuelaSearch.toLowerCase()) &&
-    !escuelasSeleccionadas.some(e => e.id === escuela.id)
-  ) || []
+  // Buscar escuelas dinámicamente
+  useEffect(() => {
+    if (!escuelaSearch || !session?.user?.accessToken) {
+      setEscuelasBusqueda([])
+      return
+    }
+    if (escuelaSearchTimeout.current) clearTimeout(escuelaSearchTimeout.current)
+    escuelaSearchTimeout.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas?page=1&limit=20&search=${encodeURIComponent(escuelaSearch)}`, {
+          headers: { Authorization: `Bearer ${session.user.accessToken}` }
+        })
+        if (res.ok) {
+          const data = await res.json()
+          // Asegurarse de que los seleccionados estén presentes
+          const seleccionadas = escuelasSeleccionadas.filter(sel => !data.data.some((e: Escuela) => e.id === sel.id))
+          setEscuelasBusqueda([...seleccionadas, ...data.data])
+        } else {
+          setEscuelasBusqueda([])
+        }
+      } catch {
+        setEscuelasBusqueda([])
+      }
+    }, 400)
+    // eslint-disable-next-line
+  }, [escuelaSearch, session?.user?.accessToken, escuelasSeleccionadas])
+
+  const profesionalesFiltrados = profesionalesBusqueda.filter(
+    profesional => !profesionalesSeleccionados.some(p => p.id === profesional.id)
+  )
+  const escuelasFiltradas = escuelasBusqueda.filter(
+    escuela => !escuelasSeleccionadas.some(e => e.id === escuela.id)
+  )
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -416,7 +460,7 @@ export default function ListaEquiposPantallaCompleta() {
                           placeholder="Buscar profesionales..."
                         />
                       </div>
-                      {profesionalSearch && (
+                      {profesionalSearch && profesionalesFiltrados.length > 0 && (
                         <ScrollArea className="h-32 overflow-auto mt-2 border rounded-md">
                           <div className="p-2">
                             {profesionalesFiltrados.map((profesional) => (
@@ -442,7 +486,7 @@ export default function ListaEquiposPantallaCompleta() {
                           placeholder="Buscar escuelas..."
                         />
                       </div>
-                      {escuelaSearch && (
+                      {escuelaSearch && escuelasFiltradas.length > 0 && (
                         <ScrollArea className="h-32 overflow-auto mt-2 border rounded-md">
                           <div className="p-2">
                             {escuelasFiltradas.map((escuela) => (

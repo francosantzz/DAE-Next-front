@@ -618,7 +618,7 @@ export default function ListaProfesionales() {
                           <SelectTrigger id="direccion.departamentoId">
                             <SelectValue placeholder="Seleccione un departamento" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent className="max-h-60 overflow-y-auto">
                             {departamentos.map((departamento) => (
                               <SelectItem key={departamento.id} value={departamento.id.toString()}>
                                 {departamento.nombre}

@@ -34,6 +34,7 @@ interface Escuela {
 interface Equipo {
   id: number;
   nombre: string;
+  profesionales?: Profesional[]; // Added profesionales to the interface
 }
 
 interface PaqueteHoras {
@@ -150,41 +151,29 @@ export default function GrillaHorarios() {
     }
   }
 
-  // Cargar profesionales cuando se selecciona un equipo
+  // Reemplazar el useEffect que carga profesionales al seleccionar un equipo:
   useEffect(() => {
-    const fetchProfesionales = async () => {
-      if (!equipoSeleccionado) {
-        setProfesionalesFiltrados([])
-        return
-      }
-
-      setIsLoading(true)
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals?page=1&limit=100`, {
-          headers: { Authorization: `Bearer ${session?.user?.accessToken}`}
-        })
-        if (!response.ok) throw new Error('Error al obtener profesionales')
-        
-        const { data: profesionalesData } = await response.json()
-        const filtrados = profesionalesData.filter((prof: Profesional) => 
-          prof.equipos.some(equipo => equipo.id.toString() === equipoSeleccionado)
-        )
-
-        setProfesionales(profesionalesData)
-        setProfesionalesFiltrados(filtrados)
-        setProfesionalSeleccionado("")
-        setPaquetesCargados(false)
-      } catch (error) {
-        console.error("Error fetching profesionales:", error)
-        setProfesionales([])
-        setProfesionalesFiltrados([])
-      } finally {
-        setIsLoading(false)
-      }
+    if (!equipoSeleccionado) {
+      setProfesionalesFiltrados([])
+      return
     }
-
-    fetchProfesionales()
-  }, [equipoSeleccionado, session?.user?.accessToken])
+    setIsLoading(true)
+    try {
+      const equipo = equipos.find(e => e.id.toString() === equipoSeleccionado)
+      if (equipo && equipo.profesionales) {
+        setProfesionalesFiltrados(equipo.profesionales)
+      } else {
+        setProfesionalesFiltrados([])
+      }
+      setProfesionalSeleccionado("")
+      setPaquetesCargados(false)
+    } catch (error) {
+      console.error("Error al obtener profesionales del equipo:", error)
+      setProfesionalesFiltrados([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [equipoSeleccionado, equipos])
 
   // Cargar paquetes cuando se selecciona un profesional
   useEffect(() => {
