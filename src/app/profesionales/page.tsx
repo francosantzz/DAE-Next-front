@@ -215,29 +215,27 @@ export default function ListaProfesionales() {
   const handleEdit = (profesional: Profesional) => {
     console.log('Profesional a editar:', profesional)
     console.log('Cargos de horas del profesional:', profesional.cargosHoras)
-    console.log('Tipo de cargosHoras:', typeof profesional.cargosHoras)
-    console.log('Es array:', Array.isArray(profesional.cargosHoras))
-    console.log('Longitud del array:', profesional.cargosHoras?.length)
+    
     setCurrentProfesional(profesional)
     setFormData({
       id: profesional.id,
       nombre: profesional.nombre,
       apellido: profesional.apellido,
-      cuil: profesional.cuil,
+      cuil: profesional.cuil || '',
       profesion: profesional.profesion,
-      matricula: profesional.matricula,
-      telefono: profesional.telefono,
-      fechaNacimiento: profesional.fechaNacimiento,
-      dni: profesional.dni,
-      fechaVencimientoMatricula: profesional.fechaVencimientoMatricula,
-      fechaVencimientoPsicofisico: profesional.fechaVencimientoPsicofisico,
-      correoElectronico: profesional.correoElectronico,
-      equiposIds: profesional.equipos.map(e => e.id),
-      cargosHoras: profesional.cargosHoras,
+      matricula: profesional.matricula || '',
+      telefono: profesional.telefono || '',
+      fechaNacimiento: profesional.fechaNacimiento || '',
+      dni: profesional.dni || '',
+      fechaVencimientoMatricula: profesional.fechaVencimientoMatricula || '',
+      fechaVencimientoPsicofisico: profesional.fechaVencimientoPsicofisico || '',
+      correoElectronico: profesional.correoElectronico || '',
+      equiposIds: profesional.equipos?.map(e => e.id) || [],
+      cargosHoras: profesional.cargosHoras || [],
       direccion: {
-        calle: profesional.direccion.calle,
-        numero: profesional.direccion.numero,
-        departamentoId: profesional.direccion.departamento.id.toString()
+        calle: profesional.direccion?.calle || '',
+        numero: profesional.direccion?.numero || '',
+        departamentoId: profesional.direccion?.departamento?.id.toString() || ''
       }
     })
     setIsDialogOpen(true)
@@ -245,39 +243,44 @@ export default function ListaProfesionales() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    try {
-      const url = currentProfesional
-        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${currentProfesional.id}`
-        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`
-      const method = currentProfesional ? 'PATCH' : 'POST'
-
-      const response = await fetch(url, {
-        method,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.user?.accessToken}`
-        },
-        body: JSON.stringify({
-          nombre: formData.nombre,
-          apellido: formData.apellido,
-          cuil: formData.cuil,
-          profesion: formData.profesion,
-          matricula: formData.matricula,
-          telefono: formData.telefono,
-          fechaNacimiento: formData.fechaNacimiento,
-          dni: formData.dni,
-          fechaVencimientoMatricula: formData.fechaVencimientoMatricula,
-          fechaVencimientoPsicofisico: formData.fechaVencimientoPsicofisico,
-          correoElectronico: formData.correoElectronico,
-          equiposIds: formData.equiposIds,
-          cargosHoras: formData.cargosHoras,
-          direccion: {
-            calle: formData.direccion.calle,
-            numero: formData.direccion.numero,
-            departamentoId: parseInt(formData.direccion.departamentoId)
-          }
-        }),
+  try {
+    const payload = {
+      nombre: formData.nombre,
+      apellido: formData.apellido,
+      profesion: formData.profesion,
+      // Solo incluir campos no vacíos
+      ...(formData.cuil && { cuil: formData.cuil }),
+      ...(formData.matricula && { matricula: formData.matricula }),
+      ...(formData.telefono && { telefono: formData.telefono }),
+      ...(formData.fechaNacimiento && { fechaNacimiento: formData.fechaNacimiento }),
+      ...(formData.dni && { dni: formData.dni }),
+      ...(formData.fechaVencimientoMatricula && { fechaVencimientoMatricula: formData.fechaVencimientoMatricula }),
+      ...(formData.fechaVencimientoPsicofisico && { fechaVencimientoPsicofisico: formData.fechaVencimientoPsicofisico }),
+      ...(formData.correoElectronico && { correoElectronico: formData.correoElectronico }),
+      equiposIds: formData.equiposIds,
+      cargosHoras: formData.cargosHoras,
+      ...(formData.direccion.calle && {
+        direccion: {
+          calle: formData.direccion.calle,
+          numero: formData.direccion.numero,
+          departamentoId: formData.direccion.departamentoId ? parseInt(formData.direccion.departamentoId) : undefined
+        }
       })
+    }
+
+    const url = currentProfesional
+      ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${currentProfesional.id}`
+      : `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals`
+    const method = currentProfesional ? 'PATCH' : 'POST'
+
+    const response = await fetch(url, {
+      method,
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.user?.accessToken}`
+      },
+      body: JSON.stringify(payload),
+    })
 
       if (!response.ok) throw new Error('Error al guardar el profesional')
 
@@ -494,7 +497,6 @@ export default function ListaProfesionales() {
                           name="cuil"
                           value={formData.cuil}
                           onChange={handleInputChange}
-                          required
                         />
                       </div>
                       <div>
@@ -514,7 +516,6 @@ export default function ListaProfesionales() {
                           name="matricula"
                           value={formData.matricula}
                           onChange={handleInputChange}
-                          required
                         />
                       </div>
                       <div>
@@ -524,7 +525,6 @@ export default function ListaProfesionales() {
                           name="telefono"
                           value={formData.telefono}
                           onChange={handleInputChange}
-                          required
                         />
                       </div>
                       <div>
@@ -535,7 +535,6 @@ export default function ListaProfesionales() {
                           type="date"
                           value={formData.fechaNacimiento}
                           onChange={handleInputChange}
-                          required
                         />
                       </div>
                       <div>
@@ -545,7 +544,6 @@ export default function ListaProfesionales() {
                           name="dni"
                           value={formData.dni}
                           onChange={handleInputChange}
-                          required
                         />
                       </div>
                       <div>
@@ -575,7 +573,6 @@ export default function ListaProfesionales() {
                           name="correoElectronico"
                           value={formData.correoElectronico}
                           onChange={handleInputChange}
-                          required
                         />
                       </div>
                       <div>
@@ -588,7 +585,6 @@ export default function ListaProfesionales() {
                             ...prev,
                             direccion: { ...prev.direccion, calle: e.target.value }
                           }))}
-                          required
                         />
                       </div>
                       <div>
@@ -601,7 +597,6 @@ export default function ListaProfesionales() {
                             ...prev,
                             direccion: { ...prev.direccion, numero: e.target.value }
                           }))}
-                          required
                         />
                       </div>
                       <div>
@@ -613,7 +608,6 @@ export default function ListaProfesionales() {
                             direccion: { ...prev.direccion, departamentoId: value }
                           }))}
                           value={formData.direccion.departamentoId}
-                          required
                         >
                           <SelectTrigger id="direccion.departamentoId">
                             <SelectValue placeholder="Seleccione un departamento" />
@@ -752,7 +746,14 @@ export default function ListaProfesionales() {
                       <AccordionItem key={profesional.id} value={String(profesional.id)}>
                         <AccordionTrigger className="px-6 py-4 hover:bg-gray-50">
                           <div className="flex justify-between w-full">
-                            <span className="font-medium">{`${profesional.nombre} ${profesional.apellido}`}</span>
+                          <div className="flex items-center gap-2">
+                            {/* Indicador de psicofísico vencido */}
+                            {(!profesional.fechaVencimientoPsicofisico || 
+                              new Date(profesional.fechaVencimientoPsicofisico) < new Date()) && (
+                              <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                            )}
+                            <span className="font-medium">{`${profesional.apellido} ${profesional.nombre} `}</span>
+                          </div>
                             <span className="text-sm text-gray-500">{profesional.profesion}</span>
                           </div>
                         </AccordionTrigger>

@@ -18,8 +18,8 @@
     --muted-foreground: 0 0% 40%; /* Texto sobre elementos apagados */
     --accent: 0 0% 80%;      /* Acentos en gris claro */
     --accent-foreground: 0 0% 20%; /* Texto sobre acentos */
-    --destructive: 0 0% 50%; /* Elementos destructivos en gris oscuro */
-    --destructive-foreground: 0 0% 100%; /* Texto en elementos destructivos */
+    --destructive: 0 84% 60%; /* Rojo */
+    --destructive-foreground: 0 0% 98%;
     --border: 0 0% 85%;      /* Bordes en gris claro */
     --input: 0 0% 95%;       /* Entradas en blanco */
     --ring: 0 0% 40%;        /* Anillos de enfoque en gris oscuro */

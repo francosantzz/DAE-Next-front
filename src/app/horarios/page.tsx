@@ -28,6 +28,7 @@ interface Profesional {
 
 interface Escuela {
   id: number;
+  Numero: number;
   nombre: string;
 }
 
@@ -48,6 +49,7 @@ interface PaqueteHoras {
   };
   escuela?: {
     id: number;
+    Numero: number;
     nombre: string;
   };
   equipo: {
@@ -528,7 +530,11 @@ export default function GrillaHorarios() {
                         <TableRow key={paquete.id}>
                           <TableCell>{paquete.tipo}</TableCell>
                           <TableCell>{paquete.cantidad} horas</TableCell>
-                          <TableCell>{paquete.escuela?.nombre || "-"}</TableCell>
+                          <TableCell>
+                            {paquete.escuela?.nombre}
+                            <br />
+                            <small className="text-gray-500">{paquete.escuela?.Numero}</small>
+                          </TableCell>
                           <TableCell>{paquete.dias.lunes || "-"}</TableCell>
                           <TableCell>{paquete.dias.martes || "-"}</TableCell>
                           <TableCell>{paquete.dias.miercoles || "-"}</TableCell>
@@ -614,11 +620,11 @@ export default function GrillaHorarios() {
                     <SelectValue placeholder="Seleccione una escuela" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60 overflow-y-auto">
-                    <ScrollArea className="max-h-60">
+                    <ScrollArea>
                       <SelectItem value="none">Ninguna</SelectItem>
                       {escuelasDelEquipo?.map((escuela) => (
                         <SelectItem key={escuela.id} value={escuela.id.toString()}>
-                          {escuela.nombre}
+                          {escuela.nombre} {escuela.Numero}
                         </SelectItem>
                       ))}
                     </ScrollArea>

@@ -80,6 +80,7 @@ interface Departamento {
 
 interface Escuela {
   id: number;
+  Numero: number;
   nombre: string;
 }
 
@@ -441,7 +442,7 @@ export default function ListaEquiposPantallaCompleta() {
                         <SelectTrigger id="departamento">
                           <SelectValue placeholder="Selecciona un departamento" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className='max-h-60 overflow-y-auto'>
                           {departamentos.map((departamento) => (
                             <SelectItem key={departamento.id} value={departamento.id.toString()}>
                               {departamento.nombre}
@@ -495,7 +496,7 @@ export default function ListaEquiposPantallaCompleta() {
                                 className="cursor-pointer hover:bg-gray-100 p-2 rounded"
                                 onClick={() => handleEscuelaSelect(escuela)}
                               >
-                                {escuela.nombre}
+                                {escuela.nombre} {escuela.Numero}
                               </div>
                             ))}
                           </div>
@@ -536,7 +537,7 @@ export default function ListaEquiposPantallaCompleta() {
                            className="bg-green-100 text-green-800 px-3 py-1"
                          >
                            <Building className="h-3 w-3 mr-1" />
-                           {escuela.nombre}
+                           {escuela.nombre} {escuela.Numero}
                            <Button
                              type="button"
                              variant="ghost"
