@@ -52,13 +52,15 @@ interface PaqueteHoras {
   escuela: {
     id: number;
     nombre: string;
+    matricula: number;
+    Numero: number;
   };
   dias: {
-    lunes: boolean;
-    martes: boolean;
-    miercoles: boolean;
-    jueves: boolean;
-    viernes: boolean;
+    lunes: string;
+    martes: string;
+    miercoles: string;
+    jueves: string;
+    viernes: string;
   };
 }
 
@@ -81,6 +83,7 @@ interface Departamento {
 interface Escuela {
   id: number;
   Numero: number;
+  matricula: number;
   nombre: string;
 }
 
@@ -601,7 +604,7 @@ export default function ListaEquiposPantallaCompleta() {
                             <ul className="list-disc pl-5 mt-2 space-y-1">
                               {equipo.escuelas.map((escuela) => (
                                 <li key={escuela.id}>
-                                  {escuela.nombre}
+                                  {escuela.nombre} Nº {escuela.Numero}
                                 </li>
                               ))}
                             </ul>

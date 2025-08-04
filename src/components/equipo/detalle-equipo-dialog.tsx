@@ -15,6 +15,7 @@ import {
   Globe,
   CheckCircle,
   XCircle,
+  AlertTriangle,
 } from "lucide-react"
 
 interface Profesional {
@@ -36,23 +37,25 @@ interface Departamento {
 
 interface Escuela {
   id: number
+  Numero: number
+  matricula: number
   nombre: string
 }
 
 interface Dias {
-  lunes: boolean | null
-  martes: boolean | null
-  miercoles: boolean | null
-  jueves: boolean | null
-  viernes: boolean | null
+  lunes: string
+  martes: string
+  miercoles: string
+  jueves: string
+  viernes: string
 }
 
 interface PaqueteHoras {
   id: number
-  tipo: string
+  tipo: "Escuela" | "Trabajo Interdisciplinario" | "Carga en Gei" | string
   cantidad: number
   profesional: Profesional
-  escuela: Escuela
+  escuela: Escuela | null
   dias: Dias
 }
 
@@ -88,6 +91,8 @@ export function DetalleEquipoDialog({ equipo, isOpen, onClose }: DetalleEquipoDi
   const profesionales = equipo.profesionales || []
   const escuelas = equipo.escuelas || []
   const paquetesHoras = equipo.paquetesHoras || []
+  const paquetesConEscuela = paquetesHoras.filter(paquete => paquete.tipo === "Escuela");
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -206,13 +211,13 @@ export function DetalleEquipoDialog({ equipo, isOpen, onClose }: DetalleEquipoDi
             </CardContent>
           </Card>
 
-          {/* Escuelas */}
+          {/* Escuelas con paquetes */}
           <Card className="border-0 shadow-lg">
             <CardHeader>
               <CardTitle className="text-lg flex items-center justify-between text-gray-800">
                 <div className="flex items-center">
                   <GraduationCap className="mr-2 h-5 w-5 text-indigo-600" />
-                  Escuelas Asignadas
+                  Escuelas y Paquetes de Horas
                 </div>
                 <Badge variant="outline" className="text-indigo-600">
                   {escuelas.length} escuela{escuelas.length !== 1 ? "s" : ""}
@@ -221,132 +226,99 @@ export function DetalleEquipoDialog({ equipo, isOpen, onClose }: DetalleEquipoDi
             </CardHeader>
             <CardContent>
               {escuelas.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {escuelas.map((escuela) => {
-                      // Filtramos los paquetes de horas de esta escuela
-                      const paquetesDeEstaEscuela = paquetesHoras.filter(
-                        (paquete) => paquete.escuela?.id === escuela.id
-                      );
+                <div className="space-y-4">
+                  {escuelas.map((escuela) => {
+                    // Paquetes de esta escuela
+                    const paquetesDeEstaEscuela = paquetesHoras.filter(
+                      (p) => p.escuela?.id === escuela.id
+                    )
+                    const tienePaquete = paquetesDeEstaEscuela.length > 0
 
-                      // Calculamos el total de horas asignadas
-                      const totalHoras = paquetesDeEstaEscuela.reduce(
-                        (sum, paquete) => sum + paquete.cantidad,
-                        0
-                      );
-
-                      // Verificamos si tiene paquetes
-                      const tienePaquete = paquetesDeEstaEscuela.length > 0;
-
-                      return (
-                        <div
-                          key={escuela.id}
-                          className={
-                            "flex items-center space-x-3 p-3 rounded-lg border " +
-                            (tienePaquete
-                              ? "bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-100"
-                              : "bg-yellow-100 border-yellow-400 ring-2 ring-yellow-400")
-                          }
-                        >
-                          <div className="bg-indigo-100 p-2 rounded-lg">
-                            <Building className="h-4 w-4 text-indigo-600" />
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-semibold text-gray-900">{escuela.nombre}</p>
-                            <p className="text-sm text-gray-600">ID: {escuela.id}</p>
-                          </div>
-                          
-                          {/* Mostramos horas asignadas o "Sin horas" */}
-                          {tienePaquete ? (
-                            <span className="ml-2 px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-xs font-bold">
-                              {totalHoras} horas asignadas
-                            </span>
+                    return (
+                      <div
+                        key={escuela.id}
+                        className={
+                          "p-4 rounded-lg border " +
+                          (tienePaquete
+                            ? "bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-100"
+                            : "border-yellow-300")
+                        }
+                      >
+                        {/* Encabezado escuela */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <p className="font-semibold text-gray-900">
+                              {escuela.nombre} Nº {escuela.Numero}
+                            </p>
+                            <p className="font-semibold text-gray-600">
+                              Matrícula: {escuela.matricula}
+                            </p>
+                            {tienePaquete ? (
+                            <p className="text-sm text-indigo-600">
+                              {paquetesDeEstaEscuela.length} paquete{paquetesDeEstaEscuela.length !== 1 ? "s" : ""} asignado
+                            </p>
                           ) : (
-                            <span className="ml-2 px-2 py-1 bg-yellow-300 text-yellow-900 rounded text-xs font-bold">
-                              Sin horas asignadas
-                            </span>
+                            <div className="flex items-center text-red-600">
+                              <AlertTriangle className="h-4 w-4 mr-1" />
+                              <span className="text-sm font-medium">Sin profesionales asignados</span>
+                            </div>
+                          )}
+                          </div>
+                        </div>
+
+                        {/* Listado de paquetes */}
+                          {tienePaquete && (
+                            <div className="space-y-3 mt-3">
+                              {paquetesDeEstaEscuela.map((paquete) => (
+                                <div
+                                  key={paquete.id}
+                                  className="p-3 bg-white border rounded-lg"
+                                >
+                                  <div className="flex justify-between items-center">
+                                    <p className="font-medium text-gray-800">
+                                      {paquete.profesional.nombre} {paquete.profesional.apellido}
+                                    </p>
+                                    <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm font-bold">
+                                      {paquete.cantidad}h
+                                    </span>
+                                  </div>
+                                  {/* Días y horarios */}
+                                  {Object.entries(paquete.dias).some(([_, horario]) => horario) ? (
+                                    <ul className="list-disc list-inside text-sm text-gray-600 mt-2">
+                                      {Object.entries(paquete.dias).map(([dia, horario]) =>
+                                        horario ? (
+                                          <li key={dia}>
+                                            {(() => {
+                                              const diasTrad = {
+                                                lunes: "Lunes",
+                                                martes: "Martes",
+                                                miercoles: "Miércoles",
+                                                jueves: "Jueves",
+                                                viernes: "Viernes",
+                                              }
+                                              return diasTrad[dia as keyof typeof diasTrad] || dia
+                                            })()}: {horario}
+                                          </li>
+                                        ) : null
+                                      )}
+                                    </ul>
+                                  ) : (
+                                    <p className="text-gray-500 text-sm italic mt-2">
+                                      Sin días asignados
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
                           )}
                         </div>
-                      );
+                      )
                     })}
-                  </div>
+                </div>
               ) : (
                 <div className="text-center py-8">
-                  <Building className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <GraduationCap className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500">No hay escuelas asignadas</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Paquetes de Horas */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center justify-between text-gray-800">
-                <div className="flex items-center">
-                  <Calendar className="mr-2 h-5 w-5 text-orange-600" />
-                  Paquetes de Horas
-                </div>
-                <Badge variant="outline" className="text-orange-600">
-                  {paquetesHoras.length} paquete{paquetesHoras.length !== 1 ? "s" : ""}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {paquetesHoras.length > 0 ? (
-                <div className="space-y-4">
-                  {paquetesHoras.map((paquete) => (
-                    <div
-                    key={paquete.id}
-                    className="p-4 bg-gradient-to-r from-orange-50 to-yellow-50 rounded-lg border-2 border-orange-300 "
-                    >                  
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <h4 className="font-semibold text-gray-900">{paquete.tipo}</h4>
-                          <p className="text-sm text-gray-600">ID: {paquete.id}</p>
-                          <p className="text-sm text-gray-600">Escuela: {paquete.escuela?.nombre || "Sin escuela"}</p>
-                          <p className="text-sm text-gray-600">Profesional: {paquete.profesional?.nombre} {paquete.profesional?.apellido}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-orange-600">{paquete.cantidad}h</p>
-                          <p className="text-sm text-gray-600">horas</p>
-                        </div>
-                      </div>
-
-                      <Separator className="my-3" />
-
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-2">Días y horarios:</p>
-                            {Object.values(paquete.dias).some(horario => horario && horario !== "") ? (
-                                <ul className="list-disc pl-5">
-                                {Object.entries(paquete.dias).map(([dia, horario]) =>
-                                    horario && horario !== "" ? (
-                                    <li key={dia}>
-                                        {(() => {
-                                        // Capitaliza y traduce el día si quieres
-                                        const diasTrad = {
-                                            lunes: "Lunes",
-                                            martes: "Martes",
-                                            miercoles: "Miércoles",
-                                            jueves: "Jueves",
-                                            viernes: "Viernes"
-                                        };
-                                        return diasTrad[dia as keyof typeof diasTrad] || dia.charAt(0).toUpperCase() + dia.slice(1);
-                                        })()}: {horario}
-                                    </li>
-                                    ) : null
-                                )}
-                                </ul>
-                            ) : (
-                                <p className="text-gray-500 italic">No hay días asignados.</p>
-                            )}
-                        </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">No hay paquetes de horas asignados</p>
                 </div>
               )}
             </CardContent>
@@ -371,7 +343,7 @@ export function DetalleEquipoDialog({ equipo, isOpen, onClose }: DetalleEquipoDi
                   <p className="text-sm text-gray-600">Escuelas</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-orange-600">{paquetesHoras.length}</p>
+                  <p className="text-2xl font-bold text-orange-600">{paquetesConEscuela.length}</p>
                   <p className="text-sm text-gray-600">Paquetes</p>
                 </div>
                 <div className="text-center">

@@ -135,81 +135,73 @@ export function HomePage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true)
+      setIsLoading(true);
       try {
-        const [professionalsRes, equiposRes, paquetesRes, departamentosRes] = await Promise.all([
+        // Solo cargamos profesionales, equipos y departamentos
+        const [professionalsRes, equiposRes, departamentosRes] = await Promise.all([
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals?page=${currentPage}&limit=${itemsPerPage}`, {
             headers: { Authorization: `Bearer ${session?.user?.accessToken}` }
           }),
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos?page=1&limit=100`, {
             headers: { Authorization: `Bearer ${session?.user?.accessToken}` }
           }),
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes`, {
-            headers: { Authorization: `Bearer ${session?.user?.accessToken}` }
-          }),
           fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`, {
             headers: { Authorization: `Bearer ${session?.user?.accessToken}` }
           })
-        ])
-        
-        if (!professionalsRes.ok || !equiposRes.ok || !paquetesRes.ok || !departamentosRes.ok) 
-          throw new Error('Failed to fetch data')
-
-        const [professionalsData, equiposData, paquetesData, departamentosData] = await Promise.all([
+        ]);
+  
+        if (!professionalsRes.ok || !equiposRes.ok || !departamentosRes.ok) {
+          throw new Error('Failed to fetch data');
+        }
+  
+        const [professionalsData, equiposData, departamentosData] = await Promise.all([
           professionalsRes.json(),
           equiposRes.json(),
-          paquetesRes.json(),
           departamentosRes.json()
-        ])
-
-        // Calcular estadísticas
-        const now = new Date()
-        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-        const firstDayOfWeek = new Date(now.setDate(now.getDate() - now.getDay()))
-
+        ]);
+  
+        // Calculamos estadísticas SIN paquetes de horas
+        const now = new Date();
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  
         const newProfessionalsThisMonth = professionalsData.data.filter((p: Professional) => {
           if (!(p as any).createdAt) return false;
           const createdAtProf = new Date((p as any).createdAt);
           return createdAtProf >= firstDayOfMonth;
-        }).length
-
-        const equiposArray = equiposData.data || equiposData
+        }).length;
+  
+        const equiposArray = equiposData.data || equiposData;
         const newTeamsThisMonth = equiposArray.filter((e: Equipo) => {
           if (!(e as any).createdAt) return false;
           const createdAtEq = new Date((e as any).createdAt);
           return createdAtEq >= firstDayOfMonth;
-        }).length
-
-        const newTasksThisWeek = paquetesData.filter((p: PaqueteHoras) => {
-          if (!(p as any).createdAt) return false;
-          const createdAtPack = new Date((p as any).createdAt);
-          return createdAtPack >= firstDayOfWeek;
-        }).length
-
-        setProfessionals(professionalsData.data)
-        setTotalPages(professionalsData.meta.totalPages)
-        setTotalItems(professionalsData.meta.total)
+        }).length;
+  
         setDashboardData({
           totalProfessionals: professionalsData.meta.total,
           newProfessionalsThisMonth,
-          totalTasks: paquetesData.length,
-          newTasksThisWeek,
+          totalTasks: 0, // Lo dejamos en 0 temporalmente
+          newTasksThisWeek: 0, // Lo dejamos en 0 temporalmente
           totalTeams: equiposArray.length,
           newTeamsThisMonth
-        })
-        setEquipos(equiposData.data || equiposData)
-        setDepartamentos(departamentosData.data || departamentosData)
+        });
+  
+        setProfessionals(professionalsData.data);
+        setTotalPages(professionalsData.meta.totalPages);
+        setTotalItems(professionalsData.meta.total);
+        setEquipos(equiposArray);
+        setDepartamentos(departamentosData.data || departamentosData);
       } catch (error) {
-        console.error('Error fetching data:', error)
+        console.error('Error fetching data:', error);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
-
+    };
+  
     if (session?.user?.accessToken) {
-      fetchData()
+      fetchData();
     }
-  }, [session?.user?.accessToken, currentPage])
+  }, [session?.user?.accessToken, currentPage]);
 
   const handleOpenModal = () => {
     // Reset current professional and form data before opening modal
@@ -385,16 +377,13 @@ export function HomePage() {
           <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">Paquetes de Horas</CardTitle>
-              <div className="bg-green-50 rounded-full p-2">
-                <ClockIcon className="w-5 h-5 text-green-600" />
+              <div className="bg-gray-50 rounded-full p-2">
+                <ClockIcon className="w-5 h-5 text-gray-400" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">{dashboardData?.totalTasks}</div>
-              <div className="flex items-center mt-2">
-                <TrendingUpIcon className="w-4 h-4 mr-1 text-green-500" />
-                <p className="text-sm text-gray-600">+{dashboardData?.newTasksThisWeek} nuevos esta semana</p>
-              </div>
+              <div className="text-3xl font-bold text-gray-400">--</div>
+              <p className="text-sm text-gray-500 mt-2">Datos no disponibles temporalmente</p>
             </CardContent>
           </Card>
 
@@ -459,7 +448,7 @@ export function HomePage() {
                           </Avatar>
                           <div>
                             <div className="font-semibold text-gray-900">
-                              {professional.nombre} {professional.apellido}
+                             {professional.apellido} {professional.nombre} 
                             </div>
                             <div className="text-sm text-gray-500 flex items-center">
                               <PhoneIcon className="w-3 h-3 mr-1" />
