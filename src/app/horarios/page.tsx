@@ -20,6 +20,7 @@ interface Profesional {
   id: number;
   nombre: string;
   apellido: string;
+  totalHoras: number;
   equipos: {
     id: number;
     nombre: string;
@@ -41,7 +42,7 @@ interface Equipo {
 interface PaqueteHoras {
   id: number;
   tipo: string;
-  cantidad: number;
+  cantidad: number; // calculada por backend
   profesional: {
     id: number;
     nombre: string;
@@ -56,13 +57,11 @@ interface PaqueteHoras {
     id: number;
     nombre: string;
   };
-  dias: {
-    lunes: string | null;
-    martes: string | null;
-    miercoles: string | null;
-    jueves: string | null;
-    viernes: string | null;
-  };
+  diaSemana: number; // 0=Domingo .. 6=Sábado
+  horaInicio: string; // HH:mm
+  horaFin: string; // HH:mm
+  rotativo: boolean;
+  semanas?: number[] | null; // solo si rotativo
 }
 
 export default function GrillaHorarios() {
@@ -91,16 +90,13 @@ export default function GrillaHorarios() {
 
   const [formData, setFormData] = useState({
     tipo: "",
-    cantidad: "",
     escuelaId: "",
     equipoId: "",
-    dias: {
-      lunes: "",
-      martes: "",
-      miercoles: "",
-      jueves: "",
-      viernes: ""
-    }
+    diaSemana: "",
+    horaInicio: "",
+    horaFin: "",
+    rotativo: false,
+    semanas: [] as number[]
   })
 
   // Cargar datos iniciales
@@ -199,14 +195,24 @@ export default function GrillaHorarios() {
         if (!response.ok) throw new Error('Error al obtener paquetes')
         
         const paquetesData = await response.json()
-        
+
         // Filtrar los paquetes por el equipo seleccionado
         const paquetesFiltrados = paquetesData.filter(
-          (paquete: PaqueteHoras) => paquete.equipo.id.toString() === equipoSeleccionado
+          (paquete: any) => paquete.equipo.id.toString() === equipoSeleccionado
         )
 
-        setPaquetes(paquetesFiltrados)
-        setFilteredPaquetes(paquetesFiltrados)
+        // Normalizar estructura (soportar backend con campo 'dias')
+        const normalizados: PaqueteHoras[] = paquetesFiltrados.map((p: any) => ({
+          ...p,
+          diaSemana: p.diaSemana ?? p.dias?.diaSemana ?? null,
+          horaInicio: (p.horaInicio ?? p.dias?.horaInicio ?? '').toString().slice(0,5),
+          horaFin: (p.horaFin ?? p.dias?.horaFin ?? '').toString().slice(0,5),
+          rotativo: p.rotativo ?? p.dias?.rotativo ?? false,
+          semanas: p.semanas ?? p.dias?.semanas ?? null,
+        }))
+
+        setPaquetes(normalizados)
+        setFilteredPaquetes(normalizados)
         setPaquetesCargados(true)
       } catch (error) {
         console.error("Error fetching paquetes:", error)
@@ -238,16 +244,13 @@ export default function GrillaHorarios() {
       setCurrentPaquete(paquete)
       setFormData({
         tipo: paquete.tipo,
-        cantidad: paquete.cantidad.toString(),
         escuelaId: paquete.escuela?.id.toString() || "",
         equipoId: paquete.equipo.id.toString(),
-        dias: {
-          lunes: paquete.dias.lunes || "",
-          martes: paquete.dias.martes || "",
-          miercoles: paquete.dias.miercoles || "",
-          jueves: paquete.dias.jueves || "",
-          viernes: paquete.dias.viernes || ""
-        }
+        diaSemana: (paquete.diaSemana ?? (paquete as any)?.dias?.diaSemana ?? '').toString(),
+        horaInicio: (paquete.horaInicio ?? (paquete as any)?.dias?.horaInicio ?? '').toString().slice(0,5),
+        horaFin: (paquete.horaFin ?? (paquete as any)?.dias?.horaFin ?? '').toString().slice(0,5),
+        rotativo: paquete.rotativo ?? (paquete as any)?.dias?.rotativo ?? false,
+        semanas: paquete.semanas ?? (paquete as any)?.dias?.semanas ?? []
       })
       // Cargar escuelas del equipo del paquete
       fetchEscuelasDelEquipo(paquete.equipo.id.toString())
@@ -255,16 +258,13 @@ export default function GrillaHorarios() {
       setCurrentPaquete(null)
       setFormData({
         tipo: tiposPaquete[0],
-        cantidad: "",
         escuelaId: "",
         equipoId: equipoSeleccionado,
-        dias: {
-          lunes: "",
-          martes: "",
-          miercoles: "",
-          jueves: "",
-          viernes: ""
-        }
+        diaSemana: "",
+        horaInicio: "",
+        horaFin: "",
+        rotativo: false,
+        semanas: []
       })
       // Cargar escuelas del equipo seleccionado
       fetchEscuelasDelEquipo(equipoSeleccionado)
@@ -275,19 +275,12 @@ export default function GrillaHorarios() {
   const handleCloseModal = () => setOpenModal(false)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    if (name.startsWith("dias.")) {
-      const dia = name.split(".")[1]
-      setFormData(prev => ({
-        ...prev,
-        dias: {
-          ...prev.dias,
-          [dia]: value
-        }
-      }))
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }))
+    const { name, value, type, checked } = e.target
+    if (name === "rotativo") {
+      setFormData(prev => ({ ...prev, rotativo: checked }))
+      return
     }
+    setFormData(prev => ({ ...prev, [name]: value }))
   }
 
   const handleSelectChange = (name: string, value: string) => {
@@ -296,6 +289,13 @@ export default function GrillaHorarios() {
     if (name === "tipo" && (value === "Carga en GEI" || value === "Trabajo Interdisciplinario")) {
       setFormData(prev => ({ ...prev, escuelaId: "" }))
     }
+  }
+
+  const toggleSemana = (sem: number) => {
+    setFormData(prev => {
+      const present = prev.semanas.includes(sem)
+      return { ...prev, semanas: present ? prev.semanas.filter(s => s !== sem) : [...prev.semanas, sem] }
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -316,17 +316,14 @@ export default function GrillaHorarios() {
          },
         body: JSON.stringify({
           tipo: formData.tipo,
-          cantidad: Number.parseInt(formData.cantidad),
           escuelaId: formData.tipo === "Escuela" ? Number.parseInt(formData.escuelaId) : null,
           equipoId: Number.parseInt(formData.equipoId),
           profesionalId: Number.parseInt(profesionalSeleccionado),
-          dias: {
-            lunes: formData.dias.lunes || null,
-            martes: formData.dias.martes || null,
-            miercoles: formData.dias.miercoles || null,
-            jueves: formData.dias.jueves || null,
-            viernes: formData.dias.viernes || null
-          }
+          diaSemana: formData.diaSemana ? Number.parseInt(formData.diaSemana) : null,
+          horaInicio: formData.horaInicio,
+          horaFin: formData.horaFin,
+          rotativo: formData.rotativo,
+          semanas: formData.rotativo ? formData.semanas : null
         }),
       })
 
@@ -343,10 +340,18 @@ export default function GrillaHorarios() {
       
       const updatedPaquetes = await updatedResponse.json()
       const paquetesFiltrados = updatedPaquetes.filter(
-          (paquete: PaqueteHoras) => paquete.equipo.id.toString() === equipoSeleccionado
+          (paquete: any) => paquete.equipo.id.toString() === equipoSeleccionado
         )
-      setPaquetes(paquetesFiltrados)
-      setFilteredPaquetes(paquetesFiltrados)
+      const normalizados: PaqueteHoras[] = paquetesFiltrados.map((p: any) => ({
+        ...p,
+        diaSemana: p.diaSemana ?? p.dias?.diaSemana ?? null,
+        horaInicio: (p.horaInicio ?? p.dias?.horaInicio ?? '').toString().slice(0,5),
+        horaFin: (p.horaFin ?? p.dias?.horaFin ?? '').toString().slice(0,5),
+        rotativo: p.rotativo ?? p.dias?.rotativo ?? false,
+        semanas: p.semanas ?? p.dias?.semanas ?? null,
+      }))
+      setPaquetes(normalizados)
+      setFilteredPaquetes(normalizados)
       setOpenModal(false)
     } catch (error) {
       console.error("Error al guardar el paquete:", error)
@@ -379,8 +384,19 @@ export default function GrillaHorarios() {
       if (!updatedResponse.ok) throw new Error('Error al actualizar los paquetes')
       
       const updatedPaquetes = await updatedResponse.json()
-      setPaquetes(updatedPaquetes)
-      setFilteredPaquetes(updatedPaquetes)
+      const paquetesFiltrados = updatedPaquetes.filter(
+        (paquete: any) => paquete.equipo.id.toString() === equipoSeleccionado
+      )
+      const normalizados: PaqueteHoras[] = paquetesFiltrados.map((p: any) => ({
+        ...p,
+        diaSemana: p.diaSemana ?? p.dias?.diaSemana ?? null,
+        horaInicio: (p.horaInicio ?? p.dias?.horaInicio ?? '').toString().slice(0,5),
+        horaFin: (p.horaFin ?? p.dias?.horaFin ?? '').toString().slice(0,5),
+        rotativo: p.rotativo ?? p.dias?.rotativo ?? false,
+        semanas: p.semanas ?? p.dias?.semanas ?? null,
+      }))
+      setPaquetes(normalizados)
+      setFilteredPaquetes(normalizados)
     } catch (error) {
       console.error("Error al eliminar el paquete:", error)
     } finally {
@@ -399,8 +415,10 @@ export default function GrillaHorarios() {
   }
 
   const getTotalHoras = () => {
-    return filteredPaquetes.reduce((total, paquete) => total + paquete.cantidad, 0)
-  }
+    if (!profesionalSeleccionado) return 0;
+    const profesional = profesionalesFiltrados.find(p => p.id.toString() === profesionalSeleccionado);
+    return profesional?.totalHoras || 0;
+  };
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Cargando...</div>
@@ -487,7 +505,7 @@ export default function GrillaHorarios() {
                     </div>
                     <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-lg">
                       <span className="text-sm font-medium text-blue-700">Total:</span>
-                      <span className="text-lg font-bold text-blue-800">{getTotalHoras()} horas</span>
+                      <span className="text-lg font-bold text-blue-800">{getTotalHoras()} horas semanales</span>
                     </div>
                   </div>
                 </div>
@@ -517,11 +535,11 @@ export default function GrillaHorarios() {
                         <TableHead>Tipo</TableHead>
                         <TableHead>Cantidad</TableHead>
                         <TableHead>Escuela</TableHead>
-                        <TableHead>Lunes</TableHead>
-                        <TableHead>Martes</TableHead>
-                        <TableHead>Miércoles</TableHead>
-                        <TableHead>Jueves</TableHead>
-                        <TableHead>Viernes</TableHead>
+                        <TableHead>Día</TableHead>
+                        <TableHead>Inicio</TableHead>
+                        <TableHead>Fin</TableHead>
+                        <TableHead>Rotativo</TableHead>
+                        <TableHead>Semanas</TableHead>
                         <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -535,11 +553,11 @@ export default function GrillaHorarios() {
                             <br />
                             <small className="text-gray-500">{paquete.escuela?.Numero}</small>
                           </TableCell>
-                          <TableCell>{paquete.dias.lunes || "-"}</TableCell>
-                          <TableCell>{paquete.dias.martes || "-"}</TableCell>
-                          <TableCell>{paquete.dias.miercoles || "-"}</TableCell>
-                          <TableCell>{paquete.dias.jueves || "-"}</TableCell>
-                          <TableCell>{paquete.dias.viernes || "-"}</TableCell>
+                          <TableCell>{["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][paquete.diaSemana] || "-"}</TableCell>
+                          <TableCell>{paquete.horaInicio}</TableCell>
+                          <TableCell>{paquete.horaFin}</TableCell>
+                          <TableCell>{paquete.rotativo ? "Sí" : "No"}</TableCell>
+                          <TableCell>{paquete.rotativo && paquete.semanas?.length ? paquete.semanas.join(', ') : '-'}</TableCell>
                           <TableCell className="text-right">
                             <PermissionButton
                               requiredPermission={{ entity: 'paquetehoras', action: 'update'}}
@@ -596,18 +614,7 @@ export default function GrillaHorarios() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="cantidad">Cantidad de Horas</Label>
-                <Input
-                  id="cantidad"
-                  name="cantidad"
-                  type="number"
-                  min="1"
-                  value={formData.cantidad}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+              {/* cantidad ya no se ingresa manualmente */}
               <div className="space-y-2">
                 <Label htmlFor="escuelaId">Escuela</Label>
                 <Select
@@ -632,22 +639,54 @@ export default function GrillaHorarios() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Días de la semana</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  {(["lunes", "martes", "miercoles", "jueves", "viernes"] as const).map((dia) => (
-                    <div className="space-y-2" key={dia}>
-                      <Label htmlFor={`dias.${dia}`}>{dia.charAt(0).toUpperCase() + dia.slice(1)}</Label>
-                      <Input
-                        id={`dias.${dia}`}
-                        name={`dias.${dia}`}
-                        type="text"
-                        placeholder="Ej: 8:00 - 12:00"
-                        value={formData.dias[dia]}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  ))}
+                <Label htmlFor="diaSemana">Día de la semana</Label>
+                <Select
+                  name="diaSemana"
+                  value={formData.diaSemana}
+                  onValueChange={(value) => handleSelectChange("diaSemana", value)}
+                  required
+                >
+                  <SelectTrigger id="diaSemana">
+                    <SelectValue placeholder="Seleccione un día" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {/* Usamos 1..5 como antes */}
+                    <SelectItem value="1">Lunes</SelectItem>
+                    <SelectItem value="2">Martes</SelectItem>
+                    <SelectItem value="3">Miércoles</SelectItem>
+                    <SelectItem value="4">Jueves</SelectItem>
+                    <SelectItem value="5">Viernes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="horaInicio">Hora inicio</Label>
+                  <Input id="horaInicio" name="horaInicio" type="time" value={formData.horaInicio} onChange={handleInputChange} required />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="horaFin">Hora fin</Label>
+                  <Input id="horaFin" name="horaFin" type="time" value={formData.horaFin} onChange={handleInputChange} required />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <input id="rotativo" name="rotativo" type="checkbox" checked={formData.rotativo} onChange={handleInputChange} />
+                  <Label htmlFor="rotativo">Horario rotativo</Label>
+                </div>
+                {formData.rotativo && (
+                  <div>
+                    <Label>Semanas del ciclo (1-4)</Label>
+                    <div className="flex gap-3 mt-1">
+                      {[1,2,3,4].map((s) => (
+                        <label key={s} className="flex items-center gap-1">
+                          <input type="checkbox" checked={formData.semanas.includes(s)} onChange={() => toggleSemana(s)} />
+                          <span>{s}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </form>
           </div>

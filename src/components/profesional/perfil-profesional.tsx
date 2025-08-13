@@ -51,21 +51,17 @@ interface Equipo {
   departamento: Departamento
 }
 
-interface Dias {
-  lunes: string | null
-  martes: string | null
-  miercoles: string | null
-  jueves: string | null
-  viernes: string | null
-}
-
 interface PaqueteHoras {
   id: number
   tipo: string
   cantidad: number
   equipo: Equipo
-  escuela: Escuela
-  dias: Dias
+  escuela?: Escuela
+  diaSemana: number
+  horaInicio: string
+  horaFin: string
+  rotativo: boolean
+  semanas?: number[] | null
 }
 
 interface CargoHoras {
@@ -138,16 +134,13 @@ export default function PerfilProfesional() {
   const [paqueteFormData, setPaqueteFormData] = useState({
     id: 0,
     tipo: "",
-    cantidad: "",
     equipoId: "",
     escuelaId: "",
-    dias: {
-      lunes: "",
-      martes: "",
-      miercoles: "",
-      jueves: "",
-      viernes: "",
-    },
+    diaSemana: "",
+    horaInicio: "",
+    horaFin: "",
+    rotativo: false,
+    semanas: [] as number[],
   })
 
   const router = useRouter()
@@ -342,16 +335,13 @@ export default function PerfilProfesional() {
     setPaqueteFormData({
       id: paquete.id,
       tipo: paquete.tipo,
-      cantidad: paquete.cantidad.toString(),
       equipoId: paquete.equipo.id.toString(),
       escuelaId: paquete.escuela?.id?.toString() || "",
-      dias: {
-        lunes: paquete.dias.lunes || "",
-        martes: paquete.dias.martes || "",
-        miercoles: paquete.dias.miercoles || "",
-        jueves: paquete.dias.jueves || "",
-        viernes: paquete.dias.viernes || "",
-      },
+      diaSemana: paquete.diaSemana?.toString() ?? "",
+      horaInicio: paquete.horaInicio || "",
+      horaFin: paquete.horaFin || "",
+      rotativo: paquete.rotativo ?? false,
+      semanas: paquete.semanas || [],
     })
     
     await cargarEscuelasPorEquipo(paquete.equipo.id.toString())
@@ -399,10 +389,13 @@ export default function PerfilProfesional() {
     try {
       const requestData = {
         tipo: paqueteFormData.tipo,
-        cantidad: Number(paqueteFormData.cantidad),
         equipoId: Number(paqueteFormData.equipoId),
         escuelaId: paqueteFormData.tipo === "Escuela" ? Number(paqueteFormData.escuelaId) : null,
-        dias: paqueteFormData.dias,
+        diaSemana: paqueteFormData.diaSemana ? Number(paqueteFormData.diaSemana) : null,
+        horaInicio: paqueteFormData.horaInicio,
+        horaFin: paqueteFormData.horaFin,
+        rotativo: paqueteFormData.rotativo,
+        semanas: paqueteFormData.rotativo ? paqueteFormData.semanas : null,
       }
 
       const url = currentPaquete
@@ -449,16 +442,13 @@ export default function PerfilProfesional() {
       setPaqueteFormData({
         id: 0,
         tipo: "",
-        cantidad: "",
         equipoId: "",
         escuelaId: "",
-        dias: {
-          lunes: "",
-          martes: "",
-          miercoles: "",
-          jueves: "",
-          viernes: "",
-        },
+        diaSemana: "",
+        horaInicio: "",
+        horaFin: "",
+        rotativo: false,
+        semanas: [],
       })
     } catch (error) {
       console.error("Error al guardar el paquete de horas:", error)
@@ -469,22 +459,22 @@ export default function PerfilProfesional() {
   }
 
   const handlePaqueteInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    if (name.startsWith("dias.")) {
-      const dia = name.split(".")[1]
-      setPaqueteFormData((prev) => ({
-        ...prev,
-        dias: {
-          ...prev.dias,
-          [dia]: value,
-        },
-      }))
-    } else {
-      setPaqueteFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }))
+    const { name, value, type, checked } = e.target
+    if (name === "rotativo") {
+      setPaqueteFormData(prev => ({ ...prev, rotativo: checked }))
+      return
     }
+    setPaqueteFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const toggleSemana = (sem: number) => {
+    setPaqueteFormData(prev => {
+      const present = prev.semanas.includes(sem)
+      return { ...prev, semanas: present ? prev.semanas.filter(s => s !== sem) : [...prev.semanas, sem] }
+    })
   }
 
   const handlePaqueteSelectChange = async (name: string, value: string) => {
@@ -776,16 +766,13 @@ export default function PerfilProfesional() {
                           setPaqueteFormData({
                             id: 0,
                             tipo: "",
-                            cantidad: "",
                             equipoId: "",
                             escuelaId: "",
-                            dias: {
-                              lunes: "",
-                              martes: "",
-                              miercoles: "",
-                              jueves: "",
-                              viernes: "",
-                            },
+                            diaSemana: "",
+                            horaInicio: "",
+                            horaFin: "",
+                            rotativo: false,
+                            semanas: [],
                           })
                           setEscuelasFiltradas([])
                           setIsPaqueteDialogOpen(true)
@@ -846,21 +833,23 @@ export default function PerfilProfesional() {
                               )}
                               
                               <div className="mt-2">
-                                <p className="text-base font-medium text-gray-700">Horarios:</p>
-                                <ul className="mt-1 space-y-1">
-                                  {Object.entries(paquete.dias).map(([dia, horario]) => (
-                                    horario && (
-                                      <li key={dia} className="flex items-center gap-2 text-base text-gray-600">
-                                        <div className="bg-gray-100 p-1 rounded-full">
-                                          <CalendarIcon className="w-3 h-3 text-gray-600" />
-                                        </div>
-                                        <span>
-                                          {dia.charAt(0).toUpperCase() + dia.slice(1)}: {horario}
-                                        </span>
-                                      </li>
-                                    )
-                                  ))}
-                                </ul>
+                                <p className="text-base font-medium text-gray-700">Horario:</p>
+                                <div className="flex items-center gap-2 text-base text-gray-600">
+                                  <div className="bg-gray-100 p-1 rounded-full">
+                                    <CalendarIcon className="w-3 h-3 text-gray-600" />
+                                  </div>
+                                  <span>
+                                    {(() => {
+                                      const dia = (paquete as any).diaSemana ?? (paquete as any).dias?.diaSemana
+                                      const hI = ((paquete as any).horaInicio ?? (paquete as any).dias?.horaInicio ?? '').toString().slice(0,5)
+                                      const hF = ((paquete as any).horaFin ?? (paquete as any).dias?.horaFin ?? '').toString().slice(0,5)
+                                      const rot = (paquete as any).rotativo ?? (paquete as any).dias?.rotativo
+                                      const sem = (paquete as any).semanas ?? (paquete as any).dias?.semanas
+                                      const diaLabel = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][dia as number] || "-"
+                                      return `${diaLabel} ${hI} - ${hF}${rot ? ` (Semanas: ${sem?.join(', ') || '-'})` : ''}`
+                                    })()}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                             <div className="flex space-x-2">
@@ -911,7 +900,7 @@ export default function PerfilProfesional() {
                   <div className="flex items-center justify-center gap-6">
                     <div className="text-center">
                       <div className="text-3xl font-bold text-blue-700">
-                        {profesional.totalHoras}
+                        {profesional.totalHoras} semanales
                       </div>
                       <p className="text-base text-gray-600">Horas totales</p>
                     </div>
@@ -1281,18 +1270,7 @@ export default function PerfilProfesional() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cantidad">Cantidad de Horas</Label>
-                    <Input
-                      id="cantidad"
-                      name="cantidad"
-                      type="number"
-                      min="1"
-                      value={paqueteFormData.cantidad}
-                      onChange={handlePaqueteInputChange}
-                      required
-                    />
-                  </div>
+                  {/* cantidad ya no se ingresa manualmente */}
                   <div className="space-y-2">
                     <Label htmlFor="equipoId">Equipo</Label>
                     <Select
@@ -1335,22 +1313,53 @@ export default function PerfilProfesional() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Días de la semana</Label>
-                    <div className="grid grid-cols-2 gap-4">
-                      {["lunes", "martes", "miercoles", "jueves", "viernes"].map((dia) => (
-                        <div className="space-y-2" key={dia}>
-                          <Label htmlFor={`dias.${dia}`}>{dia.charAt(0).toUpperCase() + dia.slice(1)}</Label>
-                          <Input
-                            id={`dias.${dia}`}
-                            name={`dias.${dia}`}
-                            type="text"
-                            placeholder="Ej: 8:00 - 12:00"
-                            value={paqueteFormData.dias[dia as keyof typeof paqueteFormData.dias]}
-                            onChange={handlePaqueteInputChange}
-                          />
-                        </div>
-                      ))}
+                    <Label htmlFor="diaSemana">Día de la semana</Label>
+                    <Select
+                      name="diaSemana"
+                      value={paqueteFormData.diaSemana}
+                      onValueChange={(value) => handlePaqueteSelectChange("diaSemana", value)}
+                      required
+                    >
+                      <SelectTrigger id="diaSemana">
+                        <SelectValue placeholder="Seleccione un día" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Lunes</SelectItem>
+                        <SelectItem value="2">Martes</SelectItem>
+                        <SelectItem value="3">Miércoles</SelectItem>
+                        <SelectItem value="4">Jueves</SelectItem>
+                        <SelectItem value="5">Viernes</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="horaInicio">Hora inicio</Label>
+                      <Input id="horaInicio" name="horaInicio" type="time" value={paqueteFormData.horaInicio} onChange={handlePaqueteInputChange} required />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="horaFin">Hora fin</Label>
+                      <Input id="horaFin" name="horaFin" type="time" value={paqueteFormData.horaFin} onChange={handlePaqueteInputChange} required />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <input id="rotativo" name="rotativo" type="checkbox" checked={paqueteFormData.rotativo} onChange={handlePaqueteInputChange} />
+                      <Label htmlFor="rotativo">Horario rotativo</Label>
+                    </div>
+                    {paqueteFormData.rotativo && (
+                      <div>
+                        <Label>Semanas del ciclo (1-4)</Label>
+                        <div className="flex gap-3 mt-1">
+                          {[1,2,3,4].map((s) => (
+                            <label key={s} className="flex items-center gap-1">
+                              <input type="checkbox" checked={paqueteFormData.semanas.includes(s)} onChange={() => toggleSemana(s)} />
+                              <span>{s}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </form>
               </div>

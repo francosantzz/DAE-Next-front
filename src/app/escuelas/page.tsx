@@ -19,7 +19,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { PlusCircle, Edit, Trash2, Eye, AlertTriangle, CheckCircle, Info } from "lucide-react"
+import { PlusCircle, Edit, Trash2, Eye, AlertTriangle } from "lucide-react"
 import { ObservacionesEditor } from "@/components/escuela/observaciones-editor"
 import { determinarEstado, EstadoFisicoCard, getIconAndColor } from "@/components/escuela/estado-fisico-card"
 import ErrorBoundary from "@/components/ErrorBoundary"
@@ -97,11 +97,7 @@ interface Escuela {
   observaciones?: string
 }
 
-// Simulación de roles de usuario - En un entorno real, esto vendría de un sistema de autenticación
-const userRoles = {
-  isAdmin: true, // Cambiar a false para probar restricciones
-  isAuthorized: true,
-}
+//
 
 export default function ListaEscuelas() {
   const { data: session } = useSession()
@@ -149,8 +145,8 @@ export default function ListaEscuelas() {
 
     setIsLoading(true)
     try {
-      const [escuelasRes, equiposRes, departamentosRes, anexosRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas?page=${currentPage}&limit=${itemsPerPage}&search=${busqueda}${filtroEquipo !== 'todos' ? `&equipoId=${filtroEquipo}` : ''}`, {
+      const [escuelasRes, equiposRes, departamentosRes] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(busqueda)}${filtroEquipo !== 'todos' ? `&equipoId=${filtroEquipo}` : ''}`, {
           headers: {
             Authorization: `Bearer ${session.user.accessToken}`
           }
@@ -164,22 +160,16 @@ export default function ListaEscuelas() {
           headers: {
             Authorization: `Bearer ${session.user.accessToken}`
           }
-        }),
-        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/anexos`, {
-          headers: {
-            Authorization: `Bearer ${session.user.accessToken}`
-          }
-        }),
+        })
       ])
 
-      if (!escuelasRes.ok || !equiposRes.ok || !departamentosRes.ok || !anexosRes.ok)
+      if (!escuelasRes.ok || !equiposRes.ok || !departamentosRes.ok)
         throw new Error("Error al obtener los datos")
 
-      const [escuelasData, equiposData, departamentosData, anexosData] = await Promise.all([
+      const [escuelasData, equiposData, departamentosData] = await Promise.all([
         escuelasRes.json(),
         equiposRes.json(),
-        departamentosRes.json(),
-        anexosRes.json(),
+        departamentosRes.json()
       ])
 
       setEscuelas(escuelasData.data)
@@ -237,9 +227,9 @@ export default function ListaEscuelas() {
           id: currentEscuela?.direccion?.id,
           calle: formData["direccion.calle"],
           numero: formData["direccion.numero"],
-          departamentoId: Number(formData.departamentoId)
+          departamentoId: formData.departamentoId ? Number(formData.departamentoId) : undefined
         },
-        equipoId: Number(formData.equipoId),
+        equipoId: formData.equipoId ? Number(formData.equipoId) : undefined,
         observaciones: formData.observaciones,
         anexos: currentEscuela?.anexos || [],
         paquetesHorasIds: currentEscuela?.paquetesHoras?.map(p => p.id) || []
@@ -772,9 +762,22 @@ export default function ListaEscuelas() {
                           <strong>Paquetes de Horas:</strong>
                           {escuela.paquetesHoras && escuela.paquetesHoras.length > 0 ? (
                             <ul className="list-disc pl-5 mt-2 space-y-1">
-                              {escuela.paquetesHoras.map((paquete) => (
+                              {escuela.paquetesHoras.map((paquete: any) => (
                                 <li key={paquete.id}>
-                                  {paquete.cantidad} horas - {paquete.profesional.nombre} {paquete.profesional.apellido}
+                                  <span className="font-medium">{paquete.cantidad} horas</span> - {paquete.profesional.nombre} {paquete.profesional.apellido}
+                                  {(() => {
+                                    const d = paquete.dias || {}
+                                    const dia = d.diaSemana
+                                    const hI = (d.horaInicio || '').toString().slice(0,5)
+                                    const hF = (d.horaFin || '').toString().slice(0,5)
+                                    const rot = !!d.rotativo
+                                    const sem = d.semanas as number[] | undefined
+                                    const diaLabel = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][Number(dia)] || "-"
+                                    if (!dia && !hI && !hF) return null
+                                    return (
+                                      <span className="text-gray-600"> — {diaLabel} {hI} - {hF}{rot ? (sem && sem.length ? ` (Rotativo, semanas: ${sem.join(', ')})` : ' (Rotativo)') : ''}</span>
+                                    )
+                                  })()}
                                 </li>
                               ))}
                             </ul>
@@ -963,9 +966,22 @@ export default function ListaEscuelas() {
                 <CardContent>
                   {selectedEscuela.paquetesHoras && selectedEscuela.paquetesHoras.length > 0 ? (
                     <ul className="space-y-2">
-                      {selectedEscuela.paquetesHoras.map((paquete) => (
+                      {selectedEscuela.paquetesHoras.map((paquete: any) => (
                         <li key={paquete.id}>
-                          {paquete.cantidad} horas - {paquete.profesional.nombre} {paquete.profesional.apellido}
+                          <span className="font-medium">{paquete.cantidad} horas</span> - {paquete.profesional.nombre} {paquete.profesional.apellido}
+                          {(() => {
+                            const d = paquete.dias || {}
+                            const dia = d.diaSemana
+                            const hI = (d.horaInicio || '').toString().slice(0,5)
+                            const hF = (d.horaFin || '').toString().slice(0,5)
+                            const rot = !!d.rotativo
+                            const sem = d.semanas as number[] | undefined
+                            const diaLabel = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][Number(dia)] || "-"
+                            if (!dia && !hI && !hF) return null
+                            return (
+                              <span className="text-gray-600"> — {diaLabel} {hI} - {hF}{rot ? (sem && sem.length ? ` (Rotativo, semanas: ${sem.join(', ')})` : ' (Rotativo)') : ''}</span>
+                            )
+                          })()}
                         </li>
                       ))}
                     </ul>

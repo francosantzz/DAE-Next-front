@@ -19,9 +19,14 @@ import {
 } from "lucide-react"
 
 interface Profesional {
-  id: number
-  nombre: string
-  apellido: string
+  id: number;
+  nombre: string;
+  apellido: string;
+  cargosHoras: {
+    id: number;
+    tipo: string;
+    cantidadHoras: number;
+  }[];
 }
 
 interface Region {
@@ -197,7 +202,14 @@ export function DetalleEquipoDialog({ equipo, isOpen, onClose }: DetalleEquipoDi
                         <p className="font-semibold text-gray-900">
                           {profesional.nombre} {profesional.apellido}
                         </p>
-                        <p className="text-sm text-gray-600">ID: {profesional.id}</p>
+                        <div className="text-sm text-gray-600">
+                          <span className="font-semibold text-gray-900">Cargos:</span>
+                          {profesional.cargosHoras.map((cargo) => (
+                            <p key={cargo.id}>
+                              {cargo.tipo}: {cargo.cantidadHoras} horas
+                            </p>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -282,31 +294,29 @@ export function DetalleEquipoDialog({ equipo, isOpen, onClose }: DetalleEquipoDi
                                       {paquete.cantidad}h
                                     </span>
                                   </div>
-                                  {/* Días y horarios */}
-                                  {Object.entries(paquete.dias).some(([_, horario]) => horario) ? (
-                                    <ul className="list-disc list-inside text-sm text-gray-600 mt-2">
-                                      {Object.entries(paquete.dias).map(([dia, horario]) =>
-                                        horario ? (
-                                          <li key={dia}>
-                                            {(() => {
-                                              const diasTrad = {
-                                                lunes: "Lunes",
-                                                martes: "Martes",
-                                                miercoles: "Miércoles",
-                                                jueves: "Jueves",
-                                                viernes: "Viernes",
-                                              }
-                                              return diasTrad[dia as keyof typeof diasTrad] || dia
-                                            })()}: {horario}
-                                          </li>
-                                        ) : null
-                                      )}
-                                    </ul>
-                                  ) : (
-                                    <p className="text-gray-500 text-sm italic mt-2">
-                                      Sin días asignados
-                                    </p>
-                                  )}
+                                  {/* Horario formateado */}
+                                  {(() => {
+                                    const d: any = (paquete as any).dias || {}
+                                    const dia = d.diaSemana
+                                    const hI = (d.horaInicio || '').toString().slice(0,5)
+                                    const hF = (d.horaFin || '').toString().slice(0,5)
+                                    const rot = !!d.rotativo
+                                    const sem = d.semanas as number[] | undefined
+                                    const diaLabel = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][Number(dia)] || "-"
+                                    if (!dia && !hI && !hF) {
+                                      return (
+                                        <p className="text-gray-500 text-sm italic mt-2">Sin horario asignado</p>
+                                      )
+                                    }
+                                    return (
+                                      <div className="text-sm text-gray-600 mt-2">
+                                        <span className="font-medium">Horario:</span> {diaLabel} {hI} - {hF}
+                                        {rot ? (
+                                          <span> (Rotativo{sem && sem.length ? `, semanas: ${sem.join(', ')}` : ''})</span>
+                                        ) : null}
+                                      </div>
+                                    )
+                                  })()}
                                 </div>
                               ))}
                             </div>
