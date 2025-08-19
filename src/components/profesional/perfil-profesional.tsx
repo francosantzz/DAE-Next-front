@@ -41,7 +41,7 @@ interface Direccion {
 
 interface Escuela {
   id: number
-  Numero: number
+  Numero: string
   nombre: string
 }
 

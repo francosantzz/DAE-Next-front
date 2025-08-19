@@ -85,7 +85,7 @@ interface Escuela {
   id: number
   nombre: string
   CUE?: number
-  Numero?: number
+  Numero?: string
   telefono?: string
   matricula?: number
   IVE?: string
@@ -218,7 +218,7 @@ export default function ListaEscuelas() {
       const payload = {
         nombre: formData.nombre,
         CUE: formData.CUE ? Number(formData.CUE) : undefined,
-        Numero: formData.Numero ? Number(formData.Numero) : undefined,
+        Numero: formData.Numero || undefined,
         telefono: formData.telefono || undefined,
         matricula: formData.matricula ? Number(formData.matricula) : undefined,
         IVE: formData.IVE || undefined,
@@ -288,7 +288,7 @@ export default function ListaEscuelas() {
     setFormData({
       nombre: escuela.nombre,
       CUE: escuela.CUE?.toString() || "",
-      Numero: escuela.Numero?.toString() || "",
+      Numero: escuela.Numero || "",
       telefono: escuela.telefono || "",
       matricula: escuela.matricula?.toString() || "",
       IVE: escuela.IVE || "",
@@ -535,7 +535,7 @@ export default function ListaEscuelas() {
                         </div>
                         <div>
                           <Label htmlFor="Numero">Número Anexo</Label>
-                          <Input id="Numero" name="Numero" value={formData.Numero} onChange={handleInputChange} type="number" />
+                          <Input id="Numero" name="Numero" value={formData.Numero} onChange={handleInputChange} />
                         </div>
                         <div>
                           <Label htmlFor="telefono">Teléfono</Label>

@@ -29,7 +29,7 @@ interface Profesional {
 
 interface Escuela {
   id: number;
-  Numero: number;
+  Numero: string;
   nombre: string;
 }
 
@@ -50,7 +50,7 @@ interface PaqueteHoras {
   };
   escuela?: {
     id: number;
-    Numero: number;
+    Numero: string;
     nombre: string;
   };
   equipo: {

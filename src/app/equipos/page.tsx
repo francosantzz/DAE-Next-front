@@ -58,7 +58,7 @@ interface PaqueteHoras {
     id: number;
     nombre: string;
     matricula: number;
-    Numero: number;
+    Numero: string;
   };
   dias: {
     lunes: string;
@@ -87,7 +87,7 @@ interface Departamento {
 
 interface Escuela {
   id: number;
-  Numero: number;
+  Numero: string;
   matricula: number;
   nombre: string;
 }

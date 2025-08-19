@@ -42,7 +42,7 @@ interface Departamento {
 
 interface Escuela {
   id: number
-  Numero: number
+  Numero: string
   matricula: number
   nombre: string
 }
