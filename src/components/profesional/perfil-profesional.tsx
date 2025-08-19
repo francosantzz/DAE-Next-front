@@ -163,23 +163,23 @@ export default function PerfilProfesional() {
         setProfesional(profesionalData);
         
         setFormData({
-          nombre: profesionalData.nombre,
-          apellido: profesionalData.apellido,
-          cuil: profesionalData.cuil,
-          profesion: profesionalData.profesion,
-          matricula: profesionalData.matricula,
-          telefono: profesionalData.telefono,
-          fechaNacimiento: profesionalData.fechaNacimiento,
-          dni: profesionalData.dni,
-          fechaVencimientoMatricula: profesionalData.fechaVencimientoMatricula,
-          fechaVencimientoPsicofisico: profesionalData.fechaVencimientoPsicofisico,
-          correoElectronico: profesionalData.correoElectronico,
-          equiposIds: profesionalData.equipos.map((e: Equipo) => e.id),
-          cargosHoras: profesionalData.cargosHoras,
+          nombre: profesionalData.nombre || "",
+          apellido: profesionalData.apellido || "",
+          cuil: profesionalData.cuil || "",
+          profesion: profesionalData.profesion || "",
+          matricula: profesionalData.matricula || "",
+          telefono: profesionalData.telefono || "",
+          fechaNacimiento: profesionalData.fechaNacimiento || "",
+          dni: profesionalData.dni || "",
+          fechaVencimientoMatricula: profesionalData.fechaVencimientoMatricula || "",
+          fechaVencimientoPsicofisico: profesionalData.fechaVencimientoPsicofisico || "",
+          correoElectronico: profesionalData.correoElectronico || "",
+          equiposIds: profesionalData.equipos?.map((e: Equipo) => e.id) || [],
+          cargosHoras: profesionalData.cargosHoras || [],
           direccion: {
-            calle: profesionalData.direccion.calle,
-            numero: profesionalData.direccion.numero,
-            departamentoId: profesionalData.direccion.departamento.id.toString()
+            calle: profesionalData.direccion?.calle || "",
+            numero: profesionalData.direccion?.numero || "",
+            departamentoId: profesionalData.direccion?.departamento?.id?.toString() || ""
           }
         });
       } catch (error) {

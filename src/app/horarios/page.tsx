@@ -99,6 +99,21 @@ export default function GrillaHorarios() {
     semanas: [] as number[]
   })
 
+  // Refrescar total de horas del profesional seleccionado desde el backend
+  const refreshProfesionalTotalHoras = async () => {
+    try {
+      if (!profesionalSeleccionado) return
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${profesionalSeleccionado}`, {
+        headers: { Authorization: `Bearer ${session?.user?.accessToken}` }
+      })
+      if (!res.ok) return
+      const prof = await res.json()
+      setProfesionalesFiltrados(prev => prev.map(p => p.id === prof.id ? { ...p, totalHoras: prof.totalHoras } : p))
+    } catch {
+      // no-op
+    }
+  }
+
   // Cargar datos iniciales
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -213,6 +228,7 @@ export default function GrillaHorarios() {
 
         setPaquetes(normalizados)
         setFilteredPaquetes(normalizados)
+        await refreshProfesionalTotalHoras()
         setPaquetesCargados(true)
       } catch (error) {
         console.error("Error fetching paquetes:", error)
@@ -352,6 +368,7 @@ export default function GrillaHorarios() {
       }))
       setPaquetes(normalizados)
       setFilteredPaquetes(normalizados)
+      await refreshProfesionalTotalHoras()
       setOpenModal(false)
     } catch (error) {
       console.error("Error al guardar el paquete:", error)
@@ -397,6 +414,7 @@ export default function GrillaHorarios() {
       }))
       setPaquetes(normalizados)
       setFilteredPaquetes(normalizados)
+      await refreshProfesionalTotalHoras()
     } catch (error) {
       console.error("Error al eliminar el paquete:", error)
     } finally {
