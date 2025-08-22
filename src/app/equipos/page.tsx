@@ -122,6 +122,7 @@ export default function ListaEquiposPantallaCompleta() {
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
   const itemsPerPage = 10
+  const [errorMessage, setErrorMessage] = useState('')
   const [profesionalesBusqueda, setProfesionalesBusqueda] = useState<Profesional[]>([])
   const [escuelasBusqueda, setEscuelasBusqueda] = useState<Escuela[]>([])
   const profesionalSearchTimeout = useRef<NodeJS.Timeout | null>(null)
@@ -275,6 +276,7 @@ export default function ListaEquiposPantallaCompleta() {
 
   const handleEdit = (equipo: Equipo) => {
     setCurrentEquipo(equipo)
+    setErrorMessage('')
     setFormData({
       id: equipo.id,
       nombre: equipo.nombre,
@@ -292,6 +294,8 @@ export default function ListaEquiposPantallaCompleta() {
     e.preventDefault()
     if (!session?.user?.accessToken) return
 
+    setErrorMessage('')
+
     try {
       const url = currentEquipo
         ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/${currentEquipo.id}`
@@ -306,16 +310,20 @@ export default function ListaEquiposPantallaCompleta() {
         },
         body: JSON.stringify(formData)
       })
-
+      const responseData = await response.json()
       if (!response.ok) {
-        throw new Error('Error al guardar el equipo')
+        if (response.status === 404 && responseData.message?.includes('escuelas ya pertenecen')) {
+        throw new Error(responseData.message)
+      }
+      throw new Error(responseData.message || 'Error al guardar el equipo')
       }
 
       setIsDialogOpen(false)
       fetchData()
       resetForm()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al guardar el equipo:', error)
+      setErrorMessage(error.message || 'Error al guardar el equipo')
     }
   }
 
@@ -414,6 +422,7 @@ export default function ListaEquiposPantallaCompleta() {
                   requiredPermission={{ entity: 'equipo', action: 'create'}}
                     onClick={() => {
                       setCurrentEquipo(null)
+                      setErrorMessage('')
                       resetForm()
                       setIsDialogOpen(true)
                     }}
@@ -559,6 +568,16 @@ export default function ListaEquiposPantallaCompleta() {
                         ))}
                       </div>
                     </div>
+                  {errorMessage && (
+                      <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
+                        <div className="flex items-center">
+                          <svg className="h-5 w-5 text-red-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>{errorMessage}</span>
+                        </div>
+                      </div>
+                    )}
                     <Button type="submit">Guardar</Button>
                   </form>
                 </DialogContent>

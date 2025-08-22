@@ -65,7 +65,7 @@ interface PaqueteHoras {
 
 interface CargoHoras {
   id?: number;
-  tipo: 'comunes' | 'investigacion' | 'mision_especial' | 'regimen_27';
+  tipo: 'comunes' | 'investigacion' | 'mision_especial_primaria' | 'mision_especial_secundaria' | 'regimen_27';
   cantidadHoras: number;
 }
 
@@ -638,7 +638,8 @@ export default function ListaProfesionales() {
                                   <SelectContent>
                                     <SelectItem value="comunes">Comunes</SelectItem>
                                     <SelectItem value="investigacion">Investigación</SelectItem>
-                                    <SelectItem value="mision_especial">Misión Especial</SelectItem>
+                                    <SelectItem value="mision_especial_primaria">Misión Especial Primaria</SelectItem>
+                                    <SelectItem value="mision_especial_secundaria">Misión Especial Secundaria</SelectItem>
                                     <SelectItem value="regimen_27">Régimen 27</SelectItem>
                                   </SelectContent>
                                 </Select>
@@ -765,7 +766,7 @@ export default function ListaProfesionales() {
                                 <div className="mt-2 space-y-2">
                                   {profesional.cargosHoras.map((cargo, index) => (
                                     <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                                      <span className="capitalize">{cargo.tipo.replace('_', ' ')}</span>
+                                      <span className="capitalize">{cargo.tipo.replace(/_/g, ' ')}</span>
                                       <Badge variant="outline">{cargo.cantidadHoras} horas</Badge>
                                     </div>
                                   ))}

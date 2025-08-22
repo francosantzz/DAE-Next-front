@@ -57,16 +57,26 @@ interface PaqueteHoras {
   cantidad: number
   equipo: Equipo
   escuela?: Escuela
-  diaSemana: number
-  horaInicio: string
-  horaFin: string
-  rotativo: boolean
+  // Campos directos (pueden venir del backend o ser normalizados)
+  diaSemana?: number
+  horaInicio?: string
+  horaFin?: string
+  rotativo?: boolean
   semanas?: number[] | null
+  // Estructura anidada (puede venir del backend)
+  dias?: {
+    diaSemana: number
+    horaInicio: string
+    horaFin: string
+    rotativo: boolean
+    semanas?: number[] | null
+    cicloSemanas?: number
+  }
 }
 
 interface CargoHoras {
   id?: number;
-  tipo: 'comunes' | 'investigacion' | 'mision_especial' | 'regimen_27';
+  tipo: 'comunes' | 'investigacion' | 'mision_especial_primaria' | 'mision_especial_secundaria' | 'regimen_27';
   cantidadHoras: number;
 }
 
@@ -160,7 +170,11 @@ export default function PerfilProfesional() {
         if (!response.ok) throw new Error("Error al obtener los datos del profesional");
         
         const profesionalData = await response.json();
-        setProfesional(profesionalData);
+        const profesionalNormalizado = {
+          ...profesionalData,
+          paquetesHoras: profesionalData.paquetesHoras?.map(normalizePaquete) || []
+        };
+        setProfesional(profesionalNormalizado);
         
         setFormData({
           nombre: profesionalData.nombre || "",
@@ -192,13 +206,24 @@ export default function PerfilProfesional() {
     fetchProfesionalData();
   }, [id, session?.user?.accessToken]);
 
+  const normalizePaquete = (paquete: any): any => {
+    return {
+      ...paquete,
+      diaSemana: paquete.diaSemana ?? paquete.dias?.diaSemana ?? null,
+      horaInicio: (paquete.horaInicio ?? paquete.dias?.horaInicio ?? '').toString().slice(0,5),
+      horaFin: (paquete.horaFin ?? paquete.dias?.horaFin ?? '').toString().slice(0,5),
+      rotativo: paquete.rotativo ?? paquete.dias?.rotativo ?? false,
+      semanas: paquete.semanas ?? paquete.dias?.semanas ?? null,
+    };
+  };
+
   // Carga bajo demanda de equipos y departamentos
   const loadEditFormData = async () => {
     if (loadedData.equipos && loadedData.departamentos) return;
     
     try {
       const [equiposRes, departamentosRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`, {
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos?page=1&limit=100`, {
           headers: { Authorization: `Bearer ${session?.user?.accessToken}` }
         }),
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`, {
@@ -331,7 +356,10 @@ export default function PerfilProfesional() {
   }
 
   const handlePaqueteEdit = async (paquete: PaqueteHoras) => {
-    setCurrentPaquete(paquete)
+    
+    const normalizedPaquete = normalizePaquete(paquete);
+  
+    setCurrentPaquete(normalizedPaquete)
     setPaqueteFormData({
       id: paquete.id,
       tipo: paquete.tipo,
@@ -731,7 +759,7 @@ export default function PerfilProfesional() {
                               variant="outline" 
                               className="bg-indigo-50 text-indigo-700 border-indigo-200 capitalize"
                             >
-                              {cargo.tipo.replace('_', ' ')}
+                            {cargo.tipo.replace(/_/g, ' ')}
                             </Badge>
                             <span className="text-gray-700 font-medium">{cargo.cantidadHoras} horas</span>
                           </div>
@@ -1136,7 +1164,8 @@ export default function PerfilProfesional() {
                             <SelectContent>
                               <SelectItem value="comunes">Comunes</SelectItem>
                               <SelectItem value="investigacion">Investigación</SelectItem>
-                              <SelectItem value="mision_especial">Misión Especial</SelectItem>
+                              <SelectItem value="mision_especial_primaria">Misión Especial Primaria</SelectItem>
+                              <SelectItem value="mision_especial_secundaria">Misión Especial Secundaria</SelectItem>
                               <SelectItem value="regimen_27">Régimen 27</SelectItem>
                             </SelectContent>
                           </Select>

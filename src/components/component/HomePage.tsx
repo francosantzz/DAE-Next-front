@@ -88,7 +88,7 @@ interface DashboardData {
 
 interface CargoHoras {
   id?: number;
-  tipo: 'comunes' | 'investigacion' | 'mision_especial' | 'regimen_27';
+  tipo: 'comunes' | 'investigacion' | 'mision_especial_primaria' | 'mision_especial_secundaria' | 'regimen_27';
   cantidadHoras: number;
 }
 
@@ -228,24 +228,27 @@ export function HomePage() {
       const method = currentProfesional ? 'PATCH' : 'POST'
       
       const payload = {
-          nombre: formData.nombre,
-          apellido: formData.apellido,
-          cuil: formData.cuil,
-          profesion: formData.profesion,
-          matricula: formData.matricula,
-          telefono: formData.telefono,
-          fechaNacimiento: formData.fechaNacimiento,
-          dni: formData.dni,
-          fechaVencimientoMatricula: formData.fechaVencimientoMatricula,
-          fechaVencimientoPsicofisico: formData.fechaVencimientoPsicofisico,
-          correoElectronico: formData.correoElectronico,
-          equiposIds: formData.equiposIds,
-          cargosHoras: formData.cargosHoras,
+        nombre: formData.nombre,
+        apellido: formData.apellido,
+        profesion: formData.profesion,
+        // Solo incluir campos no vacíos
+        ...(formData.cuil && { cuil: formData.cuil }),
+        ...(formData.matricula && { matricula: formData.matricula }),
+        ...(formData.telefono && { telefono: formData.telefono }),
+        ...(formData.fechaNacimiento && { fechaNacimiento: formData.fechaNacimiento }),
+        ...(formData.dni && { dni: formData.dni }),
+        ...(formData.fechaVencimientoMatricula && { fechaVencimientoMatricula: formData.fechaVencimientoMatricula }),
+        ...(formData.fechaVencimientoPsicofisico && { fechaVencimientoPsicofisico: formData.fechaVencimientoPsicofisico }),
+        ...(formData.correoElectronico && { correoElectronico: formData.correoElectronico }),
+        equiposIds: formData.equiposIds,
+        cargosHoras: formData.cargosHoras,
+        ...(formData.direccion.calle && {
           direccion: {
             calle: formData.direccion.calle,
             numero: formData.direccion.numero,
-            departamentoId: parseInt(formData.direccion.departamentoId)
+            departamentoId: formData.direccion.departamentoId ? parseInt(formData.direccion.departamentoId) : undefined
           }
+        })
       }
   
       const response = await fetch(url, {
@@ -627,7 +630,6 @@ export function HomePage() {
                   value={formData.cuil}
                   onChange={handleInputChange}
                   className="border-gray-300 focus:border-blue-500"
-                  required
                 />
               </div>
               <div className="space-y-2">
@@ -653,7 +655,6 @@ export function HomePage() {
                   value={formData.matricula}
                   onChange={handleInputChange}
                   className="border-gray-300 focus:border-blue-500"
-                  required
                 />
               </div>
               <div className="space-y-2">
@@ -666,7 +667,6 @@ export function HomePage() {
                   value={formData.telefono}
                   onChange={handleInputChange}
                   className="border-gray-300 focus:border-blue-500"
-                  required
                 />
               </div>
               <div className="space-y-2">
@@ -681,7 +681,6 @@ export function HomePage() {
                      ...prev,
                      direccion: { ...prev.direccion, calle: e.target.value }
                    }))}
-                   required
                 />
               </div>
               <div className="space-y-2">
@@ -696,7 +695,6 @@ export function HomePage() {
                    ...prev,
                    direccion: { ...prev.direccion, numero: e.target.value }
                  }))}
-                 required
                 />
               </div>
               <div className="space-y-2">
@@ -707,7 +705,6 @@ export function HomePage() {
                   value={formData.correoElectronico}
                   onChange={handleInputChange}
                   className="border-gray-300 focus:border-blue-500"
-                  required
                 />
               </div>
               <div className="space-y-2">
@@ -719,7 +716,6 @@ export function HomePage() {
                   value={formData.fechaNacimiento}
                   onChange={handleInputChange}
                   className="border-gray-300 focus:border-blue-500"
-                  required
                 />
               </div>
               <div className="space-y-2">
@@ -730,7 +726,6 @@ export function HomePage() {
                   value={formData.dni}
                   onChange={handleInputChange}
                   className="border-gray-300 focus:border-blue-500"
-                  required
                 />
               </div>
               <div className="space-y-2">
@@ -821,7 +816,8 @@ export function HomePage() {
                               <SelectContent>
                                 <SelectItem value="comunes">Comunes</SelectItem>
                                 <SelectItem value="investigacion">Investigación</SelectItem>
-                                <SelectItem value="mision_especial">Misión Especial</SelectItem>
+                                <SelectItem value="mision_especial_primaria">Misión Especial Primaria</SelectItem>
+                                <SelectItem value="mision_especial_secundaria">Misión Especial Secundaria</SelectItem>
                                 <SelectItem value="regimen_27">Régimen 27</SelectItem>
                               </SelectContent>
                             </Select>
@@ -873,7 +869,6 @@ export function HomePage() {
                             direccion: { ...prev.direccion, departamentoId: value }
                           }))}
                           value={formData.direccion.departamentoId}
-                          required
                         >
                           <SelectTrigger id="direccion.departamentoId">
                             <SelectValue placeholder="Seleccione un departamento" />
