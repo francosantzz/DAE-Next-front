@@ -550,52 +550,80 @@ export default function GrillaHorarios() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Cantidad</TableHead>
-                        <TableHead>Escuela</TableHead>
-                        <TableHead>Día</TableHead>
-                        <TableHead>Inicio</TableHead>
-                        <TableHead>Fin</TableHead>
-                        <TableHead>Rotativo</TableHead>
-                        <TableHead>Semanas</TableHead>
-                        <TableHead className="text-right">Acciones</TableHead>
+                      <TableHead className="w-[80px]">Tipo</TableHead>
+                      <TableHead className="w-[80px]">Cantidad</TableHead>
+                      <TableHead className="w-[150px]">Escuela</TableHead>
+                      <TableHead className="w-[100px]">Día</TableHead>
+                      <TableHead className="w-[80px]">Inicio</TableHead>
+                      <TableHead className="w-[80px]">Fin</TableHead>
+                      <TableHead className="w-[80px]">Rotativo</TableHead>
+                      <TableHead className="w-[100px]">Semanas</TableHead>
+                      <TableHead className="w-[120px] text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredPaquetes.map((paquete) => (
-                        <TableRow key={paquete.id}>
-                          <TableCell>{paquete.tipo}</TableCell>
-                          <TableCell>{paquete.cantidad} horas</TableCell>
-                          <TableCell>
-                            {paquete.escuela?.nombre}
-                            <br />
-                            <small className="text-gray-500">{paquete.escuela?.Numero}</small>
-                          </TableCell>
-                          <TableCell>{["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][paquete.diaSemana] || "-"}</TableCell>
-                          <TableCell>{paquete.horaInicio}</TableCell>
-                          <TableCell>{paquete.horaFin}</TableCell>
-                          <TableCell>{paquete.rotativo ? "Sí" : "No"}</TableCell>
-                          <TableCell>{paquete.rotativo && paquete.semanas?.length ? paquete.semanas.join(', ') : '-'}</TableCell>
-                          <TableCell className="text-right">
-                            <PermissionButton
-                              requiredPermission={{ entity: 'paquetehoras', action: 'update'}}
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleOpenModal(paquete)}
+                     {filteredPaquetes.map((paquete) => {
+                        // Determinar colores según el tipo de paquete
+                        let tipoBorder = '';
+                        let tipoBadge = '';
+                        
+                        if (paquete.tipo === "Escuela") {
+                          tipoBorder = 'border-l-4 border-l-green-400 bg-green-50';
+                          tipoBadge = 'bg-green-100 text-green-800';
+                        } else if (paquete.tipo === "Carga en GEI") {
+                          tipoBorder = 'border-l-4 border-l-violet-400 bg-violet-50';
+                          tipoBadge = 'bg-violet-100 text-violet-800';
+                        } else if (paquete.tipo === "Trabajo Interdisciplinario") {
+                          tipoBorder = 'border-l-4 border-l-blue-400 bg-blue-100';
+                          tipoBadge = 'bg-blue-200 text-blue-800';
+                        }
+
+                        // Añadir resalte adicional si es rotativo
+                        const rotativoStyle = paquete.rotativo ? 'font-semibold' : '';
+
+                        return (
+                          <TableRow key={paquete.id} className={rotativoStyle}>
+                            <TableCell className={`${tipoBorder} font-medium`}>
+                              <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold ${tipoBadge}`}>
+                                {paquete.tipo}
+                              </span>
+                            </TableCell>
+                            <TableCell>{paquete.cantidad} horas</TableCell>
+                            <TableCell>
+                              {paquete.escuela?.nombre}
+                              <br />
+                              <small className="text-gray-500">{paquete.escuela?.Numero}</small>
+                            </TableCell>
+                            <TableCell>{["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][paquete.diaSemana] || "-"}</TableCell>
+                            <TableCell>{paquete.horaInicio}</TableCell>
+                            <TableCell>{paquete.horaFin}</TableCell>
+                            <TableCell
+                              className={paquete.rotativo ? "bg-yellow-100 text-yellow-800 font-semibold" : ""}
                             >
-                              <FilePenIcon className="h-4 w-4" />
-                            </PermissionButton>
-                            <PermissionButton
-                              requiredPermission={{ entity: 'paquetehoras', action: 'delete'}}
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(paquete.id)}
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </PermissionButton>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                              {paquete.rotativo ? "Sí" : "No"}
+                            </TableCell>
+                            <TableCell>{paquete.rotativo && paquete.semanas?.length ? paquete.semanas.join(', ') : '-'}</TableCell>
+                            <TableCell className="text-right">
+                              <PermissionButton
+                                requiredPermission={{ entity: 'paquetehoras', action: 'update'}}
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleOpenModal(paquete)}
+                              >
+                                <FilePenIcon className="h-4 w-4" />
+                              </PermissionButton>
+                              <PermissionButton
+                                requiredPermission={{ entity: 'paquetehoras', action: 'delete'}}
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(paquete.id)}
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </PermissionButton>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>

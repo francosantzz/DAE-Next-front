@@ -61,7 +61,7 @@ interface Direccion {
 
 interface PaqueteHoras {
   id: number
-  cantidad: number
+  cantidad: string
   profesional: Profesional
 }
 
@@ -717,7 +717,7 @@ export default function ListaEscuelas() {
                               className="ml-2 flex items-center gap-1 border-blue-500 text-blue-700"
                             >
                               <span className="font-semibold">
-                                {escuela.paquetesHoras.reduce((total, ph) => total + ph.cantidad, 0)}h asignadas
+                                {escuela.paquetesHoras.reduce((total, ph) => total + parseFloat(ph.cantidad), 0)}h asignadas
                               </span>
                             </Badge>
                           )}

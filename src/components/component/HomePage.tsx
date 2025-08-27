@@ -67,7 +67,7 @@ interface Professional {
   direccion: Direccion;
   paquetesHoras: PaqueteHoras[];
   equipos: Equipo[];
-  totalHorasProfesional: number;
+  totalHoras: number;
   createdAt?: string;
   correoElectronico?: string;
   fechaNacimiento?: string;
@@ -425,17 +425,16 @@ export function HomePage() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
+          <div className="overflow-x-auto">
+              <Table className="w-full table-fixed">
                 <TableHeader>
                   <TableRow className="bg-gray-50">
-                    <TableHead className="font-semibold text-gray-700">Profesional</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Profesión</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Equipo</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Ubicación</TableHead>
-                    <TableHead className="text-center font-semibold text-gray-700">Horas</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Correo</TableHead>
-                    <TableHead className="text-right font-semibold text-gray-700">Acciones</TableHead>
+                    <TableHead className="font-semibold text-gray-700 w-[220px]">Profesional</TableHead>
+                    <TableHead className="font-semibold text-gray-700 w-[140px]">Profesión</TableHead>
+                    <TableHead className="font-semibold text-gray-700 w-[160px]">Equipo</TableHead>
+                    <TableHead className="text-center font-semibold text-gray-700 w-[100px]">Horas</TableHead>
+                    <TableHead className="font-semibold text-gray-700 w-[200px]">Correo</TableHead>
+                    <TableHead className="text-right font-semibold text-gray-700 w-[120px]">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -443,45 +442,47 @@ export function HomePage() {
                     <TableRow key={professional.id} className="hover:bg-gray-50 transition-colors">
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
+                          <Avatar className="h-10 w-10 flex-shrink-0">
                             <AvatarFallback className="bg-blue-100 text-blue-700 font-semibold">
                               {professional.nombre.charAt(0)}
                               {professional.apellido.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
-                          <div>
-                            <div className="font-semibold text-gray-900">
-                             {professional.apellido} {professional.nombre} 
+                          <div className="min-w-0 flex-1">
+                            <div className="font-semibold text-gray-900 break-words whitespace-normal">
+                              {professional.apellido} {professional.nombre} 
                             </div>
                             <div className="text-sm text-gray-500 flex items-center">
-                              <PhoneIcon className="w-3 h-3 mr-1" />
-                              {professional.telefono}
+                              <PhoneIcon className="w-3 h-3 mr-1 flex-shrink-0" />
+                              <span className="whitespace-nowrap">{professional.telefono}</span>
                             </div>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                          {professional.profesion}
-                        </Badge>
-                        <div className="text-xs text-gray-500 mt-1">Mat: {professional.matricula}</div>
+                        <div className="flex flex-col space-y-1">
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 break-words whitespace-normal text-xs">
+                            {professional.profesion}
+                          </Badge>
+                          <div className="text-xs text-gray-500 break-words whitespace-normal">Mat: {professional.matricula}</div>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
                           {professional.equipos && professional.equipos.length > 0 ? (
                             professional.equipos.map((equipo) => (
                               <div key={equipo.id} className="flex items-center gap-2">
-                                <div className="bg-green-50 rounded-full p-1">
+                                <div className="bg-green-50 rounded-full p-1 flex-shrink-0">
                                   <UsersIcon className="w-3 h-3 text-green-600" />
                                 </div>
-                                <span className="text-sm font-medium text-gray-700">
+                                <span className="text-sm font-medium text-gray-700 break-words whitespace-normal">
                                   {equipo.nombre || "Sin nombre"}
                                 </span>
                               </div>
                             ))
                           ) : (
                             <div className="flex items-center gap-2 text-gray-500">
-                              <div className="bg-gray-50 rounded-full p-1">
+                              <div className="bg-gray-50 rounded-full p-1 flex-shrink-0">
                                 <UsersIcon className="w-3 h-3 text-gray-400" />
                               </div>
                               <span className="text-sm">Sin equipo</span>
@@ -489,41 +490,17 @@ export function HomePage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {professional.direccion?.departamento && (
-                            <>
-                              <div className="bg-orange-50 rounded-full p-1">
-                                <MapPinIcon className="w-3 h-3 text-orange-600" />
-                              </div>
-                              <div className="text-sm">
-                                <div className="font-medium text-gray-700">
-                                  {professional.direccion?.departamento?.nombre ?? "Sin departamento"}
-                                </div>
-                                {professional.direccion?.calle && professional.direccion?.numero ? (
-                                  <div className="text-gray-500 text-xs">
-                                    {`${professional.direccion.calle} ${professional.direccion.numero}`}
-                                  </div>
-                                ) : (
-                                  <div className="text-gray-400 text-xs">Sin dirección</div>
-                                )}
-                              </div>
-                            </>
-                          )}
-                          {!professional.direccion?.departamento && (
-                            <div className="text-gray-400 text-sm">Sin ubicación</div>
-                          )}
-                        </div>
-                      </TableCell>
                       <TableCell className="text-center">
-                        <div className="bg-blue-50 rounded-lg p-2">
+                        <div className="bg-blue-50 rounded-lg p-2 mx-auto" style={{width: 'fit-content'}}>
                           <div className="font-bold text-lg text-blue-700">
-                            {professional.paquetesHoras.reduce((sum, p) => sum + p.cantidad, 0)}
+                            {professional.totalHoras}
                           </div>
                           <div className="text-xs text-blue-600">horas</div>
                         </div>
                       </TableCell>
-                      <TableCell>{professional.correoElectronico}</TableCell>
+                      <TableCell className="break-words whitespace-normal">
+                        {professional.correoElectronico}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
                           <PermissionButton
