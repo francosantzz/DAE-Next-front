@@ -16,6 +16,7 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
+  Loader2
 } from "lucide-react"
 
 interface Profesional {
@@ -78,6 +79,7 @@ interface DetalleEquipoDialogProps {
   equipo: Equipo | null
   isOpen: boolean
   onClose: () => void
+  isLoading?: boolean
 }
 
 const diasSemana = [
@@ -88,15 +90,15 @@ const diasSemana = [
   { key: "viernes", label: "Vie" },
 ]
 
-export function DetalleEquipoDialog({ equipo, isOpen, onClose }: DetalleEquipoDialogProps) {
-  if (!equipo) return null
+export function DetalleEquipoDialog({ equipo, isOpen, onClose, isLoading = false }: DetalleEquipoDialogProps) {
+  if (!equipo && !isLoading) return null
 
   // Verificaciones defensivas para propiedades anidadas
-  const departamento = equipo.departamento || { nombre: "Sin departamento", region: undefined }
-  const profesionales = equipo.profesionales || []
-  const escuelas = equipo.escuelas || []
-  const paquetesHoras = equipo.paquetesHoras || []
-  const paquetesConEscuela = paquetesHoras.filter(paquete => paquete.tipo === "Escuela");
+  const departamento = equipo?.departamento ?? { nombre: "Sin departamento", region: undefined }
+  const profesionales = equipo?.profesionales ?? []
+  const escuelas = equipo?.escuelas ?? []
+  const paquetesHoras = equipo?.paquetesHoras ?? []
+  const paquetesConEscuela = paquetesHoras.filter(p => p.tipo === "Escuela")
 
 
   return (
@@ -105,13 +107,22 @@ export function DetalleEquipoDialog({ equipo, isOpen, onClose }: DetalleEquipoDi
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-gray-800 flex items-center">
             <Users className="mr-3 h-6 w-6 text-blue-600" />
-            {equipo.nombre}
+            {isLoading ? "Cargando equipo..." : equipo?.nombre}
           </DialogTitle>
           <DialogDescription className="text-gray-600">
-            Información detallada del equipo y sus asignaciones
+            {isLoading ? "Obteniendo información detallada..." : "Información detallada del equipo y sus asignaciones"}
           </DialogDescription>
         </DialogHeader>
 
+        {isLoading ? (
+          // Mostrar loader mientras carga
+          <div className="flex justify-center items-center py-20">
+            <div className="text-center">
+              <Loader2 className="h-12 w-12 text-blue-600 animate-spin mx-auto mb-4" />
+              <p className="text-gray-600">Cargando detalles del equipo...</p>
+            </div>
+          </div>
+        ) : equipo ? (
         <div className="space-y-6">
           {/* Información General */}
           <Card className="border-0 bg-gradient-to-r from-blue-50 to-purple-50">
@@ -364,6 +375,7 @@ export function DetalleEquipoDialog({ equipo, isOpen, onClose }: DetalleEquipoDi
             </CardContent>
           </Card>
         </div>
+        ) : null}
       </DialogContent>
     </Dialog>
   )

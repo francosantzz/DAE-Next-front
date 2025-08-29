@@ -99,6 +99,7 @@ export default function ListaEquiposPantallaCompleta() {
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [escuelas, setEscuelas] = useState<Escuela[]>([])
   const [busquedaInput, setBusquedaInput] = useState('')
+  const [isDetailLoading, setIsDetailLoading] = useState(false)
   const busqueda = useDebounce(busquedaInput, 1000)
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
   const [filtroDepartamento, setFiltroDepartamento] = useState('todos')
@@ -135,7 +136,7 @@ export default function ListaEquiposPantallaCompleta() {
     setIsLoading(true)
     try {
       const [equiposRes, departamentosRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos?page=${currentPage}&limit=${itemsPerPage}&search=${busqueda}${filtroDepartamento !== 'todos' ? `&departamentoId=${filtroDepartamento}` : ''}`, {
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/short?page=${currentPage}&limit=${itemsPerPage}&search=${busqueda}${filtroDepartamento !== 'todos' ? `&departamentoId=${filtroDepartamento}` : ''}`, {
           headers: { Authorization: `Bearer ${session.user.accessToken}` }
         }),
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`, {
@@ -274,6 +275,23 @@ export default function ListaEquiposPantallaCompleta() {
     }))
   }
 
+  const fetchEquipoCompleto = async (equipoId: number): Promise<Equipo | null> => {
+    if (!session?.user?.accessToken) return null;
+    
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/${equipoId}`, {
+        headers: { Authorization: `Bearer ${session.user.accessToken}` }
+      });
+      
+      if (!response.ok) throw new Error('Error al cargar detalles del equipo');
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error al cargar equipo completo:', error);
+      return null;
+    }
+  };
+
   const handleEdit = (equipo: Equipo) => {
     setCurrentEquipo(equipo)
     setErrorMessage('')
@@ -365,14 +383,26 @@ export default function ListaEquiposPantallaCompleta() {
     setIsEditing(false)
   }
 
-  const handleViewDetails = (equipo: Equipo) => {
+  const handleViewDetails = async (equipo: Equipo) => {
     if (!equipo || !equipo.id) {
-      console.error("Equipo inválido:", equipo)
-      return
+      console.error("Equipo inválido:", equipo);
+      return;
     }
-    setSelectedEquipo(equipo)
-    setIsDetailDialogOpen(true)
-  }
+    
+    // Abrir el dialog inmediatamente
+    setIsDetailDialogOpen(true);
+    setIsDetailLoading(true); // Activar loading
+    setSelectedEquipo(equipo); // Mostrar datos básicos mientras carga
+    
+    // Cargar los datos completos en segundo plano
+    const equipoCompleto = await fetchEquipoCompleto(equipo.id);
+    
+    if (equipoCompleto) {
+      setSelectedEquipo(equipoCompleto);
+    }
+    
+    setIsDetailLoading(false); // Desactivar loading
+  };
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>
@@ -700,7 +730,9 @@ export default function ListaEquiposPantallaCompleta() {
         onClose={() => {
           setIsDetailDialogOpen(false)
           setSelectedEquipo(null)
+          setIsDetailLoading(false) // Resetear loading al cerrar
         }}
+        isLoading={isDetailLoading}
       />
     </ErrorBoundary>
   )

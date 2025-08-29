@@ -151,7 +151,7 @@ export default function ListaEscuelas() {
             Authorization: `Bearer ${session.user.accessToken}`
           }
         }),
-        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos?page=1&limit=100`, {
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/short?page=1&limit=100`, {
           headers: {
             Authorization: `Bearer ${session.user.accessToken}`
           }
