@@ -27,75 +27,8 @@ import { useSession } from 'next-auth/react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { PermissionButton } from '@/components/PermissionButton'
 import { DetalleEquipoDialog } from '@/components/equipo/detalle-equipo-dialog'
+import { Equipo, Profesional, Departamento, Escuela } from '@/types/equipos'
 
-interface Profesional {
-  id: number;
-  nombre: string;
-  apellido: string;
-  cargosHoras: {
-    id: number;
-    tipo: string;
-    cantidadHoras: number;
-  }[];
-  // NUEVOS CAMPOS DE LICENCIA
-  tipoLicencia?: string;
-  fechaInicioLicencia?: string;
-  fechaFinLicencia?: string;
-  licenciaActiva: boolean;
-}
-
-interface Region {
-  id: number;
-  nombre: string;
-}
-
-interface Seccion {
-  id: number;
-  nombre: string;
-}
-
-interface PaqueteHoras {
-  id: number;
-  tipo: string;
-  cantidad: number;
-  profesional: Profesional;
-  escuela: {
-    id: number;
-    nombre: string;
-    matricula: number;
-    Numero: string;
-  };
-  dias: {
-    lunes: string;
-    martes: string;
-    miercoles: string;
-    jueves: string;
-    viernes: string;
-  };
-}
-
-interface Equipo {
-  id: number;
-  nombre: string;
-  profesionales: Profesional[];
-  departamento: Departamento;
-  escuelas: Escuela[];
-  paquetesHoras: PaqueteHoras[];
-  totalHoras: number;
-}
-
-interface Departamento {
-  id: number;
-  nombre: string;
-  region?: Region;
-}
-
-interface Escuela {
-  id: number;
-  Numero: string;
-  matricula: number;
-  nombre: string;
-}
 
 export default function ListaEquiposPantallaCompleta() {
   const { data: session } = useSession()
@@ -300,15 +233,19 @@ export default function ListaEquiposPantallaCompleta() {
   const handleEdit = (equipo: Equipo) => {
     setCurrentEquipo(equipo)
     setErrorMessage('')
+    const departamentoId = equipo.departamento?.id ?? 0
+    const profesionales = equipo.profesionales ?? []
+    const escuelas = equipo.escuelas ?? []
+
     setFormData({
       id: equipo.id,
-      nombre: equipo.nombre,
-      departamentoId: equipo.departamento.id,
-      profesionalesIds: equipo.profesionales.map(p => p.id),
-      escuelasIds: equipo.escuelas.map(e => e.id)
+      nombre: equipo.nombre ?? '',
+      departamentoId,
+      profesionalesIds: profesionales.map(p => p.id),
+      escuelasIds: escuelas.map(e => e.id)
     })
-    setProfesionalesSeleccionados(equipo.profesionales)
-    setEscuelasSeleccionadas(equipo.escuelas)
+    setProfesionalesSeleccionados(profesionales)
+    setEscuelasSeleccionadas(escuelas)
     setIsEditing(true)
     setIsDialogOpen(true)
   }
@@ -633,23 +570,23 @@ export default function ListaEquiposPantallaCompleta() {
                       <div className="flex justify-between w-full">
                         <span>{equipo.nombre}</span>
                         <span className="text-sm text-gray-500">
-                          {equipo.departamento ? `Departamento: ${equipo.departamento.nombre}` : 'Sin departamento asignado'}
+                        {equipo.departamento?.nombre
+                          ? `Departamento: ${equipo.departamento.nombre}`
+                          : 'Sin departamento asignado'}
                         </span>
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="px-6 py-4">
                       <div className="space-y-4">
                         <p>
-                          <strong>Departamento:</strong> 
-                          {equipo.departamento ? equipo.departamento.nombre : 'Sin departamento asignado'}
+                        <strong>Departamento:</strong> {equipo.departamento?.nombre ?? 'Sin departamento asignado'}
                         </p>
                         <div>
                           <strong>Profesionales:</strong>
-                          {equipo.profesionales && equipo.profesionales.length > 0 ? (
+                          {(equipo.profesionales?.length ?? 0) > 0 ? (
                             <ul className="list-disc pl-5 mt-2 space-y-2">
-                              {equipo.profesionales.map((profesional) => {
-                                const tieneLicenciaActiva = profesional.licenciaActiva
-                                
+                              {(equipo.profesionales ?? []).map((profesional) => {
+                                const tieneLicenciaActiva = !!profesional.licenciaActiva
                                 return (
                                   <li key={profesional.id} className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
@@ -661,7 +598,7 @@ export default function ListaEquiposPantallaCompleta() {
                                       )}
                                     </div>
                                   </li>
-                                );
+                                )
                               })}
                             </ul>
                           ) : (
@@ -670,9 +607,9 @@ export default function ListaEquiposPantallaCompleta() {
                         </div>
                         <div>
                           <strong>Escuelas:</strong>
-                          {equipo.escuelas && equipo.escuelas.length > 0 ? (
+                          {(equipo.escuelas?.length ?? 0) > 0 ? (
                             <ul className="list-disc pl-5 mt-2 space-y-1">
-                              {equipo.escuelas.map((escuela) => (
+                              {(equipo.escuelas ?? []).map((escuela) => (
                                 <li key={escuela.id}>
                                   {escuela.nombre} Nº {escuela.Numero}
                                 </li>
@@ -682,7 +619,7 @@ export default function ListaEquiposPantallaCompleta() {
                             <p>No hay escuelas asignadas</p>
                           )}
                         </div>
-                        <p><strong>Horas totales del Equipo:</strong> {equipo.totalHoras || 0}</p>
+                        <p><strong>Horas totales del Equipo:</strong> {equipo.totalHoras ?? 0}</p>
                         <div className="flex justify-end space-x-2">
                         <PermissionButton
                           requiredPermission={{ entity: 'equipo', action: 'read'}}

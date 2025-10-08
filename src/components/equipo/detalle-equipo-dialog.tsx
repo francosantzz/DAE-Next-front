@@ -18,70 +18,9 @@ import {
   AlertTriangle,
   Loader2
 } from "lucide-react"
-
-interface Profesional {
-  id: number;
-  nombre: string;
-  apellido: string;
-  cargosHoras: {
-    id: number;
-    tipo: string;
-    cantidadHoras: number;
-  }[];
-  profesion: string;
-  // NUEVOS CAMPOS DE LICENCIA
-  tipoLicencia?: string;
-  fechaInicioLicencia?: string;
-  fechaFinLicencia?: string;
-  licenciaActiva: boolean;
-}
-
-interface Region {
-  id: number
-  nombre: string
-}
-
-interface Departamento {
-  id: number
-  nombre: string
-  region?: Region
-}
-
-interface Escuela {
-  id: number
-  Numero: string
-  matricula: number
-  nombre: string
-}
-
-interface DiasReal {
-  diaSemana: number;            // 1..5
-  horaInicio: string;           // "HH:MM:SS"
-  horaFin: string;              // "HH:MM:SS"
-  rotativo: boolean;
-  semanas: number[] | null;     // ej. [1,2,3] o null
-  cicloSemanas: number;         // ej. 4
-}
-
-interface PaqueteHoras {
-  id: number;
-  tipo: "Escuela" | "Trabajo Interdisciplinario" | "Carga en GEI" | string; // ojo GEI en mayúsculas
-  cantidad: number | string;   // en el JSON viene como string ("5.00")
-  profesional: Profesional;
-  escuela: Escuela | null;
-  dias: DiasReal;              // <— acá están rotativo, semanas, etc.
-}
+import type { Equipo, Profesional, PaqueteHoras, Escuela, Departamento } from "@/types/equipos";
 
 
-interface Equipo {
-  id: number
-  nombre: string
-  profesionales: Profesional[]
-  departamento: Departamento
-  escuelas: Escuela[]
-  paquetesHoras: PaqueteHoras[]
-  totalHoras: number
-}
 
 interface DetalleEquipoDialogProps {
   equipo: Equipo | null
@@ -117,12 +56,13 @@ export function DetalleEquipoDialog({ equipo, isOpen, onClose, isLoading = false
   // “Semana 1” según tu regla: si no es rotativo o no tiene semanas definidas, cuenta igual.
   // Si es rotativo, solo cuenta si incluye el 1.
   const perteneceASemana1 = (paquete: PaqueteHoras): boolean => {
-    const d = paquete?.dias;
-    if (!d) return false;
+    const d = paquete?.dias
+    if (!d) return true; // si no hay 'dias', contalo (compatibilidad)
     if (!d.rotativo) return true;
     if (!Array.isArray(d.semanas) || d.semanas.length === 0) return true;
     return d.semanas.includes(1);
   };
+  
   
 
   const escuelasOrdenadas = [...escuelas].sort((a, b) => {
@@ -309,7 +249,8 @@ const promedioHorasPorEscuela =
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-semibold text-gray-900">
-                              {profesional.nombre} {profesional.apellido} - {profesional.profesion}
+                            {profesional.nombre} {profesional.apellido}
+                            {profesional.profesion ? ` - ${profesional.profesion}` : ''}
                             </p>
                             {tieneLicenciaActiva && (
                               <Badge variant="outline" className="text-xs bg-orange-100 text-orange-700 border-orange-300">
@@ -319,7 +260,7 @@ const promedioHorasPorEscuela =
                           </div>
                           <div className="text-sm text-gray-600">
                             <span className="font-semibold text-gray-900">Cargos:</span>
-                            {profesional.cargosHoras.map((cargo) => (
+                            {(profesional.cargosHoras ?? []).map((cargo) => (
                               <p key={cargo.id}>
                                 {cargo.tipo}: {cargo.cantidadHoras} horas
                               </p>
@@ -466,8 +407,8 @@ const promedioHorasPorEscuela =
                                     {(() => {
                                       const d: any = (paquete as any).dias || {}
                                       const dia = d.diaSemana
-                                      const hI = (d.horaInicio || '').toString().slice(0,5)
-                                      const hF = (d.horaFin || '').toString().slice(0,5)
+                                      const hI = (d.horaInicio ?? '').toString().slice(0,5) || '-'
+                                      const hF = (d.horaFin ?? '').toString().slice(0,5) || '-'
                                       const rot = !!d.rotativo
                                       const sem = d.semanas as number[] | undefined
                                       const diaLabel = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][Number(dia)] || "-"
@@ -528,7 +469,7 @@ const promedioHorasPorEscuela =
                     <p className="text-sm text-gray-600">Paquetes</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-green-600">{equipo.totalHoras}h</p>
+                    <p className="text-2xl font-bold text-green-600">{equipo.totalHoras ?? 0}h</p>
                     <p className="text-sm text-gray-600">Total Horas</p>
                   </div>
                     <div className="text-center">

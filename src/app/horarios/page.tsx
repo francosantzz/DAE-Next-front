@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -102,19 +102,20 @@ export default function GrillaHorarios() {
   })
 
   // Refrescar total de horas del profesional seleccionado desde el backend
-  const refreshProfesionalTotalHoras = async () => {
+  const refreshProfesionalTotalHoras = useCallback(async () => {
     try {
-      if (!profesionalSeleccionado) return
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${profesionalSeleccionado}`, {
-        headers: { Authorization: `Bearer ${session?.user?.accessToken}` }
-      })
-      if (!res.ok) return
-      const prof = await res.json()
-      setProfesionalesFiltrados(prev => prev.map(p => p.id === prof.id ? { ...p, totalHoras: prof.totalHoras } : p))
-    } catch {
-      // no-op
-    }
-  }
+      if (!profesionalSeleccionado) return;
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${profesionalSeleccionado}`,
+        { headers: { Authorization: `Bearer ${session?.user?.accessToken}` } }
+      );
+      if (!res.ok) return;
+      const prof = await res.json();
+      setProfesionalesFiltrados(prev =>
+        prev.map(p => (p.id === prof.id ? { ...p, totalHoras: prof.totalHoras } : p))
+      );
+    } catch {/* no-op */}
+  }, [profesionalSeleccionado, session?.user?.accessToken]);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -240,7 +241,7 @@ export default function GrillaHorarios() {
     }
 
     fetchPaquetes()
-  }, [profesionalSeleccionado, equipoSeleccionado, session?.user.accessToken])
+  }, [profesionalSeleccionado, equipoSeleccionado, session?.user.accessToken, refreshProfesionalTotalHoras])
 
   // Filtrar paquetes cuando cambia el término de búsqueda
   useEffect(() => {
