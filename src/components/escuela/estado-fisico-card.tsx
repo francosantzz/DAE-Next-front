@@ -90,7 +90,7 @@ export function EstadoFisicoCard({ observaciones }: EstadoFisicoCardProps) {
         <CardTitle className="text-md flex items-center justify-between">
           <div className="flex items-center">
             <Icon className={`mr-2 h-5 w-5 ${color}`} />
-            Estado del Espacio Físico
+            Observaciones
           </div>
           <Badge className={badgeColor}>{label}</Badge>
         </CardTitle>

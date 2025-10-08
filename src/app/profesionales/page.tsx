@@ -87,6 +87,12 @@ interface Profesional {
   equipos: Equipo[];
   paquetesHoras: PaqueteHoras[];
   direccion: Direccion;
+  // NUEVOS CAMPOS DE LICENCIA
+  tipoLicencia?: string;
+  fechaInicioLicencia?: string;
+  fechaFinLicencia?: string;
+  licenciaActiva: boolean;
+  disponible?: boolean;
 }
 
 export default function ListaProfesionales() {
@@ -748,12 +754,21 @@ export default function ListaProfesionales() {
                         <AccordionTrigger className="px-6 py-4 hover:bg-gray-50">
                           <div className="flex justify-between w-full">
                           <div className="flex items-center gap-2">
-                            {/* Indicador de psicofísico vencido */}
-                            {(!profesional.fechaVencimientoPsicofisico || 
-                              new Date(profesional.fechaVencimientoPsicofisico) < new Date()) && (
-                              <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                            )}
-                            <span className="font-medium">{`${profesional.apellido} ${profesional.nombre} `}</span>
+                          {/* Indicador de psicofísico vencido */}
+                          {(!profesional.fechaVencimientoPsicofisico || 
+                            new Date(profesional.fechaVencimientoPsicofisico) < new Date()) && (
+                            <span className="w-2 h-2 rounded-full bg-red-500" title="Psicofísico vencido o no cargado"></span>
+                          )}
+                          <span className="font-medium">{`${profesional.apellido} ${profesional.nombre} `}</span>
+                          
+                          {/* Indicador de licencia activa */}
+                          {profesional.licenciaActiva && profesional.fechaFinLicencia && new Date(profesional.fechaFinLicencia) >= new Date() && (
+                            <Badge variant="destructive" className="text-xs px-2 py-0 h-5">
+                              En Licencia
+                            </Badge>
+                          )}
+                          
+                          
                           </div>
                             <span className="text-sm text-gray-500">{profesional.profesion}</span>
                           </div>

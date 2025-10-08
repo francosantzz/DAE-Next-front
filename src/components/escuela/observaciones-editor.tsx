@@ -89,7 +89,7 @@ export function ObservacionesEditor({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Estado del Espacio Físico</CardTitle>
+        <CardTitle>Observaciones</CardTitle>
         {canEditObservaciones && (
           <Button variant="outline" size="sm" onClick={handleEdit}>
             <Edit className="mr-2 h-4 w-4" /> Editar
@@ -137,7 +137,7 @@ export function ObservacionesEditor({
             {observaciones ? (
               <div className="whitespace-pre-wrap">{observaciones}</div>
             ) : (
-              <p className="text-gray-500 italic">No hay observaciones registradas sobre el espacio físico.</p>
+              <p className="text-gray-500 italic">No hay observaciones registradas.</p>
             )}
           </div>
         )}

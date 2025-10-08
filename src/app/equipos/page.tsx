@@ -37,6 +37,11 @@ interface Profesional {
     tipo: string;
     cantidadHoras: number;
   }[];
+  // NUEVOS CAMPOS DE LICENCIA
+  tipoLicencia?: string;
+  fechaInicioLicencia?: string;
+  fechaFinLicencia?: string;
+  licenciaActiva: boolean;
 }
 
 interface Region {
@@ -641,12 +646,23 @@ export default function ListaEquiposPantallaCompleta() {
                         <div>
                           <strong>Profesionales:</strong>
                           {equipo.profesionales && equipo.profesionales.length > 0 ? (
-                            <ul className="list-disc pl-5 mt-2 space-y-1">
-                              {equipo.profesionales.map((profesional) => (
-                                <li key={profesional.id}>
-                                  {profesional.nombre} {profesional.apellido}
-                                </li>
-                              ))}
+                            <ul className="list-disc pl-5 mt-2 space-y-2">
+                              {equipo.profesionales.map((profesional) => {
+                                const tieneLicenciaActiva = profesional.licenciaActiva
+                                
+                                return (
+                                  <li key={profesional.id} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <span>{profesional.nombre} {profesional.apellido}</span>
+                                      {tieneLicenciaActiva && (
+                                        <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                                          En Licencia
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </li>
+                                );
+                              })}
                             </ul>
                           ) : (
                             <p>No hay profesionales asignados</p>

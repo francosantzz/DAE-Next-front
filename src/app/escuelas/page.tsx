@@ -62,7 +62,15 @@ interface Direccion {
 interface PaqueteHoras {
   id: number
   cantidad: string
-  profesional: Profesional
+  profesional: {
+    id: number
+    nombre: string
+    apellido: string
+    // AGREGAR ESTOS CAMPOS
+    licenciaActiva: boolean
+    tipoLicencia?: string
+    fechaFinLicencia?: string
+  }
 }
 
 interface Seccion {
@@ -108,6 +116,7 @@ export default function ListaEscuelas() {
   const [busquedaInput, setBusquedaInput] = useState('')
   const busqueda = useDebounce(busquedaInput, 1000)
   const [filtroEquipo, setFiltroEquipo] = useState("todos")
+  const [filtroSinPaquetes, setFiltroSinPaquetes] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentEscuela, setCurrentEscuela] = useState<Escuela | null>(null)
@@ -145,8 +154,15 @@ export default function ListaEscuelas() {
 
     setIsLoading(true)
     try {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+        search: busqueda,
+        ...(filtroEquipo !== 'todos' && { equipoId: filtroEquipo }),
+        ...(filtroSinPaquetes && { sinPaquetes: 'true' }) // <- NUEVO PARÁMETRO
+      });
       const [escuelasRes, equiposRes, departamentosRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(busqueda)}${filtroEquipo !== 'todos' ? `&equipoId=${filtroEquipo}` : ''}`, {
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas?${params}`, {
           headers: {
             Authorization: `Bearer ${session.user.accessToken}`
           }
@@ -182,7 +198,7 @@ export default function ListaEscuelas() {
     } finally {
       setIsLoading(false)
     }
-  }, [session?.user?.accessToken, currentPage, busqueda, filtroEquipo])
+  }, [session?.user?.accessToken, currentPage, busqueda, filtroEquipo, filtroSinPaquetes])
 
   useEffect(() => {
     fetchData()
@@ -191,7 +207,7 @@ export default function ListaEscuelas() {
   // Resetear página cuando cambie la búsqueda
   useEffect(() => {
     setCurrentPage(1)
-  }, [busqueda, filtroEquipo])
+  }, [busqueda, filtroEquipo, filtroSinPaquetes])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -492,6 +508,35 @@ export default function ListaEscuelas() {
     return hasPermission("escuela", "delete")
   }
 
+  // Función para calcular estadísticas de horas
+const calcularEstadisticasHoras = (paquetesHoras: PaqueteHoras[]) => {
+  const totalHoras = paquetesHoras.reduce((total, ph) => total + parseFloat(ph.cantidad), 0);
+  
+  // Filtrar paquetes de profesionales que NO están en licencia activa
+  const paquetesActivos = paquetesHoras.filter(paquete => {
+    const profesional = paquete.profesional;
+    return !profesional.licenciaActiva || 
+           !profesional.fechaFinLicencia || 
+           new Date(profesional.fechaFinLicencia) < new Date();
+  });
+  
+  const horasActivas = paquetesActivos.reduce((total, ph) => total + parseFloat(ph.cantidad), 0);
+  const horasEnLicencia = totalHoras - horasActivas;
+  
+  return {
+    totalHoras,
+    horasActivas,
+    horasEnLicencia,
+    paquetesActivos,
+    paquetesEnLicencia: paquetesHoras.filter(paquete => {
+      const profesional = paquete.profesional;
+      return profesional.licenciaActiva && 
+             profesional.fechaFinLicencia && 
+             new Date(profesional.fechaFinLicencia) >= new Date();
+    })
+  };
+};
+
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>
   }
@@ -634,7 +679,7 @@ export default function ListaEscuelas() {
                       </div>
                       
                       <div>
-                        <Label htmlFor="observaciones">Observaciones sobre el espacio físico (opcional)</Label>
+                        <Label htmlFor="observaciones">Observaciones (opcional)</Label>
                         <Textarea
                           id="observaciones"
                           name="observaciones"
@@ -680,6 +725,18 @@ export default function ListaEscuelas() {
                 </SelectContent>
               </Select>
             </div>
+             <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="filtroSinPaquetes"
+                  checked={filtroSinPaquetes}
+                  onChange={(e) => setFiltroSinPaquetes(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <Label htmlFor="filtroSinPaquetes" className="text-sm font-medium text-gray-700">
+                  Mostrar sólo escuelas SIN profesionales
+                </Label>
+              </div>
           </div>
         </div>
 
@@ -703,24 +760,46 @@ export default function ListaEscuelas() {
                               {label}
                             </Badge>
                           )}
-                          {(!escuela.paquetesHoras || escuela.paquetesHoras.length === 0) ? (
-                            <Badge 
-                              variant="destructive" 
-                              className="ml-2 flex items-center gap-1 bg-red-500 text-white hover:bg-red-600"
-                            >
-                              <AlertTriangle className="w-3 h-3 mr-1" />
-                              Sin profesionales asignados
-                            </Badge>
-                          ) : (
-                            <Badge 
-                              variant="outline" 
-                              className="ml-2 flex items-center gap-1 border-blue-500 text-blue-700"
-                            >
-                              <span className="font-semibold">
-                                {escuela.paquetesHoras.reduce((total, ph) => total + parseFloat(ph.cantidad), 0)}h asignadas
-                              </span>
-                            </Badge>
-                          )}
+                          
+                          {/* REEMPLAZAR LA SECCIÓN DE HORAS CON LA NUEVA LÓGICA */}
+                          {(() => {
+                            const stats = calcularEstadisticasHoras(escuela.paquetesHoras || []);
+                            
+                            if (stats.totalHoras === 0) {
+                              return (
+                                <Badge 
+                                  variant="destructive" 
+                                  className="ml-2 flex items-center gap-1 bg-red-500 text-white hover:bg-red-600"
+                                >
+                                  <AlertTriangle className="w-3 h-3 mr-1" />
+                                  Sin profesionales asignados
+                                </Badge>
+                              );
+                            }
+                            
+                            return (
+                              <div className="flex items-center gap-2 ml-2">
+                                {/* Horas activas */}
+                                <Badge 
+                                  variant="outline" 
+                                  className="flex items-center gap-1 border-green-500 text-green-700 bg-green-50"
+                                >
+                                  <span className="font-semibold">{stats.horasActivas}h cubiertas</span>
+                                </Badge>
+                                
+                                {/* Horas en licencia */}
+                                {stats.horasEnLicencia > 0 && (
+                                  <Badge 
+                                    variant="outline" 
+                                    className="flex items-center gap-1 border-orange-500 text-orange-700 bg-orange-50"
+                                  >
+                                    <AlertTriangle className="w-3 h-3" />
+                                    <span className="font-semibold">{stats.horasEnLicencia}h en licencia</span>
+                                  </Badge>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                         <span className="text-sm text-gray-500">
                           {escuela.equipo ? `Equipo: ${escuela.equipo.nombre}` : "Sin equipo asignado"}
@@ -735,7 +814,7 @@ export default function ListaEscuelas() {
 
                         {escuela.observaciones && (
                           <div>
-                            <strong>Estado del espacio físico:</strong>
+                            <strong>Observaciones:</strong>
                             <p className="mt-1 text-gray-700 bg-gray-50 p-2 rounded border border-gray-200">
                               {escuela.observaciones.length > 150
                                 ? `${escuela.observaciones.substring(0, 150)}...`
@@ -761,25 +840,42 @@ export default function ListaEscuelas() {
                         <div>
                           <strong>Paquetes de Horas:</strong>
                           {escuela.paquetesHoras && escuela.paquetesHoras.length > 0 ? (
-                            <ul className="list-disc pl-5 mt-2 space-y-1">
-                              {escuela.paquetesHoras.map((paquete: any) => (
-                                <li key={paquete.id}>
-                                  <span className="font-medium">{paquete.cantidad} horas</span> - {paquete.profesional.nombre} {paquete.profesional.apellido}
-                                  {(() => {
-                                    const d = paquete.dias || {}
-                                    const dia = d.diaSemana
-                                    const hI = (d.horaInicio || '').toString().slice(0,5)
-                                    const hF = (d.horaFin || '').toString().slice(0,5)
-                                    const rot = !!d.rotativo
-                                    const sem = d.semanas as number[] | undefined
-                                    const diaLabel = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][Number(dia)] || "-"
-                                    if (!dia && !hI && !hF) return null
-                                    return (
-                                      <span className="text-gray-600"> — {diaLabel} {hI} - {hF}{rot ? (sem && sem.length ? ` (Rotativo, semanas: ${sem.join(', ')})` : ' (Rotativo)') : ''}</span>
-                                    )
-                                  })()}
-                                </li>
-                              ))}
+                            <ul className="list-disc pl-5 mt-2 space-y-2">
+                              {escuela.paquetesHoras.map((paquete: any) => {
+                                const profesionalEnLicencia = paquete.profesional.licenciaActiva && 
+                                  paquete.profesional.fechaFinLicencia && 
+                                  new Date(paquete.profesional.fechaFinLicencia) >= new Date();
+                                
+                                return (
+                                  <li key={paquete.id} className={profesionalEnLicencia ? "text-orange-600" : ""}>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium">{paquete.cantidad} horas</span>
+                                      <span>- {paquete.profesional.nombre} {paquete.profesional.apellido}</span>
+                                      {profesionalEnLicencia && (
+                                        <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                                          ⚠️ En Licencia
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {(() => {
+                                      const d = paquete.dias || {}
+                                      const dia = d.diaSemana
+                                      const hI = (d.horaInicio || '').toString().slice(0,5)
+                                      const hF = (d.horaFin || '').toString().slice(0,5)
+                                      const rot = !!d.rotativo
+                                      const sem = d.semanas as number[] | undefined
+                                      const diaLabel = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][Number(dia)] || "-"
+                                      if (!dia && !hI && !hF) return null
+                                      return (
+                                        <div className={`text-sm ml-4 ${profesionalEnLicencia ? "text-orange-500" : "text-gray-600"}`}>
+                                          {diaLabel} {hI} - {hF}
+                                          {rot ? (sem && sem.length ? ` (Rotativo, semanas: ${sem.join(', ')})` : ' (Rotativo)') : ''}
+                                        </div>
+                                      )
+                                    })()}
+                                  </li>
+                                )
+                              })}
                             </ul>
                           ) : (
                             <p>No hay paquetes de horas asignados.</p>
@@ -839,7 +935,10 @@ export default function ListaEscuelas() {
           </>
         ) : (
           <p className="text-center py-4 bg-white rounded-lg shadow">
-            No se encontraron escuelas con los filtros aplicados.
+            {filtroSinPaquetes 
+              ? "No se encontraron escuelas sin paquetes de horas asignados." 
+              : "No se encontraron escuelas con los filtros aplicados."
+            }
           </p>
         )}
       </div>
@@ -962,28 +1061,74 @@ export default function ListaEscuelas() {
               <Card>
                 <CardHeader>
                   <CardTitle>Paquetes de Horas</CardTitle>
+                  {selectedEscuela.paquetesHoras && selectedEscuela.paquetesHoras.length > 0 && (() => {
+                    const stats = calcularEstadisticasHoras(selectedEscuela.paquetesHoras);
+                    return (
+                      <div className="flex gap-4 text-sm">
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                          <span>{stats.horasActivas}h cubiertas</span>
+                        </div>
+                        {stats.horasEnLicencia > 0 && (
+                          <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                            <span>{stats.horasEnLicencia}h en licencia</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </CardHeader>
                 <CardContent>
                   {selectedEscuela.paquetesHoras && selectedEscuela.paquetesHoras.length > 0 ? (
-                    <ul className="space-y-2">
-                      {selectedEscuela.paquetesHoras.map((paquete: any) => (
-                        <li key={paquete.id}>
-                          <span className="font-medium">{paquete.cantidad} horas</span> - {paquete.profesional.nombre} {paquete.profesional.apellido}
-                          {(() => {
-                            const d = paquete.dias || {}
-                            const dia = d.diaSemana
-                            const hI = (d.horaInicio || '').toString().slice(0,5)
-                            const hF = (d.horaFin || '').toString().slice(0,5)
-                            const rot = !!d.rotativo
-                            const sem = d.semanas as number[] | undefined
-                            const diaLabel = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][Number(dia)] || "-"
-                            if (!dia && !hI && !hF) return null
-                            return (
-                              <span className="text-gray-600"> — {diaLabel} {hI} - {hF}{rot ? (sem && sem.length ? ` (Rotativo, semanas: ${sem.join(', ')})` : ' (Rotativo)') : ''}</span>
-                            )
-                          })()}
-                        </li>
-                      ))}
+                    <ul className="space-y-3">
+                      {selectedEscuela.paquetesHoras.map((paquete: any) => {
+                        const profesionalEnLicencia = paquete.profesional.licenciaActiva && 
+                          paquete.profesional.fechaFinLicencia && 
+                          new Date(paquete.profesional.fechaFinLicencia) >= new Date();
+                        
+                        return (
+                          <li key={paquete.id} className={`p-3 rounded-lg border ${
+                            profesionalEnLicencia ? "bg-orange-50 border-orange-200" : "bg-gray-50 border-gray-200"
+                          }`}>
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="font-semibold">{paquete.cantidad} horas</span>
+                                  <span>- {paquete.profesional.nombre} {paquete.profesional.apellido}</span>
+                                  {profesionalEnLicencia && (
+                                    <Badge variant="outline" className="text-xs bg-orange-100 text-orange-700 border-orange-300">
+                                      ⚠️ En Licencia
+                                      {paquete.profesional.tipoLicencia && ` - ${paquete.profesional.tipoLicencia}`}
+                                    </Badge>
+                                  )}
+                                </div>
+                                {profesionalEnLicencia && paquete.profesional.fechaFinLicencia && (
+                                  <div className="text-xs text-orange-600 mb-1">
+                                    Hasta: {new Date(paquete.profesional.fechaFinLicencia).toLocaleDateString('es-ES')}
+                                  </div>
+                                )}
+                                {(() => {
+                                  const d = paquete.dias || {}
+                                  const dia = d.diaSemana
+                                  const hI = (d.horaInicio || '').toString().slice(0,5)
+                                  const hF = (d.horaFin || '').toString().slice(0,5)
+                                  const rot = !!d.rotativo
+                                  const sem = d.semanas as number[] | undefined
+                                  const diaLabel = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][Number(dia)] || "-"
+                                  if (!dia && !hI && !hF) return null
+                                  return (
+                                    <div className={`text-sm ${profesionalEnLicencia ? "text-orange-700" : "text-gray-600"}`}>
+                                      <span className="font-medium">Horario:</span> {diaLabel} {hI} - {hF}
+                                      {rot ? (sem && sem.length ? ` (Rotativo, semanas: ${sem.join(', ')})` : ' (Rotativo)') : ''}
+                                    </div>
+                                  )
+                                })()}
+                              </div>
+                            </div>
+                          </li>
+                        )
+                      })}
                     </ul>
                   ) : (
                     <p>No hay paquetes de horas asignados a esta escuela.</p>
@@ -1028,7 +1173,7 @@ export default function ListaEscuelas() {
       <Dialog open={isObservacionesDialogOpen} onOpenChange={setIsObservacionesDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar Observaciones del Espacio Físico</DialogTitle>
+            <DialogTitle>Editar Observaciones</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleObservacionesSubmit} className="space-y-4">
             <div>

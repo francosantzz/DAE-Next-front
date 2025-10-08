@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -15,11 +15,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import ErrorBoundary from "@/components/ErrorBoundary"
 import { useSession } from "next-auth/react"
 import { PermissionButton } from "@/components/PermissionButton"
+import { Badge } from "@/components/ui/badge"
 
 interface Profesional {
   id: number;
   nombre: string;
   apellido: string;
+  licenciaActiva: boolean;
   totalHoras: number;
   equipos: {
     id: number;
@@ -438,6 +440,65 @@ export default function GrillaHorarios() {
     return profesional?.totalHoras || 0;
   };
 
+  const sortedPaquetes = useMemo(() => {
+    const toHM = (t?: string) => (t ?? "").slice(0, 5);           // "HH:MM"
+    const safeDia = (d?: number | null) => (Number.isFinite(d) ? Number(d) : 99);
+    const isRot = (p: PaqueteHoras) => !!p.rotativo;
+    const normWeeks = (p: PaqueteHoras): number[] => {
+      const w = p.semanas ?? [];
+      return Array.isArray(w) ? Array.from(new Set(w)).sort((a, b) => a - b) : [];
+    };
+  
+    const cmpWeeks = (a: number[], b: number[]) => {
+      // Orden lexicográfico: [1] < [1,3] < [2] < [2,4] ...
+      const L = Math.max(a.length, b.length);
+      for (let i = 0; i < L; i++) {
+        const va = a[i] ?? 999;
+        const vb = b[i] ?? 999;
+        if (va !== vb) return va - vb;
+      }
+      return 0;
+    };
+  
+    return [...filteredPaquetes].sort((a, b) => {
+      // 1) Día
+      const da = safeDia(a.diaSemana);
+      const db = safeDia(b.diaSemana);
+      if (da !== db) return da - db;
+  
+      // 2) Hora inicio
+      const ha = toHM(a.horaInicio);
+      const hb = toHM(b.horaInicio);
+      if (ha !== hb) return ha.localeCompare(hb);
+  
+      // 3) No rotativo primero, luego rotativo
+      const ra = isRot(a) ? 1 : 0;
+      const rb = isRot(b) ? 1 : 0;
+      if (ra !== rb) return ra - rb;
+  
+      // 4) Entre rotativos, ordenar por semanas (lexicográfico)
+      if (ra === 1 && rb === 1) {
+        const wa = normWeeks(a);
+        const wb = normWeeks(b);
+        const cmpw = cmpWeeks(wa, wb);
+        if (cmpw !== 0) return cmpw;
+      }
+  
+      // 5) Hora fin
+      const fa = toHM(a.horaFin);
+      const fb = toHM(b.horaFin);
+      if (fa !== fb) return fa.localeCompare(fb);
+  
+      // 6) Estabilidad visual: número de escuela, luego tipo
+      const ea = a.escuela?.Numero ?? "";
+      const eb = b.escuela?.Numero ?? "";
+      if (ea !== eb) return ea.localeCompare(eb, "es", { numeric: true, sensitivity: "base" });
+  
+      return (a.tipo ?? "").localeCompare(b.tipo ?? "");
+    });
+  }, [filteredPaquetes]);
+  
+
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Cargando...</div>
   }
@@ -520,6 +581,12 @@ export default function GrillaHorarios() {
                     <div className="flex items-center space-x-2">
                       <UserIcon className="h-5 w-5" />
                       <span className="font-semibold">{getNombreProfesionalSeleccionado()}</span>
+                      {/* Indicador de licencia */}
+                      {profesionalesFiltrados.find(p => p.id.toString() === profesionalSeleccionado)?.licenciaActiva && (
+                        <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                          ⚠️ En Licencia
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-lg">
                       <span className="text-sm font-medium text-blue-700">Total:</span>
@@ -562,7 +629,7 @@ export default function GrillaHorarios() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                     {filteredPaquetes.map((paquete) => {
+                     {sortedPaquetes.map((paquete) => {
                         // Determinar colores según el tipo de paquete
                         let tipoBorder = '';
                         let tipoBadge = '';

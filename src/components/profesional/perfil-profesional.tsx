@@ -98,6 +98,12 @@ interface Profesional {
   equipos: Equipo[]
   paquetesHoras: PaqueteHoras[]
   direccion: Direccion
+  // NUEVOS CAMPOS DE LICENCIA
+  tipoLicencia?: string
+  fechaInicioLicencia?: string
+  fechaFinLicencia?: string
+  licenciaActiva: boolean
+  disponible?: boolean
 }
 
 export default function PerfilProfesional() {
@@ -112,6 +118,13 @@ export default function PerfilProfesional() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isPaqueteDialogOpen, setIsPaqueteDialogOpen] = useState(false)
   const [currentPaquete, setCurrentPaquete] = useState<PaqueteHoras | null>(null)
+  const [isLicenciaDialogOpen, setIsLicenciaDialogOpen] = useState(false)
+const [licenciaFormData, setLicenciaFormData] = useState({
+  tipoLicencia: "",
+  fechaInicioLicencia: "",
+  fechaFinLicencia: "",
+  licenciaActiva: false
+})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false);
@@ -195,6 +208,7 @@ export default function PerfilProfesional() {
             numero: profesionalData.direccion?.numero || "",
             departamentoId: profesionalData.direccion?.departamento?.id?.toString() || ""
           }
+          
         });
       } catch (error) {
         console.error("Error al obtener datos:", error);
@@ -274,6 +288,35 @@ export default function PerfilProfesional() {
     const updatedCargos = [...formData.cargosHoras]
     updatedCargos[index] = { ...updatedCargos[index], [field]: value }
     setFormData({ ...formData, cargosHoras: updatedCargos })
+  }
+
+  const handleLicenciaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${id}`, {
+        method: "PATCH",
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.user?.accessToken}`
+        },
+        body: JSON.stringify({
+          tipoLicencia: licenciaFormData.tipoLicencia,
+          fechaInicioLicencia: licenciaFormData.fechaInicioLicencia,
+          fechaFinLicencia: licenciaFormData.fechaFinLicencia,
+          licenciaActiva: licenciaFormData.licenciaActiva
+        }),
+      })
+  
+      if (!response.ok) throw new Error("Error al actualizar la licencia")
+  
+      const updatedProfesional = await response.json()
+      setProfesional(updatedProfesional)
+      setIsLicenciaDialogOpen(false)
+      
+    } catch (error) {
+      console.error("Error al actualizar la licencia:", error)
+      alert("Error al actualizar la licencia")
+    }
   }
 
   const addCargoHoras = () => {
@@ -771,6 +814,124 @@ export default function PerfilProfesional() {
                       <p className="text-gray-500">No hay cargos de horas asignados</p>
                     </div>
                   )}
+                  </CardContent>
+                </Card>
+
+                {/* Tarjeta de Licencia */}
+                <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                  <CardHeader className="bg-white border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`rounded-full p-2 ${
+                          profesional.licenciaActiva && profesional.fechaFinLicencia && new Date(profesional.fechaFinLicencia) >= new Date() 
+                            ? "bg-red-50" 
+                            : "bg-green-50"
+                        }`}>
+                          <CalendarIcon className={`w-5 h-5 ${
+                            profesional.licenciaActiva && profesional.fechaFinLicencia && new Date(profesional.fechaFinLicencia) >= new Date() 
+                              ? "text-red-600" 
+                              : "text-green-600"
+                          }`} />
+                        </div>
+                        <CardTitle className="text-xl font-semibold text-gray-800">
+                          Estado de Licencia
+                        </CardTitle>
+                      </div>
+                      <PermissionButton
+                        requiredPermission={{entity: "profesional", action: "update"}}
+                        className={`${
+                          profesional.licenciaActiva 
+                            ? "bg-orange-600 hover:bg-orange-700" 
+                            : "bg-blue-600 hover:bg-blue-700"
+                        } text-white shadow-sm`}
+                        onClick={() => {
+                          // Abrir diálogo de licencia
+                          setLicenciaFormData({
+                            tipoLicencia: profesional.tipoLicencia || "",
+                            fechaInicioLicencia: profesional.fechaInicioLicencia || "",
+                            fechaFinLicencia: profesional.fechaFinLicencia || "",
+                            licenciaActiva: profesional.licenciaActiva || false
+                          })
+                          setIsLicenciaDialogOpen(true)
+                        }}
+                      >
+                        {profesional.licenciaActiva ? (
+                          <><Edit className="mr-2 h-4 w-4" /> Editar Licencia</>
+                        ) : (
+                          <><PlusCircle className="mr-2 h-4 w-4" /> Agregar Licencia</>
+                        )}
+                      </PermissionButton>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {profesional.licenciaActiva ? (
+                      <div className="space-y-4">
+                        <Alert className={
+                          profesional.fechaFinLicencia && new Date(profesional.fechaFinLicencia) < new Date() 
+                            ? "bg-green-50 border-green-200" 
+                            : "bg-red-50 border-red-200"
+                        }>
+                          <AlertCircle className={
+                            profesional.fechaFinLicencia && new Date(profesional.fechaFinLicencia) < new Date() 
+                              ? "h-4 w-4 text-green-600" 
+                              : "h-4 w-4 text-red-600"
+                          } />
+                          <AlertDescription className={
+                            profesional.fechaFinLicencia && new Date(profesional.fechaFinLicencia) < new Date() 
+                              ? "text-green-700" 
+                              : "text-red-700"
+                          }>
+                            {profesional.fechaFinLicencia && new Date(profesional.fechaFinLicencia) < new Date() 
+                              ? "✅ Licencia vencida - Profesional disponible" 
+                              : "❌ Profesional en licencia - No disponible"}
+                          </AlertDescription>
+                        </Alert>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium text-gray-600">Tipo de Licencia</Label>
+                            <p className="text-base font-semibold text-gray-800">
+                              {profesional.tipoLicencia || "No especificado"}
+                            </p>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium text-gray-600">Fecha Inicio</Label>
+                            <p className="text-base font-semibold text-gray-800">
+                              {profesional.fechaInicioLicencia 
+                                ? new Date(profesional.fechaInicioLicencia).toLocaleDateString('es-ES') 
+                                : "No especificada"}
+                            </p>
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium text-gray-600">Fecha Fin</Label>
+                            <p className="text-base font-semibold text-gray-800">
+                              {profesional.fechaFinLicencia 
+                                ? new Date(profesional.fechaFinLicencia).toLocaleDateString('es-ES') 
+                                : "No especificada"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {profesional.fechaFinLicencia && new Date(profesional.fechaFinLicencia) >= new Date() && (
+                          <div className="flex items-center gap-2 text-sm text-red-600">
+                            <ClockIcon className="w-4 h-4" />
+                            <span>
+                              La licencia vence en {Math.ceil((new Date(profesional.fechaFinLicencia).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} días
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <div className="bg-green-50 rounded-full p-3 inline-flex mb-3">
+                          <UserCheckIcon className="w-6 h-6 text-green-600" />
+                        </div>
+                        <p className="text-gray-600 mb-2">El profesional se encuentra disponible</p>
+                        <p className="text-sm text-gray-500">No hay licencias activas registradas</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -1400,6 +1561,105 @@ export default function PerfilProfesional() {
                   {isSubmitting ? "Guardando..." : "Guardar"}
                 </Button>
               </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          {/* Diálogo de Licencia */}
+          <Dialog open={isLicenciaDialogOpen} onOpenChange={setIsLicenciaDialogOpen}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>
+                  {profesional?.licenciaActiva ? "Editar Licencia" : "Agregar Licencia"}
+                </DialogTitle>
+                <DialogDescription>
+                  {profesional?.licenciaActiva 
+                    ? "Modifique los datos de la licencia del profesional" 
+                    : "Registre una nueva licencia para el profesional"}
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleLicenciaSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="tipoLicencia">Tipo de Licencia</Label>
+                  <Input
+                    id="tipoLicencia"
+                    name="tipoLicencia"
+                    value={licenciaFormData.tipoLicencia}
+                    onChange={(e) => setLicenciaFormData(prev => ({
+                      ...prev,
+                      tipoLicencia: e.target.value
+                    }))}
+                    placeholder="Ej: Enfermedad, Maternidad, Vacaciones, etc."
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="fechaInicioLicencia">Fecha Inicio</Label>
+                    <Input
+                      id="fechaInicioLicencia"
+                      name="fechaInicioLicencia"
+                      type="date"
+                      value={licenciaFormData.fechaInicioLicencia}
+                      onChange={(e) => setLicenciaFormData(prev => ({
+                        ...prev,
+                        fechaInicioLicencia: e.target.value
+                      }))}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="fechaFinLicencia">Fecha Fin</Label>
+                    <Input
+                      id="fechaFinLicencia"
+                      name="fechaFinLicencia"
+                      type="date"
+                      value={licenciaFormData.fechaFinLicencia}
+                      onChange={(e) => setLicenciaFormData(prev => ({
+                        ...prev,
+                        fechaFinLicencia: e.target.value
+                      }))}
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input
+                    id="licenciaActiva"
+                    name="licenciaActiva"
+                    type="checkbox"
+                    checked={licenciaFormData.licenciaActiva}
+                    onChange={(e) => setLicenciaFormData(prev => ({
+                      ...prev,
+                      licenciaActiva: e.target.checked
+                    }))}
+                    className="rounded border-gray-300"
+                  />
+                  <Label htmlFor="licenciaActiva" className="text-sm font-medium">
+                    Licencia activa
+                  </Label>
+                </div>
+                
+                {licenciaFormData.licenciaActiva && (
+                  <Alert className="bg-yellow-50 border-yellow-200">
+                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                    <AlertDescription className="text-yellow-700">
+                      Al activar la licencia, el profesional será marcado como No disponible
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsLicenciaDialogOpen(false)}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit">
+                    {profesional?.licenciaActiva ? "Actualizar" : "Agregar"} Licencia
+                  </Button>
+                </div>
+              </form>
             </DialogContent>
           </Dialog>
         </Layout>
