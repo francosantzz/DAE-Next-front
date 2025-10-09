@@ -237,7 +237,7 @@ const [licenciaFormData, setLicenciaFormData] = useState({
     
     try {
       const [equiposRes, departamentosRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos?page=1&limit=100`, {
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/short?page=1&limit=100`, {
           headers: { Authorization: `Bearer ${session?.user?.accessToken}` }
         }),
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`, {
@@ -271,10 +271,11 @@ const [licenciaFormData, setLicenciaFormData] = useState({
       });
   };
 
-  const handleEditClick = async () => {
-    await loadEditFormData();
-    setIsDialogOpen(true);
+  const handleEditClick = () => {
+    setIsDialogOpen(true);   
+    void loadEditFormData();      
   };
+  
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -358,45 +359,57 @@ const [licenciaFormData, setLicenciaFormData] = useState({
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${id}`, {
-        method: "PATCH",
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.user?.accessToken}`
-        },
-        body: JSON.stringify({
-          nombre: formData.nombre,
-          apellido: formData.apellido,
-          cuil: formData.cuil,
-          profesion: formData.profesion,
-          matricula: formData.matricula,
-          telefono: formData.telefono,
-          fechaNacimiento: formData.fechaNacimiento,
-          dni: formData.dni,
-          fechaVencimientoMatricula: formData.fechaVencimientoMatricula,
-          fechaVencimientoPsicofisico: formData.fechaVencimientoPsicofisico,
-          correoElectronico: formData.correoElectronico,
-          equiposIds: formData.equiposIds,
-          cargosHoras: formData.cargosHoras,
+      // Igual a la lista: incluimos SOLO si hay valor
+      const payload: any = {
+        nombre: formData.nombre,
+        apellido: formData.apellido,
+        profesion: formData.profesion,
+        // opcionales
+        ...(formData.cuil && { cuil: formData.cuil }),
+        ...(formData.matricula && { matricula: formData.matricula }),
+        ...(formData.telefono && { telefono: formData.telefono }),
+        ...(formData.fechaNacimiento && { fechaNacimiento: formData.fechaNacimiento }),
+        ...(formData.dni && { dni: formData.dni }),
+        ...(formData.fechaVencimientoMatricula && { fechaVencimientoMatricula: formData.fechaVencimientoMatricula }),
+        ...(formData.fechaVencimientoPsicofisico && { fechaVencimientoPsicofisico: formData.fechaVencimientoPsicofisico }),
+        ...(formData.correoElectronico && { correoElectronico: formData.correoElectronico }),
+        // estos dos los mandabas siempre en la lista
+        equiposIds: formData.equiposIds,
+        cargosHoras: formData.cargosHoras,
+        // dirección solo si tiene calle (como en la lista)
+        ...(formData.direccion.calle && {
           direccion: {
             calle: formData.direccion.calle,
             numero: formData.direccion.numero,
-            departamentoId: parseInt(formData.direccion.departamentoId)
+            ...(formData.direccion.departamentoId && {
+              departamentoId: parseInt(formData.direccion.departamentoId, 10)
+            })
           }
-        }),
-      })
-
-      if (!response.ok) throw new Error("Error al actualizar el profesional")
-
-      const updatedProfesional = await response.json()
-      setProfesional(updatedProfesional)
-      setIsDialogOpen(false)
+        })
+      };
+  
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.user?.accessToken}`
+        },
+        body: JSON.stringify(payload)
+      });
+  
+      if (!res.ok) throw new Error("Error al actualizar el profesional");
+  
+      const updated = await res.json();
+      setProfesional(updated);
+      setIsDialogOpen(false);
     } catch (error) {
-      console.error("Error al actualizar el profesional:", error)
+      console.error("Error al actualizar el profesional:", error);
+      alert("No se pudo guardar los cambios");
     }
-  }
+  };
+  
 
   const handlePaqueteEdit = async (paquete: PaqueteHoras) => {
     
@@ -1174,7 +1187,6 @@ const [licenciaFormData, setLicenciaFormData] = useState({
                     name="cuil"
                     value={formData.cuil}
                     onChange={handleInputChange}
-                    required
                   />
                 </div>
                 <div>
@@ -1194,7 +1206,6 @@ const [licenciaFormData, setLicenciaFormData] = useState({
                     name="matricula"
                     value={formData.matricula}
                     onChange={handleInputChange}
-                    required
                   />
                 </div>
                 <div>
@@ -1204,7 +1215,6 @@ const [licenciaFormData, setLicenciaFormData] = useState({
                     name="telefono"
                     value={formData.telefono}
                     onChange={handleInputChange}
-                    required
                   />
                 </div>
                 <div>
@@ -1215,7 +1225,6 @@ const [licenciaFormData, setLicenciaFormData] = useState({
                     type="date"
                     value={formData.fechaNacimiento}
                     onChange={handleInputChange}
-                    required
                   />
                 </div>
                 <div>
@@ -1225,7 +1234,6 @@ const [licenciaFormData, setLicenciaFormData] = useState({
                     name="dni"
                     value={formData.dni}
                     onChange={handleInputChange}
-                    required
                   />
                 </div>
                 <div>
@@ -1256,7 +1264,6 @@ const [licenciaFormData, setLicenciaFormData] = useState({
                     type="email"
                     value={formData.correoElectronico}
                     onChange={handleInputChange}
-                    required
                   />
                 </div>
                 <div>
@@ -1269,7 +1276,6 @@ const [licenciaFormData, setLicenciaFormData] = useState({
                       ...prev,
                       direccion: { ...prev.direccion, calle: e.target.value }
                     }))}
-                    required
                   />
                 </div>
                 <div>
@@ -1282,7 +1288,6 @@ const [licenciaFormData, setLicenciaFormData] = useState({
                       ...prev,
                       direccion: { ...prev.direccion, numero: e.target.value }
                     }))}
-                    required
                   />
                 </div>
                 <div>
@@ -1294,7 +1299,6 @@ const [licenciaFormData, setLicenciaFormData] = useState({
                       direccion: { ...prev.direccion, departamentoId: value }
                     }))}
                     value={formData.direccion.departamentoId}
-                    required
                   >
                     <SelectTrigger id="direccion.departamentoId">
                       <SelectValue placeholder="Seleccione un departamento" />

@@ -106,6 +106,7 @@ export default function ListaProfesionales() {
   const [filtroDepartamento, setFiltroDepartamento] = useState('todos')
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const isBlank = (v?: string | null) => !v || String(v).trim() === "";
   const [currentProfesional, setCurrentProfesional] = useState<Profesional | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -375,6 +376,29 @@ export default function ListaProfesionales() {
       }
     }
   }
+
+  function getMissingPersonalFields(p: Profesional) {
+    const missing: string[] = [];
+    if (isBlank(p.cuil)) missing.push("CUIL");
+    if (isBlank(p.dni)) missing.push("DNI");
+    if (isBlank(p.telefono)) missing.push("Teléfono");
+    if (isBlank(p.correoElectronico)) missing.push("Correo");
+    if (isBlank(p.fechaNacimiento)) missing.push("Fecha de nacimiento");
+    if (isBlank(p.matricula)) missing.push("Matrícula")
+    if (isBlank(p.fechaVencimientoMatricula)) missing.push("Vencimiento Matrícula")
+    if (!p.direccion || isBlank(p.direccion.calle) || isBlank(p.direccion.numero) || !p.direccion.departamento) {
+      missing.push("Dirección");
+    }
+    return missing;
+  }
+
+  function getPsicofisicoEstado(p: Profesional) {
+    if (!p.fechaVencimientoPsicofisico) return "FALTA" as const;
+    const vto = new Date(p.fechaVencimientoPsicofisico);
+    const hoy = new Date();
+    return vto < new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()) ? "VENCIDO" : "OK";
+  }
+
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>
@@ -753,23 +777,62 @@ export default function ListaProfesionales() {
                       <AccordionItem key={profesional.id} value={String(profesional.id)}>
                         <AccordionTrigger className="px-6 py-4 hover:bg-gray-50">
                           <div className="flex justify-between w-full">
-                          <div className="flex items-center gap-2">
-                          {/* Indicador de psicofísico vencido */}
-                          {(!profesional.fechaVencimientoPsicofisico || 
-                            new Date(profesional.fechaVencimientoPsicofisico) < new Date()) && (
-                            <span className="w-2 h-2 rounded-full bg-red-500" title="Psicofísico vencido o no cargado"></span>
-                          )}
-                          <span className="font-medium">{`${profesional.apellido} ${profesional.nombre} `}</span>
-                          
-                          {/* Indicador de licencia activa */}
-                          {profesional.licenciaActiva && profesional.fechaFinLicencia && new Date(profesional.fechaFinLicencia) >= new Date() && (
-                            <Badge variant="destructive" className="text-xs px-2 py-0 h-5">
-                              En Licencia
-                            </Badge>
-                          )}
-                          
-                          
-                          </div>
+                            <div className="flex items-center gap-2">
+                              {/* Indicador psicofísico con puntito rojo si está mal */}
+                              {(() => {
+                                const psic = getPsicofisicoEstado(profesional);
+                                return (psic === "FALTA" || psic === "VENCIDO") ? (
+                                  <span
+                                    className="w-2 h-2 rounded-full bg-red-500"
+                                    title={psic === "FALTA" ? "Psicofísico no cargado" : "Psicofísico vencido"}
+                                  />
+                                ) : null;
+                              })()}
+
+                              <span className="font-medium">{`${profesional.apellido} ${profesional.nombre}`}</span>
+
+                              {/* Badge de Licencia (si corresponde) */}
+                              {profesional.licenciaActiva && profesional.fechaFinLicencia && new Date(profesional.fechaFinLicencia) >= new Date() && (
+                                <Badge variant="destructive" className="text-xs px-2 py-0 h-5">
+                                  En Licencia
+                                </Badge>
+                              )}
+
+                              {/* Badge de faltantes personales */}
+                              {(() => {
+                                const faltan = getMissingPersonalFields(profesional);
+                                return faltan.length > 0 ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs px-2 py-0 h-5 bg-yellow-50 text-yellow-800 border-yellow-300"
+                                    title={`Faltan: ${faltan.join(", ")}`}
+                                  >
+                                    Faltan datos · {faltan.length}
+                                  </Badge>
+                                ) : null;
+                              })()}
+
+                              {/* Badge estado psicofísico */}
+                              {(() => {
+                                const psic = getPsicofisicoEstado(profesional);
+                                if (psic === "FALTA") {
+                                  return (
+                                    <Badge variant="outline" className="text-xs px-2 py-0 h-5 bg-orange-50 text-orange-800 border-orange-300">
+                                      Psicofísico faltante
+                                    </Badge>
+                                  );
+                                }
+                                if (psic === "VENCIDO") {
+                                  return (
+                                    <Badge variant="destructive" className="text-xs px-2 py-0 h-5">
+                                      Psicofísico vencido
+                                    </Badge>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </div>
+
                             <span className="text-sm text-gray-500">{profesional.profesion}</span>
                           </div>
                         </AccordionTrigger>
