@@ -109,7 +109,7 @@ const promedioHorasPorEscuela =
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] h-[90vh] sm:max-w-[900px] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-gray-800 flex items-center">
             <Users className="mr-3 h-6 w-6 text-blue-600" />

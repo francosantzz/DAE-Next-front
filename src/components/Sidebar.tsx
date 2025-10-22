@@ -124,6 +124,13 @@ export function Sidebar() {
       requiredPermission: { entity: "escuela", action: "read" }
     },
     {
+      href: "/escuelas-sin-paquetes",
+      title: "Escuelas sin paquetes",
+      icon: LayersIcon,
+      authRequired: true,
+      requiredPermission: { entity: "escuela", action: "read" }
+    },
+    {
       href: "/horarios",
       title: "Horarios",
       icon: ClockIcon,

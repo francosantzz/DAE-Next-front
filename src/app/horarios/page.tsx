@@ -16,13 +16,15 @@ import ErrorBoundary from "@/components/ErrorBoundary"
 import { useSession } from "next-auth/react"
 import { PermissionButton } from "@/components/PermissionButton"
 import { Badge } from "@/components/ui/badge"
-
+import { Switch } from "@/components/ui/switch"
+ 
 interface Profesional {
   id: number;
   nombre: string;
   apellido: string;
   licenciaActiva: boolean;
   totalHoras: number;
+  fechaBaja?: string | null;
   equipos: {
     id: number;
     nombre: string;
@@ -73,6 +75,7 @@ export default function GrillaHorarios() {
   const [profesionalesFiltrados, setProfesionalesFiltrados] = useState<Profesional[]>([])
   const [escuelas, setEscuelas] = useState<Escuela[]>([])
   const [escuelasDelEquipo, setEscuelasDelEquipo] = useState<Escuela[]>([])
+  const [verAnteriores, setVerAnteriores] = useState(false);
   const [equipos, setEquipos] = useState<Equipo[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [openModal, setOpenModal] = useState(false)
@@ -123,7 +126,7 @@ export default function GrillaHorarios() {
       setIsLoading(true)
       try {
         const [equiposRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/short?page=1&limit=100`, {
+          fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/short?page=1&limit=100${verAnteriores ? '&onlyFormer=true' : ''}`, {
             headers: { Authorization: `Bearer ${session?.user?.accessToken}`}
           }),
         ])
@@ -143,7 +146,12 @@ export default function GrillaHorarios() {
     }
 
     fetchInitialData()
-  }, [session?.user?.accessToken])
+    setEquipoSeleccionado('');
+    setProfesionalSeleccionado('');
+    setPaquetes([]);
+    setFilteredPaquetes([]);
+    setPaquetesCargados(false);
+  }, [session?.user?.accessToken, verAnteriores])
 
   // Cargar escuelas del equipo cuando se abre el modal
   const fetchEscuelasDelEquipo = async (equipoId: string) => {
@@ -204,7 +212,7 @@ export default function GrillaHorarios() {
       setIsLoading(true)
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes?profesionalId=${profesionalSeleccionado}`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes?profesionalId=${profesionalSeleccionado}${verAnteriores ? '&includeDeleted=true' : ''}`,
           {
             headers: { Authorization: `Bearer ${session?.user.accessToken}`}
           }
@@ -241,7 +249,7 @@ export default function GrillaHorarios() {
     }
 
     fetchPaquetes()
-  }, [profesionalSeleccionado, equipoSeleccionado, session?.user.accessToken, refreshProfesionalTotalHoras])
+  }, [profesionalSeleccionado, equipoSeleccionado, session?.user.accessToken, refreshProfesionalTotalHoras, verAnteriores])
 
   // Filtrar paquetes cuando cambia el término de búsqueda
   useEffect(() => {
@@ -350,7 +358,7 @@ export default function GrillaHorarios() {
 
       // Recargar los paquetes
       const updatedResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes?profesionalId=${profesionalSeleccionado}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes?profesionalId=${profesionalSeleccionado}${verAnteriores ? '&includeDeleted=true' : ''}`,
         {
           headers: { Authorization: `Bearer ${session?.user.accessToken}`}
         }
@@ -396,7 +404,7 @@ export default function GrillaHorarios() {
 
       // Recargar los paquetes
       const updatedResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes?profesionalId=${profesionalSeleccionado}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/paquetes?profesionalId=${profesionalSeleccionado}${verAnteriores ? '&includeDeleted=true' : ''}`,
         {
           headers: { Authorization: `Bearer ${session?.user.accessToken}`}
         }
@@ -506,30 +514,42 @@ export default function GrillaHorarios() {
 
   return (
     <ErrorBoundary>
-    <div className="container mx-auto p-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Grilla de Paquetes de Horas</CardTitle>
+    <div className="container mx-auto p-2 sm:p-4 max-w-full">
+      <Card className="w-full">
+        <CardHeader className="px-3 sm:px-6">
+          <CardTitle className="text-lg sm:text-xl">Grilla de Paquetes de Horas</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 sm:px-6">
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "seleccion" | "horarios")}>
-            <TabsList>
-              <TabsTrigger value="seleccion">Selección</TabsTrigger>
-              <TabsTrigger value="horarios" disabled={!paquetesCargados}>Paquetes</TabsTrigger>
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="seleccion" className="text-xs sm:text-sm">Selección</TabsTrigger>
+              <TabsTrigger value="horarios" disabled={!paquetesCargados} className="text-xs sm:text-sm">Paquetes</TabsTrigger>
             </TabsList>
 
             <TabsContent value="seleccion" className="space-y-4">
+              {/* barra superior con el toggle a la derecha */}
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  {verAnteriores ? "Mostrando profesionales anteriores" : "Mostrando profesionales activos"}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="toggleAnteriores" className="text-xs sm:text-sm">Profesionales anteriores</Label>
+                  <Switch
+                    id="toggleAnteriores"
+                    checked={verAnteriores}
+                    onCheckedChange={setVerAnteriores}
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Equipo</Label>
-                  <Select
-                    value={equipoSeleccionado}
-                    onValueChange={setEquipoSeleccionado}
-                  >
+                  <Label className="text-sm">Equipo</Label>
+                  <Select value={equipoSeleccionado} onValueChange={setEquipoSeleccionado}>
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccione un equipo" />
                     </SelectTrigger>
-                    <SelectContent className="max-h-80 overflow-y-auto">
+                    <SelectContent position="popper" className="max-h-80 overflow-y-auto">
                       {equipos.map((equipo) => (
                         <SelectItem key={equipo.id} value={equipo.id.toString()}>
                           {equipo.nombre}
@@ -540,7 +560,7 @@ export default function GrillaHorarios() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Profesional</Label>
+                  <Label className="text-sm">Profesional</Label>
                   <Select
                     value={profesionalSeleccionado}
                     onValueChange={setProfesionalSeleccionado}
@@ -549,10 +569,15 @@ export default function GrillaHorarios() {
                     <SelectTrigger>
                       <SelectValue placeholder="Seleccione un profesional" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {profesionalesFiltrados.map((profesional) => (
-                        <SelectItem key={profesional.id} value={profesional.id.toString()}>
-                          {profesional.nombre} {profesional.apellido}
+                    <SelectContent position="popper">
+                      {profesionalesFiltrados.map((p) => (
+                        <SelectItem key={p.id} value={p.id.toString()}>
+                          {p.nombre} {p.apellido}
+                          {verAnteriores && p.fechaBaja && (
+                            <span className="ml-2 text-xs text-red-600">
+                              (baja {new Date(p.fechaBaja).toLocaleDateString('es-AR')})
+                            </span>
+                          )}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -562,26 +587,34 @@ export default function GrillaHorarios() {
 
               {profesionalSeleccionado && (
                 <div className="flex justify-end">
-                  <PermissionButton 
-                    requiredPermission={{ entity: 'paquetehoras', action: 'read'}}
-                    onClick={() => setActiveTab("horarios")}>
+                  <PermissionButton
+                    requiredPermission={{ entity: 'paquetehoras', action: 'read' }}
+                    onClick={() => setActiveTab("horarios")}
+                    className="w-full sm:w-auto"
+                  >
                     Ver Paquetes
                   </PermissionButton>
                 </div>
               )}
             </TabsContent>
 
+
             <TabsContent value="horarios">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center space-x-6">
+              <div className="space-y-4 w-full">
+                {/* HEADER RESPONSIVE */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-6">
                     <div className="flex items-center space-x-2">
-                      <UsersIcon className="h-5 w-5" />
-                      <span className="font-semibold">{getNombreEquipoSeleccionado()}</span>
+                      <UsersIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className="font-semibold text-sm sm:text-base truncate max-w-[150px] sm:max-w-none">
+                        {getNombreEquipoSeleccionado()}
+                      </span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <UserIcon className="h-5 w-5" />
-                      <span className="font-semibold">{getNombreProfesionalSeleccionado()}</span>
+                      <UserIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <span className="font-semibold text-sm sm:text-base truncate max-w-[120px] sm:max-w-none">
+                        {getNombreProfesionalSeleccionado()}
+                      </span>
                       {/* Indicador de licencia */}
                       {profesionalesFiltrados.find(p => p.id.toString() === profesionalSeleccionado)?.licenciaActiva && (
                         <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
@@ -589,112 +622,143 @@ export default function GrillaHorarios() {
                         </Badge>
                       )}
                     </div>
-                    <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-lg">
-                      <span className="text-sm font-medium text-blue-700">Total:</span>
-                      <span className="text-lg font-bold text-blue-800">{getTotalHoras()} horas semanales</span>
+                    <div className="flex items-center space-x-2 bg-blue-50 px-2 py-1 rounded-lg">
+                      <span className="text-xs sm:text-sm font-medium text-blue-700">Total:</span>
+                      <span className="text-sm sm:text-lg font-bold text-blue-800">{getTotalHoras()}h</span>
                     </div>
                   </div>
+                  {verAnteriores && (
+                    <Badge variant="destructive" className="text-xs self-start sm:self-auto">
+                      Vista histórica (sólo lectura)
+                    </Badge>
+                  )}
                 </div>
 
-                <div className="flex justify-between items-center">
-                  <div className="relative w-64">
+                {/* BARRA DE BÚSQUEDA Y BOTÓN */}
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="relative w-full sm:w-64">
                     <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
                     <Input
                       placeholder="Buscar..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-8"
+                      className="pl-8 text-sm sm:text-base"
                     />
                   </div>
-                  <PermissionButton 
+                  <PermissionButton
                     requiredPermission={{ entity: 'paquetehoras', action: 'create'}}
-                    onClick={() => handleOpenModal()}>
+                    onClick={() => handleOpenModal()}
+                    disabled={verAnteriores}
+                    className="w-full sm:w-auto text-sm"
+                  >
                     <PlusIcon className="h-4 w-4 mr-2" />
                     Agregar Paquete
                   </PermissionButton>
                 </div>
 
-                <div className="border rounded-md">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                      <TableHead className="w-[80px]">Tipo</TableHead>
-                      <TableHead className="w-[80px]">Cantidad</TableHead>
-                      <TableHead className="w-[150px]">Escuela</TableHead>
-                      <TableHead className="w-[100px]">Día</TableHead>
-                      <TableHead className="w-[80px]">Inicio</TableHead>
-                      <TableHead className="w-[80px]">Fin</TableHead>
-                      <TableHead className="w-[80px]">Rotativo</TableHead>
-                      <TableHead className="w-[100px]">Semanas</TableHead>
-                      <TableHead className="w-[120px] text-right">Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                     {sortedPaquetes.map((paquete) => {
-                        // Determinar colores según el tipo de paquete
-                        let tipoBorder = '';
-                        let tipoBadge = '';
-                        
-                        if (paquete.tipo === "Escuela") {
-                          tipoBorder = 'border-l-4 border-l-green-400 bg-green-50';
-                          tipoBadge = 'bg-green-100 text-green-800';
-                        } else if (paquete.tipo === "Carga en GEI") {
-                          tipoBorder = 'border-l-4 border-l-violet-400 bg-violet-50';
-                          tipoBadge = 'bg-violet-100 text-violet-800';
-                        } else if (paquete.tipo === "Trabajo Interdisciplinario") {
-                          tipoBorder = 'border-l-4 border-l-blue-400 bg-blue-100';
-                          tipoBadge = 'bg-blue-200 text-blue-800';
-                        }
+                {/* CONTENEDOR RESPONSIVE DE LA TABLA - SOLO LA TABLA SCROLLEA EN X */}
+                <div className="border rounded-md overflow-hidden w-full">
+                  <div className="overflow-x-auto max-w-full">
+                    <Table className="min-w-[900px] w-full">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[100px] sm:w-[120px] text-xs sm:text-sm">Tipo</TableHead>
+                          <TableHead className="w-[80px] sm:w-[100px] whitespace-nowrap text-xs sm:text-sm">Cantidad</TableHead>
+                          <TableHead className="w-[150px] sm:w-[200px] text-xs sm:text-sm">Escuela</TableHead>
+                          <TableHead className="w-[80px] sm:w-[120px] whitespace-nowrap text-xs sm:text-sm">Día</TableHead>
+                          <TableHead className="w-[80px] sm:w-[100px] whitespace-nowrap text-xs sm:text-sm">Inicio</TableHead>
+                          <TableHead className="w-[80px] sm:w-[100px] whitespace-nowrap text-xs sm:text-sm">Fin</TableHead>
+                          <TableHead className="w-[90px] sm:w-[110px] whitespace-nowrap text-xs sm:text-sm">Rotativo</TableHead>
+                          <TableHead className="w-[100px] sm:w-[140px] whitespace-nowrap text-xs sm:text-sm">Semanas</TableHead>
+                          <TableHead className="w-[100px] sm:w-[140px] text-right whitespace-nowrap text-xs sm:text-sm">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
 
-                        // Añadir resalte adicional si es rotativo
-                        const rotativoStyle = paquete.rotativo ? 'font-semibold' : '';
+                      <TableBody>
+                        {sortedPaquetes.map((paquete) => {
+                          let tipoBorder = ''
+                          let tipoBadge = ''
+                          if (paquete.tipo === "Escuela") {
+                            tipoBorder = 'border-l-4 border-l-green-400 bg-green-50'
+                            tipoBadge = 'bg-green-100 text-green-800'
+                          } else if (paquete.tipo === "Carga en GEI") {
+                            tipoBorder = 'border-l-4 border-l-violet-400 bg-violet-50'
+                            tipoBadge = 'bg-violet-100 text-violet-800'
+                          } else if (paquete.tipo === "Trabajo Interdisciplinario") {
+                            tipoBorder = 'border-l-4 border-l-blue-400 bg-blue-100'
+                            tipoBadge = 'bg-blue-200 text-blue-800'
+                          }
 
-                        return (
-                          <TableRow key={paquete.id} className={rotativoStyle}>
-                            <TableCell className={`${tipoBorder} font-medium`}>
-                              <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold ${tipoBadge}`}>
-                                {paquete.tipo}
-                              </span>
-                            </TableCell>
-                            <TableCell>{paquete.cantidad} horas</TableCell>
-                            <TableCell>
-                              {paquete.escuela?.nombre}
-                              <br />
-                              <small className="text-gray-500">{paquete.escuela?.Numero}</small>
-                            </TableCell>
-                            <TableCell>{["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][paquete.diaSemana] || "-"}</TableCell>
-                            <TableCell>{paquete.horaInicio}</TableCell>
-                            <TableCell>{paquete.horaFin}</TableCell>
-                            <TableCell
-                              className={paquete.rotativo ? "bg-yellow-100 text-yellow-800 font-semibold" : ""}
-                            >
-                              {paquete.rotativo ? "Sí" : "No"}
-                            </TableCell>
-                            <TableCell>{paquete.rotativo && paquete.semanas?.length ? paquete.semanas.join(', ') : '-'}</TableCell>
-                            <TableCell className="text-right">
-                              <PermissionButton
-                                requiredPermission={{ entity: 'paquetehoras', action: 'update'}}
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleOpenModal(paquete)}
-                              >
-                                <FilePenIcon className="h-4 w-4" />
-                              </PermissionButton>
-                              <PermissionButton
-                                requiredPermission={{ entity: 'paquetehoras', action: 'delete'}}
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDelete(paquete.id)}
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </PermissionButton>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                          const rotativoStyle = paquete.rotativo ? 'font-semibold' : ''
+
+                          return (
+                            <TableRow key={paquete.id} className={rotativoStyle}>
+                              <TableCell className={`${tipoBorder} font-medium`}>
+                                <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold ${tipoBadge}`}>
+                                  {paquete.tipo}
+                                </span>
+                              </TableCell>
+
+                              <TableCell className="whitespace-nowrap text-xs sm:text-sm">{paquete.cantidad} h</TableCell>
+
+                              <TableCell className="max-w-[150px] sm:max-w-none">
+                                <div className="truncate text-xs sm:text-sm">
+                                  {paquete.escuela?.nombre}
+                                </div>
+                                <small className="text-gray-500 text-xs">{paquete.escuela?.Numero}</small>
+                              </TableCell>
+
+                              <TableCell className="whitespace-nowrap text-xs sm:text-sm">
+                                {["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][paquete.diaSemana] || "-"}
+                              </TableCell>
+
+                              <TableCell className="whitespace-nowrap text-xs sm:text-sm">{paquete.horaInicio}</TableCell>
+                              <TableCell className="whitespace-nowrap text-xs sm:text-sm">{paquete.horaFin}</TableCell>
+
+                              <TableCell className={`${paquete.rotativo ? "bg-yellow-100 text-yellow-800 font-semibold" : ""} whitespace-nowrap text-xs sm:text-sm`}>
+                                {paquete.rotativo ? "Sí" : "No"}
+                              </TableCell>
+
+                              <TableCell className="whitespace-nowrap text-xs sm:text-sm">
+                                {paquete.rotativo && paquete.semanas?.length ? paquete.semanas.join(', ') : '-'}
+                              </TableCell>
+
+                              <TableCell className="text-right whitespace-nowrap">
+                                <div className="flex justify-end gap-1">
+                                  <PermissionButton
+                                    requiredPermission={{ entity: 'paquetehoras', action: 'update'}}
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleOpenModal(paquete)}
+                                    className="h-8 w-8"
+                                  >
+                                    <FilePenIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                                  </PermissionButton>
+                                  <PermissionButton
+                                    requiredPermission={{ entity: 'paquetehoras', action: 'delete'}}
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDelete(paquete.id)}
+                                    className="h-8 w-8"
+                                  >
+                                    <TrashIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                                  </PermissionButton>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
+
+                {sortedPaquetes.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    No se encontraron paquetes de horas
+                  </div>
+                )}
+
               </div>
             </TabsContent>
           </Tabs>
@@ -702,98 +766,114 @@ export default function GrillaHorarios() {
       </Card>
 
       <Dialog open={openModal} onOpenChange={setOpenModal}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
+        <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-[600px] max-h-[90vh] flex flex-col mx-auto">
           <DialogHeader>
-            <DialogTitle>{currentPaquete ? "Editar" : "Agregar"} Paquete de Horas</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">{currentPaquete ? "Editar" : "Agregar"} Paquete de Horas</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto pr-2">
+          <div className="flex-1 overflow-y-auto pr-1">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="tipo">Tipo de Paquete</Label>
+                <Label htmlFor="tipo" className="text-sm sm:text-base">Tipo de Paquete</Label>
                 <Select
                   name="tipo"
                   value={formData.tipo}
                   onValueChange={(value) => handleSelectChange("tipo", value)}
                   required
                 >
-                  <SelectTrigger id="tipo">
+                  <SelectTrigger id="tipo" className="text-sm sm:text-base">
                     <SelectValue placeholder="Seleccione un tipo" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper">
                     {tiposPaquete.map((tipo) => (
-                      <SelectItem key={tipo} value={tipo}>
+                      <SelectItem key={tipo} value={tipo} className="text-sm sm:text-base">
                         {tipo}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              {/* cantidad ya no se ingresa manualmente */}
+              
               <div className="space-y-2">
-                <Label htmlFor="escuelaId">Escuela</Label>
+                <Label htmlFor="escuelaId" className="text-sm sm:text-base">Escuela</Label>
                 <Select
                   name="escuelaId"
                   value={formData.escuelaId}
                   onValueChange={(value) => handleSelectChange("escuelaId", value)}
                   disabled={formData.tipo !== "Escuela"}
                 >
-                  <SelectTrigger id="escuelaId">
+                  <SelectTrigger id="escuelaId" className="text-sm sm:text-base">
                     <SelectValue placeholder="Seleccione una escuela" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60 overflow-y-auto">
-                    <ScrollArea>
-                      <SelectItem value="none">Ninguna</SelectItem>
-                      {escuelasDelEquipo?.map((escuela) => (
-                        <SelectItem key={escuela.id} value={escuela.id.toString()}>
-                          {escuela.nombre} {escuela.Numero}
-                        </SelectItem>
-                      ))}
-                    </ScrollArea>
+                    <SelectItem value="none" className="text-sm sm:text-base">Ninguna</SelectItem>
+                    {escuelasDelEquipo?.map((escuela) => (
+                      <SelectItem key={escuela.id} value={escuela.id.toString()} className="text-sm sm:text-base">
+                        {escuela.nombre} {escuela.Numero}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="diaSemana">Día de la semana</Label>
+                <Label htmlFor="diaSemana" className="text-sm sm:text-base">Día de la semana</Label>
                 <Select
                   name="diaSemana"
                   value={formData.diaSemana}
                   onValueChange={(value) => handleSelectChange("diaSemana", value)}
                   required
                 >
-                  <SelectTrigger id="diaSemana">
+                  <SelectTrigger id="diaSemana" className="text-sm sm:text-base">
                     <SelectValue placeholder="Seleccione un día" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {/* Usamos 1..5 como antes */}
-                    <SelectItem value="1">Lunes</SelectItem>
-                    <SelectItem value="2">Martes</SelectItem>
-                    <SelectItem value="3">Miércoles</SelectItem>
-                    <SelectItem value="4">Jueves</SelectItem>
-                    <SelectItem value="5">Viernes</SelectItem>
+                  <SelectContent position="popper">
+                    <SelectItem value="1" className="text-sm sm:text-base">Lunes</SelectItem>
+                    <SelectItem value="2" className="text-sm sm:text-base">Martes</SelectItem>
+                    <SelectItem value="3" className="text-sm sm:text-base">Miércoles</SelectItem>
+                    <SelectItem value="4" className="text-sm sm:text-base">Jueves</SelectItem>
+                    <SelectItem value="5" className="text-sm sm:text-base">Viernes</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="horaInicio">Hora inicio</Label>
-                  <Input id="horaInicio" name="horaInicio" type="time" value={formData.horaInicio} onChange={handleInputChange} required />
+                  <Label htmlFor="horaInicio" className="text-sm sm:text-base">Hora inicio</Label>
+                  <Input 
+                    id="horaInicio" 
+                    name="horaInicio" 
+                    type="time" 
+                    value={formData.horaInicio} 
+                    onChange={handleInputChange} 
+                    required 
+                    className="text-sm sm:text-base"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="horaFin">Hora fin</Label>
-                  <Input id="horaFin" name="horaFin" type="time" value={formData.horaFin} onChange={handleInputChange} required />
+                  <Label htmlFor="horaFin" className="text-sm sm:text-base">Hora fin</Label>
+                  <Input 
+                    id="horaFin" 
+                    name="horaFin" 
+                    type="time" 
+                    value={formData.horaFin} 
+                    onChange={handleInputChange} 
+                    required 
+                    className="text-sm sm:text-base"
+                  />
                 </div>
               </div>
+
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <input id="rotativo" name="rotativo" type="checkbox" checked={formData.rotativo} onChange={handleInputChange} />
-                  <Label htmlFor="rotativo">Horario rotativo</Label>
+                  <Label htmlFor="rotativo" className="text-sm sm:text-base">Horario rotativo</Label>
                 </div>
                 {formData.rotativo && (
                   <div>
-                    <Label>Semanas del ciclo (1-4)</Label>
+                    <Label className="text-sm sm:text-base">Semanas del ciclo (1-4)</Label>
                     <div className="flex gap-3 mt-1">
                       {[1,2,3,4].map((s) => (
-                        <label key={s} className="flex items-center gap-1">
+                        <label key={s} className="flex items-center gap-1 text-sm sm:text-base">
                           <input type="checkbox" checked={formData.semanas.includes(s)} onChange={() => toggleSemana(s)} />
                           <span>{s}</span>
                         </label>
@@ -804,11 +884,11 @@ export default function GrillaHorarios() {
               </div>
             </form>
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpenModal(false)}>
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={() => setOpenModal(false)} className="text-sm sm:text-base">
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading} onClick={handleSubmit}>
+            <Button type="submit" disabled={isLoading} onClick={handleSubmit} className="text-sm sm:text-base">
               {isLoading ? "Guardando..." : "Guardar"}
             </Button>
           </DialogFooter>
@@ -817,4 +897,4 @@ export default function GrillaHorarios() {
     </div>
     </ErrorBoundary>
   )
-} 
+}

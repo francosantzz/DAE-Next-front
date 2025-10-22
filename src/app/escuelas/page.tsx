@@ -548,7 +548,7 @@ const calcularEstadisticasHoras = (paquetesHoras: PaqueteHoras[]) => {
         <header className="bg-white shadow">
           <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center">
-              <h1 className="text-3xl font-bold text-gray-900">Gestión de Escuelas</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Gestión de Escuelas</h1>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
                     <PermissionButton
@@ -561,7 +561,7 @@ const calcularEstadisticasHoras = (paquetesHoras: PaqueteHoras[]) => {
                       <PlusCircle className="mr-2 h-4 w-4" /> Agregar Escuela
                     </PermissionButton>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
+                  <DialogContent className="w-[95vw] h-[90vh] sm:max-w-[1000px] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>{currentEscuela ? "Editar" : "Agregar"} Escuela</DialogTitle>
                       <DialogDescription>
@@ -698,21 +698,24 @@ const calcularEstadisticasHoras = (paquetesHoras: PaqueteHoras[]) => {
         </header>
       </div>
       <div className="min-h-screen bg-gray-100 p-4 md:p-8">
-        <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white shadow-md rounded-lg p-4 sm:p-6 mb-8">
+          {/* Grid RESPONSIVE: 1 col (xs), 2 col (sm), 3 col (lg) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             <div>
               <Label htmlFor="busqueda">Filtrar por nombre o número de escuela</Label>
               <Input
-                id="busqueda" 
+                id="busqueda"
                 placeholder="Nombre/Número de la escuela"
                 value={busquedaInput}
                 onChange={(e) => setBusquedaInput(e.target.value)}
+                className="h-10"
               />
             </div>
+
             <div>
               <Label htmlFor="filtroEquipo">Filtrar por equipo</Label>
               <Select onValueChange={setFiltroEquipo} value={filtroEquipo}>
-                <SelectTrigger id="filtroEquipo">
+                <SelectTrigger id="filtroEquipo" className="h-10">
                   <SelectValue placeholder="Selecciona un equipo" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60 overflow-y-auto">
@@ -725,18 +728,20 @@ const calcularEstadisticasHoras = (paquetesHoras: PaqueteHoras[]) => {
                 </SelectContent>
               </Select>
             </div>
-             <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="filtroSinPaquetes"
-                  checked={filtroSinPaquetes}
-                  onChange={(e) => setFiltroSinPaquetes(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <Label htmlFor="filtroSinPaquetes" className="text-sm font-medium text-gray-700">
-                  Mostrar sólo escuelas SIN profesionales
-                </Label>
-              </div>
+
+            {/* El checkbox ocupa su propia celda y se ve bien en móvil */}
+            <div className="flex items-center gap-2 sm:justify-start pt-6 sm:pt-7">
+              <input
+                type="checkbox"
+                id="filtroSinPaquetes"
+                checked={filtroSinPaquetes}
+                onChange={(e) => setFiltroSinPaquetes(e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <Label htmlFor="filtroSinPaquetes" className="text-sm font-medium text-gray-700">
+                Mostrar sólo escuelas SIN profesionales
+              </Label>
+            </div>
           </div>
         </div>
 
@@ -750,160 +755,156 @@ const calcularEstadisticasHoras = (paquetesHoras: PaqueteHoras[]) => {
                 const { icon: EstadoIcon, color } = getIconAndColor(estado);
                 return (
                   <AccordionItem key={escuela.id} value={String(escuela.id)}>
-                    <AccordionTrigger className="px-6 py-4 hover:bg-gray-50">
-                      <div className="flex justify-between w-full">
-                        <div className="flex items-center">
-                          <span>{escuela.nombre} - {escuela.Numero} </span>
+                    <AccordionTrigger className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 w-full">
+                        {/* Izquierda: nombre + badges */}
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:flex-wrap gap-1.5 sm:gap-2">
+                          <div className="text-sm sm:text-base font-medium">
+                            {escuela.nombre} {escuela.Numero ? <>- {escuela.Numero}</> : null}
+                          </div>
+
                           {escuela.observaciones && (
-                            <Badge variant="outline" className={`ml-2 ${color} border-current`}>
+                            <Badge variant="outline" className={`w-fit ${color} border-current`}>
                               <EstadoIcon className="w-3 h-3 mr-1" />
                               {label}
                             </Badge>
                           )}
-                          
-                          {/* REEMPLAZAR LA SECCIÓN DE HORAS CON LA NUEVA LÓGICA */}
+
+                          {/* HORAS (usa tu calcularEstadisticasHoras) */}
                           {(() => {
-                            const stats = calcularEstadisticasHoras(escuela.paquetesHoras || []);
-                            
+                            const stats = calcularEstadisticasHoras(escuela.paquetesHoras || [])
                             if (stats.totalHoras === 0) {
                               return (
-                                <Badge 
-                                  variant="destructive" 
-                                  className="ml-2 flex items-center gap-1 bg-red-500 text-white hover:bg-red-600"
-                                >
-                                  <AlertTriangle className="w-3 h-3 mr-1" />
-                                  Sin profesionales asignados
+                                <Badge variant="destructive" className="w-fit flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  Sin profesionales
                                 </Badge>
-                              );
+                              )
                             }
-                            
                             return (
-                              <div className="flex items-center gap-2 ml-2">
-                                {/* Horas activas */}
-                                <Badge 
-                                  variant="outline" 
-                                  className="flex items-center gap-1 border-green-500 text-green-700 bg-green-50"
-                                >
-                                  <span className="font-semibold">{stats.horasActivas}h cubiertas</span>
+                              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                                <Badge variant="outline" className="w-fit border-green-500 text-green-700 bg-green-50">
+                                  {stats.horasActivas}h cubiertas
                                 </Badge>
-                                
-                                {/* Horas en licencia */}
                                 {stats.horasEnLicencia > 0 && (
-                                  <Badge 
-                                    variant="outline" 
-                                    className="flex items-center gap-1 border-orange-500 text-orange-700 bg-orange-50"
-                                  >
-                                    <AlertTriangle className="w-3 h-3" />
-                                    <span className="font-semibold">{stats.horasEnLicencia}h en licencia</span>
+                                  <Badge variant="outline" className="w-fit border-orange-500 text-orange-700 bg-orange-50">
+                                    <AlertTriangle className="w-3 h-3 mr-1" />
+                                    {stats.horasEnLicencia}h licencia
                                   </Badge>
                                 )}
                               </div>
-                            );
+                            )
                           })()}
                         </div>
-                        <span className="text-sm text-gray-500">
+
+                        {/* Derecha: equipo */}
+                        <span className="text-xs sm:text-sm text-gray-500">
                           {escuela.equipo ? `Equipo: ${escuela.equipo.nombre}` : "Sin equipo asignado"}
                         </span>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent className="px-6 py-4">
+
+                    <AccordionContent className="px-4 sm:px-6 py-4">
                       <div className="space-y-4">
-                        <p>
-                          <strong>Dirección:</strong> {escuela.direccion.calle} {escuela.direccion.numero}
-                        </p>
+                        {/* Info básica */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <p>
+                            <strong>Dirección:</strong> {escuela.direccion.calle} {escuela.direccion.numero}
+                          </p>
 
-                        {escuela.observaciones && (
-                          <div>
-                            <strong>Observaciones:</strong>
-                            <p className="mt-1 text-gray-700 bg-gray-50 p-2 rounded border border-gray-200">
-                              {escuela.observaciones.length > 150
-                                ? `${escuela.observaciones.substring(0, 150)}...`
-                                : escuela.observaciones}
-                            </p>
+                          <div className="space-y-1">
+                            {escuela.observaciones && (
+                              <>
+                                <strong>Observaciones:</strong>
+                                <p className="mt-1 text-gray-700 bg-gray-50 p-2 rounded border border-gray-200 text-sm">
+                                  {escuela.observaciones.length > 150
+                                    ? `${escuela.observaciones.substring(0, 150)}...`
+                                    : escuela.observaciones}
+                                </p>
+                              </>
+                            )}
                           </div>
-                        )}
+                        </div>
 
-                        <div>
-                          <strong>Anexos:</strong>
-                          {escuela.anexos && escuela.anexos.length > 0 ? (
-                            <ul className="list-disc pl-5 mt-2 space-y-1">
-                              {escuela.anexos.map((anexo) => (
-                                <li key={anexo.id}>
-                                  {anexo.nombre} - Matrícula: {anexo.matricula}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p>Sin anexos.</p>
-                          )}
-                        </div>
-                        <div>
-                          <strong>Paquetes de Horas:</strong>
-                          {escuela.paquetesHoras && escuela.paquetesHoras.length > 0 ? (
-                            <ul className="list-disc pl-5 mt-2 space-y-2">
-                              {escuela.paquetesHoras.map((paquete: any) => {
-                                const profesionalEnLicencia = paquete.profesional.licenciaActiva && 
-                                  paquete.profesional.fechaFinLicencia && 
-                                  new Date(paquete.profesional.fechaFinLicencia) >= new Date();
-                                
-                                return (
-                                  <li key={paquete.id} className={profesionalEnLicencia ? "text-orange-600" : ""}>
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium">{paquete.cantidad} horas</span>
-                                      <span>- {paquete.profesional.nombre} {paquete.profesional.apellido}</span>
-                                      {profesionalEnLicencia && (
-                                        <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
-                                          ⚠️ En Licencia
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    {(() => {
-                                      const d = paquete.dias || {}
-                                      const dia = d.diaSemana
-                                      const hI = (d.horaInicio || '').toString().slice(0,5)
-                                      const hF = (d.horaFin || '').toString().slice(0,5)
-                                      const rot = !!d.rotativo
-                                      const sem = d.semanas as number[] | undefined
-                                      const diaLabel = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][Number(dia)] || "-"
-                                      if (!dia && !hI && !hF) return null
-                                      return (
-                                        <div className={`text-sm ml-4 ${profesionalEnLicencia ? "text-orange-500" : "text-gray-600"}`}>
-                                          {diaLabel} {hI} - {hF}
-                                          {rot ? (sem && sem.length ? ` (Rotativo, semanas: ${sem.join(', ')})` : ' (Rotativo)') : ''}
+                        {/* Listas */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <strong>Anexos:</strong>
+                            {escuela.anexos?.length ? (
+                              <ul className="list-disc pl-5 mt-2 space-y-1 text-sm">
+                                {escuela.anexos.map(a => (
+                                  <li key={a.id}>{a.nombre} — Matrícula: {a.matricula}</li>
+                                ))}
+                              </ul>
+                            ) : <p className="text-sm text-gray-600 mt-1">Sin anexos.</p>}
+                          </div>
+
+                          <div>
+                            <strong>Paquetes de Horas:</strong>
+                            {escuela.paquetesHoras?.length ? (
+                              <ul className="list-disc pl-5 mt-2 space-y-2 text-sm">
+                                {escuela.paquetesHoras.map((paquete: any) => {
+                                  const enLic = paquete.profesional.licenciaActiva &&
+                                                paquete.profesional.fechaFinLicencia &&
+                                                new Date(paquete.profesional.fechaFinLicencia) >= new Date()
+                                  const d = paquete.dias || {}
+                                  const hI = (d.horaInicio || '').toString().slice(0,5)
+                                  const hF = (d.horaFin || '').toString().slice(0,5)
+                                  const dia = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][Number(d.diaSemana)] || "-"
+                                  const rot = !!d.rotativo
+                                  const sem = d.semanas as number[] | undefined
+
+                                  return (
+                                    <li key={paquete.id} className={enLic ? "text-orange-600" : ""}>
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        <span className="font-medium">{paquete.cantidad} h</span>
+                                        <span>— {paquete.profesional.nombre} {paquete.profesional.apellido}</span>
+                                        {enLic && (
+                                          <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                                            ⚠️ En Licencia
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      {(hI || hF) && (
+                                        <div className={`text-xs ml-0.5 ${enLic ? "text-orange-500" : "text-gray-600"}`}>
+                                          {dia} {hI}–{hF}{rot ? (sem?.length ? ` (Rotativo, semanas: ${sem.join(", ")})` : " (Rotativo)") : ""}
                                         </div>
-                                      )
-                                    })()}
-                                  </li>
-                                )
-                              })}
-                            </ul>
-                          ) : (
-                            <p>No hay paquetes de horas asignados.</p>
-                          )}
+                                      )}
+                                    </li>
+                                  )
+                                })}
+                              </ul>
+                            ) : <p className="text-sm text-gray-600 mt-1">No hay paquetes de horas.</p>}
+                          </div>
                         </div>
-                        <div className="flex justify-end space-x-2">
-                          <Button variant="outline" onClick={() => handleViewDetails(escuela)}>
+
+                        {/* Acciones */}
+                        <div className="flex flex-col sm:flex-row justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => handleViewDetails(escuela)}>
                             <Eye className="mr-2 h-4 w-4" /> Ver Detalles
                           </Button>
-                           
-                              {canEditEscuelaCompletely() && (
-                                <PermissionButton 
-                                requiredPermission={{entity: "escuela", action: "update"}}
-                                variant="outline" 
-                                onClick={() => handleEdit(escuela)}>
-                                  <Edit className="mr-2 h-4 w-4" /> Editar
-                                </PermissionButton>
-                              )}
-                              {canDeleteEscuela() && (
-                                <PermissionButton
-                                requiredPermission={{entity: "escuela", action: "delete"}} 
-                                variant="destructive" 
-                                onClick={() => handleDelete(escuela.id)}>
-                                  <Trash2 className="mr-2 h-4 w-4" /> Eliminar
-                                </PermissionButton>
-                              )}
-                           
-                          
+
+                          {canEditEscuelaCompletely() && (
+                            <PermissionButton
+                              requiredPermission={{entity: "escuela", action: "update"}}
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(escuela)}
+                            >
+                              <Edit className="mr-2 h-4 w-4" /> Editar
+                            </PermissionButton>
+                          )}
+
+                          {canDeleteEscuela() && (
+                            <PermissionButton
+                              requiredPermission={{entity: "escuela", action: "delete"}}
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDelete(escuela.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Eliminar
+                            </PermissionButton>
+                          )}
                         </div>
                       </div>
                     </AccordionContent>
@@ -913,9 +914,8 @@ const calcularEstadisticasHoras = (paquetesHoras: PaqueteHoras[]) => {
             </Accordion>
 
             {/* Paginación */}
-            <div className="mt-4 flex justify-center items-center space-x-2">
-              <Button
-                variant="outline"
+            <div className="mt-4 flex flex-col sm:flex-row justify-center items-center gap-2">
+              <Button variant="outline" size="sm"
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
               >
@@ -924,8 +924,7 @@ const calcularEstadisticasHoras = (paquetesHoras: PaqueteHoras[]) => {
               <span className="text-sm text-gray-600">
                 Página {currentPage} de {totalPages}
               </span>
-              <Button
-                variant="outline"
+              <Button variant="outline" size="sm"
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
               >
@@ -944,7 +943,7 @@ const calcularEstadisticasHoras = (paquetesHoras: PaqueteHoras[]) => {
       </div>
 
       <Dialog open={isDetailViewOpen} onOpenChange={setIsDetailViewOpen}>
-        <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] h-[90vh] sm:max-w-[1000px] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Detalles de la Escuela</DialogTitle>
           </DialogHeader>
@@ -952,48 +951,20 @@ const calcularEstadisticasHoras = (paquetesHoras: PaqueteHoras[]) => {
             <div className="space-y-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>{selectedEscuela.nombre}</CardTitle>
+                  <CardTitle className="text-lg sm:text-xl">{selectedEscuela.nombre}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p>
-                    <strong>Dirección:</strong> {selectedEscuela.direccion?.calle} {selectedEscuela.direccion?.numero}
-                  </p>
-                  <p>
-                    <strong>Departamento:</strong> {selectedEscuela.direccion?.departamento?.nombre || 'No asignado'}
-                  </p>
-                  <p>
-                    <strong>Equipo:</strong> {selectedEscuela.equipo?.nombre || 'No asignado'}
-                  </p>
-                  {selectedEscuela.CUE && (
-                    <p>
-                      <strong>CUE:</strong> {selectedEscuela.CUE}
-                    </p>
-                  )}
-                  {selectedEscuela.Numero && (
-                    <p>
-                      <strong>Número:</strong> {selectedEscuela.Numero}
-                    </p>
-                  )}
-                  {selectedEscuela.telefono && (
-                    <p>
-                      <strong>Teléfono:</strong> {selectedEscuela.telefono}
-                    </p>
-                  )}
-                  {selectedEscuela.matricula && (
-                    <p>
-                      <strong>Matrícula:</strong> {selectedEscuela.matricula}
-                    </p>
-                  )}
-                  {selectedEscuela.IVE && (
-                    <p>
-                      <strong>IVE:</strong> {selectedEscuela.IVE}
-                    </p>
-                  )}
-                  {selectedEscuela.Ambito && (
-                    <p>
-                      <strong>Ámbito:</strong> {selectedEscuela.Ambito}
-                    </p>
-                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <p><strong>Dirección:</strong> {selectedEscuela.direccion?.calle} {selectedEscuela.direccion?.numero}</p>
+                    <p><strong>Departamento:</strong> {selectedEscuela.direccion?.departamento?.nombre || 'No asignado'}</p>
+                    <p><strong>Equipo:</strong> {selectedEscuela.equipo?.nombre || 'No asignado'}</p>
+                    {selectedEscuela.CUE && <p><strong>CUE:</strong> {selectedEscuela.CUE}</p>}
+                    {selectedEscuela.Numero && <p><strong>Número:</strong> {selectedEscuela.Numero}</p>}
+                    {selectedEscuela.telefono && <p><strong>Teléfono:</strong> {selectedEscuela.telefono}</p>}
+                    {selectedEscuela.matricula && <p><strong>Matrícula:</strong> {selectedEscuela.matricula}</p>}
+                    {selectedEscuela.IVE && <p><strong>IVE:</strong> {selectedEscuela.IVE}</p>}
+                    {selectedEscuela.Ambito && <p><strong>Ámbito:</strong> {selectedEscuela.Ambito}</p>}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -1061,24 +1032,23 @@ const calcularEstadisticasHoras = (paquetesHoras: PaqueteHoras[]) => {
               <Card>
                 <CardHeader>
                   <CardTitle>Paquetes de Horas</CardTitle>
-                  {selectedEscuela.paquetesHoras && selectedEscuela.paquetesHoras.length > 0 && (() => {
-                    const stats = calcularEstadisticasHoras(selectedEscuela.paquetesHoras);
+                  {selectedEscuela.paquetesHoras?.length ? (() => {
+                    const stats = calcularEstadisticasHoras(selectedEscuela.paquetesHoras)
                     return (
-                      <div className="flex gap-4 text-sm">
-                        <div className="flex items-center gap-1">
-                          <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                          <span>{stats.horasActivas}h cubiertas</span>
-                        </div>
+                      <div className="flex gap-2 text-xs sm:text-sm overflow-x-auto pb-1">
+                        <Badge variant="outline" className="whitespace-nowrap border-green-500 text-green-700 bg-green-50">
+                          {stats.horasActivas}h cubiertas
+                        </Badge>
                         {stats.horasEnLicencia > 0 && (
-                          <div className="flex items-center gap-1">
-                            <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                            <span>{stats.horasEnLicencia}h en licencia</span>
-                          </div>
+                          <Badge variant="outline" className="whitespace-nowrap border-orange-500 text-orange-700 bg-orange-50">
+                            {stats.horasEnLicencia}h en licencia
+                          </Badge>
                         )}
                       </div>
-                    );
-                  })()}
+                    )
+                  })() : null}
                 </CardHeader>
+
                 <CardContent>
                   {selectedEscuela.paquetesHoras && selectedEscuela.paquetesHoras.length > 0 ? (
                     <ul className="space-y-3">
@@ -1141,7 +1111,7 @@ const calcularEstadisticasHoras = (paquetesHoras: PaqueteHoras[]) => {
       </Dialog>
 
       <Dialog open={isAnexoDialogOpen} onOpenChange={setIsAnexoDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] h-[90vh] sm:max-w-[1000px] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{isEditingAnexo ? "Editar" : "Agregar"} Anexo</DialogTitle>
           </DialogHeader>
@@ -1171,7 +1141,7 @@ const calcularEstadisticasHoras = (paquetesHoras: PaqueteHoras[]) => {
       </Dialog>
 
       <Dialog open={isObservacionesDialogOpen} onOpenChange={setIsObservacionesDialogOpen}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] h-[90vh] sm:max-w-[1000px] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Observaciones</DialogTitle>
           </DialogHeader>

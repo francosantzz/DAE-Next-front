@@ -353,15 +353,15 @@ export default function ListaEquiposPantallaCompleta() {
   return (
     <ErrorBoundary>
       <div className='bg-gray-100'>
-        <header className="bg-white shadow">
-          <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            <h1 className="text-3xl font-bold text-gray-900">Gestión de Equipos</h1>
-          </div>
-        </header>
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Gestión de Equipos</h1>
+        </div>
+      </header>
       </div>
       <div className="min-h-screen bg-gray-100 p-4 md:p-8">
-        <div className="bg-white shadow-md rounded-lg p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white shadow-md rounded-lg p-4 sm:p-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
             <div>
               <Label htmlFor="filtroNombre">Filtrar por nombre</Label>
               <Input
@@ -369,188 +369,135 @@ export default function ListaEquiposPantallaCompleta() {
                 placeholder="Nombre del equipo"
                 value={busquedaInput}
                 onChange={(e) => setBusquedaInput(e.target.value)}
+                className="h-10"
               />
             </div>
+
             <div>
               <Label htmlFor="filtroDepartamento">Filtrar por departamento</Label>
               <Select onValueChange={setFiltroDepartamento} value={filtroDepartamento}>
-                <SelectTrigger id="filtroDepartamento">
+                <SelectTrigger id="filtroDepartamento" className="h-10">
                   <SelectValue placeholder="Selecciona un departamento" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos los departamentos</SelectItem>
-                  {departamentos.map((departamento) => (
-                    <SelectItem key={departamento.id} value={departamento.id.toString()}>
-                      {departamento.nombre}
-                    </SelectItem>
+                <SelectContent className="max-h-60 overflow-y-auto">
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {departamentos.map((d) => (
+                    <SelectItem key={d.id} value={d.id.toString()}>{d.nombre}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-end">
+            <div className="flex sm:items-end">
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <PermissionButton
-                  requiredPermission={{ entity: 'equipo', action: 'create'}}
-                    onClick={() => {
-                      setCurrentEquipo(null)
-                      setErrorMessage('')
-                      resetForm()
-                      setIsDialogOpen(true)
-                    }}
+                    requiredPermission={{ entity: 'equipo', action: 'create'}}
+                    onClick={() => { setCurrentEquipo(null); setErrorMessage(''); resetForm(); setIsDialogOpen(true) }}
+                    className="w-full sm:w-auto"
                   >
                     <PlusCircle className="mr-2 h-4 w-4" /> Agregar Equipo
                   </PermissionButton>
                 </DialogTrigger>
-
-                <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
+                <DialogContent className="w-[95vw] h-[90vh] sm:max-w-[1000px] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>{isEditing ? 'Editar' : 'Agregar'} Equipo</DialogTitle>
                     <DialogDescription>
                       Complete los detalles del equipo aquí. Haga clic en guardar cuando termine.
                     </DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                      <Label htmlFor="nombre">Nombre</Label>
-                      <Input
-                        id="nombre"
-                        name="nombre"
-                        value={formData.nombre}
-                        onChange={handleInputChange}
-                        required
-                      />
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="nombre">Nombre</Label>
+                        <Input id="nombre" name="nombre" value={formData.nombre} onChange={handleInputChange} required />
+                      </div>
+                      <div>
+                        <Label htmlFor="departamento">Departamento</Label>
+                        <Select onValueChange={(v) => handleSelectChange('departamentoId', v)} value={formData.departamentoId.toString()}>
+                          <SelectTrigger id="departamento"><SelectValue placeholder="Selecciona" /></SelectTrigger>
+                          <SelectContent className="max-h-60 overflow-y-auto">
+                            {departamentos.map((d) => <SelectItem key={d.id} value={d.id.toString()}>{d.nombre}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div>
-                      <Label htmlFor="departamento">Departamento</Label>
-                      <Select
-                        name="departamento"
-                        onValueChange={(value) => handleSelectChange('departamentoId', value)}
-                        value={formData.departamentoId.toString()}
-                      >
-                        <SelectTrigger id="departamento">
-                          <SelectValue placeholder="Selecciona un departamento" />
-                        </SelectTrigger>
-                        <SelectContent className='max-h-60 overflow-y-auto'>
-                          {departamentos.map((departamento) => (
-                            <SelectItem key={departamento.id} value={departamento.id.toString()}>
-                              {departamento.nombre}
-                            </SelectItem>
+
+                    {/* Buscadores apilados en móvil */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div>
+                        <Label htmlFor="profesionalSearch">Buscar profesionales</Label>
+                        <Input id="profesionalSearch" value={profesionalSearch} onChange={(e)=>setProfesionalSearch(e.target.value)} placeholder="Buscar..." />
+                        {profesionalSearch && profesionalesFiltrados.length > 0 && (
+                          <ScrollArea className="mt-2 max-h-40 border rounded-md">
+                            <div className="p-2">
+                              {profesionalesFiltrados.map(p => (
+                                <button
+                                  type="button"
+                                  key={p.id}
+                                  className="w-full text-left p-2 rounded hover:bg-gray-100"
+                                  onClick={() => handleProfesionalSelect(p)}
+                                >
+                                  {p.nombre} {p.apellido}
+                                </button>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        )}
+                        <Label className="mt-3 block">Profesionales seleccionados</Label>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {profesionalesSeleccionados.map(p => (
+                            <Badge key={p.id} variant="secondary" className="px-3 py-1">
+                              <UserCheck className="h-3 w-3 mr-1" />
+                              {p.nombre} {p.apellido}
+                              <Button type="button" variant="ghost" size="sm" className="h-4 w-4 p-0 ml-2" onClick={() => handleProfesionalRemove(p.id)}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </Badge>
                           ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="profesionalSearch">Buscar y seleccionar profesionales</Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          id="profesionalSearch"
-                          value={profesionalSearch}
-                          onChange={(e) => setProfesionalSearch(e.target.value)}
-                          placeholder="Buscar profesionales..."
-                        />
-                      </div>
-                      {profesionalSearch && profesionalesFiltrados.length > 0 && (
-                        <ScrollArea className="h-32 overflow-auto mt-2 border rounded-md">
-                          <div className="p-2">
-                            {profesionalesFiltrados.map((profesional) => (
-                              <div
-                                key={profesional.id}
-                                className="cursor-pointer hover:bg-gray-100 p-2 rounded"
-                                onClick={() => handleProfesionalSelect(profesional)}
-                              >
-                                {profesional.nombre} {profesional.apellido}
-                              </div>
-                            ))}
-                          </div>
-                        </ScrollArea>
-                      )}
-                    </div>
-                    <div>
-                      <Label htmlFor="escuelaSearch">Buscar y seleccionar escuelas</Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          id="escuelaSearch"
-                          value={escuelaSearch}
-                          onChange={(e) => setEscuelaSearch(e.target.value)}
-                          placeholder="Buscar escuelas..."
-                        />
-                      </div>
-                      {escuelaSearch && escuelasFiltradas.length > 0 && (
-                        <ScrollArea className="h-32 overflow-auto mt-2 border rounded-md">
-                          <div className="p-2">
-                            {escuelasFiltradas.map((escuela) => (
-                              <div
-                                key={escuela.id}
-                                className="cursor-pointer hover:bg-gray-100 p-2 rounded"
-                                onClick={() => handleEscuelaSelect(escuela)}
-                              >
-                                {escuela.nombre} {escuela.Numero}
-                              </div>
-                            ))}
-                          </div>
-                        </ScrollArea>
-                      )}
-                    </div>
-                    <div>
-                      <Label>Profesionales seleccionados</Label>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {profesionalesSeleccionados.map((profesional) => (
-                           <Badge
-                           key={profesional.id}
-                           variant="secondary"
-                           className="bg-blue-100 text-blue-800 px-3 py-1"
-                         >
-                           <UserCheck className="h-3 w-3 mr-1" />
-                           {profesional.nombre} {profesional.apellido}
-                           <Button
-                             type="button"
-                             variant="ghost"
-                             size="sm"
-                             className="h-4 w-4 p-0 ml-2 hover:bg-blue-200"
-                             onClick={() => handleProfesionalRemove(profesional.id)}
-                           >
-                             <X className="h-3 w-3" />
-                           </Button>
-                         </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <Label>Escuelas seleccionadas</Label>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {escuelasSeleccionadas.map((escuela) => (
-                           <Badge
-                           key={escuela.id}
-                           variant="secondary"
-                           className="bg-green-100 text-green-800 px-3 py-1"
-                         >
-                           <Building className="h-3 w-3 mr-1" />
-                           {escuela.nombre} {escuela.Numero}
-                           <Button
-                             type="button"
-                             variant="ghost"
-                             size="sm"
-                             className="h-4 w-4 p-0 ml-2 hover:bg-green-200"
-                             onClick={() => handleEscuelaRemove(escuela.id)}
-                           >
-                             <X className="h-3 w-3" />
-                           </Button>
-                         </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  {errorMessage && (
-                      <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
-                        <div className="flex items-center">
-                          <svg className="h-5 w-5 text-red-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span>{errorMessage}</span>
                         </div>
                       </div>
+
+                      <div>
+                        <Label htmlFor="escuelaSearch">Buscar escuelas</Label>
+                        <Input id="escuelaSearch" value={escuelaSearch} onChange={(e)=>setEscuelaSearch(e.target.value)} placeholder="Buscar..." />
+                        {escuelaSearch && escuelasFiltradas.length > 0 && (
+                          <ScrollArea className="mt-2 max-h-40 border rounded-md">
+                            <div className="p-2">
+                              {escuelasFiltradas.map(e => (
+                                <button
+                                  type="button"
+                                  key={e.id}
+                                  className="w-full text-left p-2 rounded hover:bg-gray-100"
+                                  onClick={() => handleEscuelaSelect(e)}
+                                >
+                                  {e.nombre} {e.Numero}
+                                </button>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        )}
+                        <Label className="mt-3 block">Escuelas seleccionadas</Label>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {escuelasSeleccionadas.map(e => (
+                            <Badge key={e.id} variant="secondary" className="px-3 py-1">
+                              <Building className="h-3 w-3 mr-1" />
+                              {e.nombre} {e.Numero}
+                              <Button type="button" variant="ghost" size="sm" className="h-4 w-4 p-0 ml-2" onClick={() => handleEscuelaRemove(e.id)}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {errorMessage && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm">{errorMessage}</div>
                     )}
-                    <Button type="submit">Guardar</Button>
+
+                    <div className="flex flex-col sm:flex-row justify-end gap-2">
+                      <Button type="submit" className="w-full sm:w-auto">Guardar</Button>
+                    </div>
                   </form>
                 </DialogContent>
               </Dialog>
@@ -566,81 +513,79 @@ export default function ListaEquiposPantallaCompleta() {
               <Accordion type="multiple" className="w-full">
                 {equipos.map((equipo) => (
                   <AccordionItem key={equipo.id} value={String(equipo.id)}>
-                    <AccordionTrigger className="px-6 py-4 hover:bg-gray-50">
-                      <div className="flex justify-between w-full">
-                        <span>{equipo.nombre}</span>
-                        <span className="text-sm text-gray-500">
-                        {equipo.departamento?.nombre
-                          ? `Departamento: ${equipo.departamento.nombre}`
-                          : 'Sin departamento asignado'}
+                    <AccordionTrigger className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 w-full">
+                        <span className="text-sm sm:text-base font-medium">{equipo.nombre}</span>
+                        <span className="text-xs sm:text-sm text-gray-500">
+                          {equipo.departamento?.nombre ? `Departamento: ${equipo.departamento.nombre}` : 'Sin departamento asignado'}
                         </span>
                       </div>
                     </AccordionTrigger>
-                    <AccordionContent className="px-6 py-4">
+                    <AccordionContent className="px-4 sm:px-6 py-4">
                       <div className="space-y-4">
-                        <p>
-                        <strong>Departamento:</strong> {equipo.departamento?.nombre ?? 'Sin departamento asignado'}
+                        <p className="text-sm">
+                          <strong>Departamento:</strong> {equipo.departamento?.nombre ?? 'Sin departamento asignado'}
                         </p>
-                        <div>
-                          <strong>Profesionales:</strong>
-                          {(equipo.profesionales?.length ?? 0) > 0 ? (
-                            <ul className="list-disc pl-5 mt-2 space-y-2">
-                              {(equipo.profesionales ?? []).map((profesional) => {
-                                const tieneLicenciaActiva = !!profesional.licenciaActiva
-                                return (
-                                  <li key={profesional.id} className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                      <span>{profesional.nombre} {profesional.apellido}</span>
-                                      {tieneLicenciaActiva && (
-                                        <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
-                                          En Licencia
-                                        </Badge>
-                                      )}
-                                    </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <strong>Profesionales:</strong>
+                            {(equipo.profesionales?.length ?? 0) > 0 ? (
+                              <ul className="list-disc pl-5 mt-2 space-y-2 text-sm">
+                                {(equipo.profesionales ?? []).map((p) => (
+                                  <li key={p.id} className="flex items-center gap-2">
+                                    <span>{p.nombre} {p.apellido}</span>
+                                    {p.licenciaActiva && (
+                                      <Badge variant="outline" className="text-[11px] bg-orange-50 text-orange-700 border-orange-200">
+                                        En Licencia
+                                      </Badge>
+                                    )}
                                   </li>
-                                )
-                              })}
-                            </ul>
-                          ) : (
-                            <p>No hay profesionales asignados</p>
-                          )}
+                                ))}
+                              </ul>
+                            ) : <p className="text-sm text-gray-600 mt-1">No hay profesionales asignados</p>}
+                          </div>
+
+                          <div>
+                            <strong>Escuelas:</strong>
+                            {(equipo.escuelas?.length ?? 0) > 0 ? (
+                              <ul className="list-disc pl-5 mt-2 space-y-1 text-sm">
+                                {(equipo.escuelas ?? []).map((e) => (
+                                  <li key={e.id}>{e.nombre} Nº {e.Numero}</li>
+                                ))}
+                              </ul>
+                            ) : <p className="text-sm text-gray-600 mt-1">No hay escuelas asignadas</p>}
+                          </div>
                         </div>
-                        <div>
-                          <strong>Escuelas:</strong>
-                          {(equipo.escuelas?.length ?? 0) > 0 ? (
-                            <ul className="list-disc pl-5 mt-2 space-y-1">
-                              {(equipo.escuelas ?? []).map((escuela) => (
-                                <li key={escuela.id}>
-                                  {escuela.nombre} Nº {escuela.Numero}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p>No hay escuelas asignadas</p>
-                          )}
-                        </div>
-                        <p><strong>Horas totales del Equipo:</strong> {equipo.totalHoras ?? 0}</p>
-                        <div className="flex justify-end space-x-2">
-                        <PermissionButton
-                          requiredPermission={{ entity: 'equipo', action: 'read'}}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewDetails(equipo)}
-                          className="hover:bg-green-50 hover:border-green-300 text-green-600"
-                        >
-                          <Eye className="mr-1 h-3 w-3" />
-                          Ver Detalles
-                        </PermissionButton>
+
+                        <p className="text-sm"><strong>Horas totales del Equipo:</strong> {equipo.totalHoras ?? 0}</p>
+
+                        {/* Acciones: apiladas en móvil */}
+                        <div className="flex flex-col sm:flex-row justify-end gap-2">
                           <PermissionButton
-                          requiredPermission={{entity: "equipo", action: "update"}} 
-                          variant="outline" 
-                          onClick={() => handleEdit(equipo)}>
+                            requiredPermission={{ entity: 'equipo', action: 'read'}}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewDetails(equipo)}
+                            className="hover:bg-green-50 hover:border-green-300 text-green-600"
+                          >
+                            <Eye className="mr-1 h-3 w-3" />
+                            Ver Detalles
+                          </PermissionButton>
+
+                          <PermissionButton
+                            requiredPermission={{entity: "equipo", action: "update"}}
+                            variant="outline"
+                            onClick={() => handleEdit(equipo)}
+                          >
                             <Edit className="mr-2 h-4 w-4" /> Editar
                           </PermissionButton>
-                          <PermissionButton 
-                          requiredPermission={{entity: "equipo", action: "delete"}}
-                          variant="destructive" 
-                          onClick={() => handleDelete(equipo.id)}>
+
+                          <PermissionButton
+                            requiredPermission={{entity: "equipo", action: "delete"}}
+                            variant="destructive"
+                            onClick={() => handleDelete(equipo.id)}
+                          >
                             <Trash2 className="mr-2 h-4 w-4" /> Eliminar
                           </PermissionButton>
                         </div>
@@ -650,22 +595,12 @@ export default function ListaEquiposPantallaCompleta() {
                 ))}
               </Accordion>
 
-              <div className="mt-4 flex justify-center items-center space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                >
+              <div className="mt-4 flex flex-col sm:flex-row justify-center items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1}>
                   Anterior
                 </Button>
-                <span className="text-sm text-gray-600">
-                  Página {currentPage} de {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                >
+                <span className="text-sm text-gray-600">Página {currentPage} de {totalPages}</span>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}>
                   Siguiente
                 </Button>
               </div>

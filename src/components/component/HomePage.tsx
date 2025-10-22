@@ -360,7 +360,7 @@ export function HomePage() {
   return (
     <div className="flex flex-col w-full min-h-screen bg-gray-50">
       <main className="flex min-h-[calc(100vh_-_theme(spacing.16))] flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8">
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <Card className="bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">Total de Profesionales</CardTitle>
@@ -417,7 +417,7 @@ export function HomePage() {
               <PermissionButton
                 requiredPermission={{entity: 'profesional', action: 'create'}}
                 onClick={handleOpenModal}
-                className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm w-full sm:w-auto"
               >
                 <PlusIcon className="w-4 h-4 mr-2" />
                 Agregar Profesional
@@ -425,7 +425,8 @@ export function HomePage() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-          <div className="overflow-x-auto">
+            {/* Desktop / Tablet (md+) → tabla */}
+            <div className="hidden md:block overflow-x-auto">
               <Table className="w-full table-fixed">
                 <TableHeader>
                   <TableRow className="bg-gray-50">
@@ -444,43 +445,42 @@ export function HomePage() {
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10 flex-shrink-0">
                             <AvatarFallback className="bg-blue-100 text-blue-700 font-semibold">
-                              {professional.nombre.charAt(0)}
-                              {professional.apellido.charAt(0)}
+                              {professional.nombre?.[0]}{professional.apellido?.[0]}
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0 flex-1">
-                            <div className="font-semibold text-gray-900 break-words whitespace-normal">
-                              {professional.apellido} {professional.nombre} 
+                            <div className="font-semibold text-gray-900 break-words">
+                              {professional.apellido} {professional.nombre}
                             </div>
                             <div className="text-sm text-gray-500 flex items-center">
                               <PhoneIcon className="w-3 h-3 mr-1 flex-shrink-0" />
-                              <span className="whitespace-nowrap">{professional.telefono}</span>
+                              <span className="truncate">{professional.telefono}</span>
                             </div>
                           </div>
                         </div>
                       </TableCell>
+
                       <TableCell>
                         <div className="flex flex-col space-y-1">
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 break-words whitespace-normal text-xs">
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 break-words text-xs">
                             {professional.profesion}
                           </Badge>
-                          <div className="text-xs text-gray-500 break-words whitespace-normal">Mat: {professional.matricula}</div>
+                          <div className="text-xs text-gray-500 break-words">Mat: {professional.matricula}</div>
                         </div>
                       </TableCell>
+
                       <TableCell>
                         <div className="space-y-1">
-                          {professional.equipos && professional.equipos.length > 0 ? (
-                            professional.equipos.map((equipo) => (
-                              <div key={equipo.id} className="flex items-center gap-2">
-                                <div className="bg-green-50 rounded-full p-1 flex-shrink-0">
-                                  <UsersIcon className="w-3 h-3 text-green-600" />
-                                </div>
-                                <span className="text-sm font-medium text-gray-700 break-words whitespace-normal">
-                                  {equipo.nombre || "Sin nombre"}
-                                </span>
+                          {professional.equipos?.length ? professional.equipos.map((equipo) => (
+                            <div key={equipo.id} className="flex items-center gap-2">
+                              <div className="bg-green-50 rounded-full p-1 flex-shrink-0">
+                                <UsersIcon className="w-3 h-3 text-green-600" />
                               </div>
-                            ))
-                          ) : (
+                              <span className="text-sm font-medium text-gray-700 break-words">
+                                {equipo.nombre || "Sin nombre"}
+                              </span>
+                            </div>
+                          )) : (
                             <div className="flex items-center gap-2 text-gray-500">
                               <div className="bg-gray-50 rounded-full p-1 flex-shrink-0">
                                 <UsersIcon className="w-3 h-3 text-gray-400" />
@@ -490,23 +490,25 @@ export function HomePage() {
                           )}
                         </div>
                       </TableCell>
+
                       <TableCell className="text-center">
-                        <div className="bg-blue-50 rounded-lg p-2 mx-auto" style={{width: 'fit-content'}}>
+                        <div className="bg-blue-50 rounded-lg p-2 mx-auto w-fit">
                           <div className="font-bold text-lg text-blue-700">
                             {professional.totalHoras}
                           </div>
                           <div className="text-xs text-blue-600">horas</div>
                         </div>
                       </TableCell>
-                      <TableCell className="break-words whitespace-normal">
-                        {professional.correoElectronico}
+
+                      <TableCell className="break-words">
+                        <span className="break-words">{professional.correoElectronico}</span>
                       </TableCell>
+
                       <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
+                        <div className="flex justify-end gap-2">
                           <PermissionButton
                             requiredPermission={{ entity: 'profesional', action: 'update'}}
-                            variant="outline"
-                            size="icon"
+                            variant="outline" size="icon"
                             onClick={() => handleEdit(professional)}
                             className="hover:bg-blue-50 hover:border-blue-300"
                           >
@@ -515,8 +517,7 @@ export function HomePage() {
                           </PermissionButton>
                           <PermissionButton
                             requiredPermission={{ entity: 'profesional', action: 'delete'}}
-                            variant="outline"
-                            size="icon"
+                            variant="outline" size="icon"
                             onClick={() => handleDelete(professional.id)}
                             className="hover:bg-red-50 hover:border-red-300 text-red-600"
                           >
@@ -530,21 +531,96 @@ export function HomePage() {
                 </TableBody>
               </Table>
             </div>
-            <div className="mt-4 flex justify-center items-center space-x-2 p-4">
+
+            {/* Mobile (< md) → cards */}
+            <div className="md:hidden divide-y">
+              {professionals.map((p) => (
+                <div key={p.id} className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-blue-100 text-blue-700 font-semibold">
+                        {p.nombre?.[0]}{p.apellido?.[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-gray-900">{p.apellido} {p.nombre}</div>
+                      <div className="text-xs text-gray-500 flex items-center mt-0.5">
+                        <PhoneIcon className="w-3 h-3 mr-1" />
+                        <span className="truncate">{p.telefono || '—'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                    <div className="col-span-2">
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                        {p.profesion}
+                      </Badge>
+                    </div>
+                    <div>
+                      <span className="block text-xs text-gray-500">Horas</span>
+                      <span className="inline-flex items-center gap-1 font-semibold">
+                        {p.totalHoras}<span className="text-xs text-gray-500">h</span>
+                      </span>
+                    </div>
+                    <div className="truncate">
+                      <span className="block text-xs text-gray-500">Correo</span>
+                      <span className="text-gray-700 break-words">{p.correoElectronico || '—'}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="block text-xs text-gray-500">Equipos</span>
+                      {p.equipos?.length ? (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {p.equipos.map((e) => (
+                            <Badge key={e.id} variant="secondary" className="text-[11px]">
+                              {e.nombre}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : <span className="text-gray-500">Sin equipo</span>}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex gap-2">
+                    <PermissionButton
+                      requiredPermission={{ entity: 'profesional', action: 'update'}}
+                      variant="outline"
+                      onClick={() => handleEdit(p)}
+                      className="flex-1"
+                    >
+                      <FilePenIcon className="w-4 h-4 mr-1" />
+                      Editar
+                    </PermissionButton>
+                    <PermissionButton
+                      requiredPermission={{ entity: 'profesional', action: 'delete'}}
+                      variant="destructive"
+                      onClick={() => handleDelete(p.id)}
+                      className="flex-1"
+                    >
+                      <TrashIcon className="w-4 h-4 mr-1" />
+                      Eliminar
+                    </PermissionButton>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Paginación */}
+            <div className="mt-4 flex flex-col sm:flex-row justify-center items-center gap-2 p-4">
               <Button
-                variant="outline"
+                variant="outline" size="sm"
                 onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                 disabled={currentPage === 1}
+                className="w-full sm:w-auto"
               >
                 Anterior
               </Button>
-              <span className="text-sm text-gray-600">
-                Página {currentPage} de {totalPages}
-              </span>
+              <span className="text-sm text-gray-600">Página {currentPage} de {totalPages}</span>
               <Button
-                variant="outline"
+                variant="outline" size="sm"
                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                 disabled={currentPage === totalPages}
+                className="w-full sm:w-auto"
               >
                 Siguiente
               </Button>
@@ -563,7 +639,7 @@ export function HomePage() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] h-[90vh] sm:max-w-[800px] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-semibold text-gray-800">
               {currentProfesional ? "Editar" : "Agregar"} Profesional

@@ -409,8 +409,8 @@ export default function ListaProfesionales() {
       <ErrorBoundary>
       <Layout>
         <div className="space-y-6">
-          <div className="bg-white shadow-md rounded-lg p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-white shadow-md rounded-lg p-4 sm:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               <div>
                 <Label htmlFor="filtroNombre">Filtrar por nombre</Label>
                 <Input
@@ -418,12 +418,14 @@ export default function ListaProfesionales() {
                   placeholder="Nombre del profesional"
                   value={filtroNombre}
                   onChange={(e) => setFiltroNombre(e.target.value)}
+                  className="h-10"
                 />
               </div>
+
               <div>
                 <Label htmlFor="filtroEquipo">Filtrar por equipo</Label>
                 <Select onValueChange={setFiltroEquipo} value={filtroEquipo}>
-                  <SelectTrigger id="filtroEquipo">
+                  <SelectTrigger id="filtroEquipo" className="h-10">
                     <SelectValue placeholder="Selecciona un equipo" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60 overflow-y-auto">
@@ -438,10 +440,11 @@ export default function ListaProfesionales() {
                   </SelectContent>
                 </Select>
               </div>
+
               <div>
                 <Label htmlFor="filtroDepartamento">Filtrar por departamento</Label>
                 <Select onValueChange={setFiltroDepartamento} value={filtroDepartamento}>
-                  <SelectTrigger id="filtroDepartamento">
+                  <SelectTrigger id="filtroDepartamento" className="h-10">
                     <SelectValue placeholder="Selecciona un departamento" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60 overflow-y-auto">
@@ -488,7 +491,7 @@ export default function ListaProfesionales() {
                       <PlusCircle className="mr-2 h-4 w-4" /> Agregar Profesional
                     </PermissionButton>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-[1000px] max-h-[90vh] overflow-y-auto">
+                  <DialogContent className="w-[95vw] h-[90vh] sm:max-w-[1000px] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>{currentProfesional ? 'Editar' : 'Agregar'} Profesional</DialogTitle>
                       {currentProfesional && (
@@ -499,264 +502,157 @@ export default function ListaProfesionales() {
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="space-y-4">
                       <div>
-                        <Label htmlFor="nombre">Nombre</Label>
-                        <Input
-                          id="nombre"
-                          name="nombre"
-                          value={formData.nombre}
-                          onChange={handleInputChange}
-                          required
-                          className="border border-gray-600 rounded px-2 py-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="apellido">Apellido</Label>
-                        <Input
-                          id="apellido"
-                          name="apellido"
-                          value={formData.apellido}
-                          onChange={handleInputChange}
-                          required
-                          className="border border-gray-600 rounded px-2 py-1"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="cuil">CUIL</Label>
-                        <Input
-                          id="cuil"
-                          name="cuil"
-                          value={formData.cuil}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="profesion">Profesión</Label>
-                        <Input
-                          id="profesion"
-                          name="profesion"
-                          value={formData.profesion}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="matricula">Matrícula</Label>
-                        <Input
-                          id="matricula"
-                          name="matricula"
-                          value={formData.matricula}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="telefono">Teléfono</Label>
-                        <Input
-                          id="telefono"
-                          name="telefono"
-                          value={formData.telefono}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="fechaNacimiento">Fecha de Nacimiento</Label>
-                        <Input
-                          id="fechaNacimiento"
-                          name="fechaNacimiento"
-                          type="date"
-                          value={formData.fechaNacimiento}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="dni">DNI</Label>
-                        <Input
-                          id="dni"
-                          name="dni"
-                          value={formData.dni}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="fechaVencimientoMatricula">Fecha de Vencimiento de Matrícula</Label>
-                        <Input
-                          id="fechaVencimientoMatricula"
-                          name="fechaVencimientoMatricula"
-                          type="date"
-                          value={formData.fechaVencimientoMatricula}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="fechaVencimientoPsicofisico">Fecha de Vencimiento Psicofísico</Label>
-                        <Input
-                          id="fechaVencimientoPsicofisico"
-                          name="fechaVencimientoPsicofisico"
-                          type="date"
-                          value={formData.fechaVencimientoPsicofisico}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="correoElectronico">Correo Electrónico</Label>
-                        <Input
-                          id="correoElectronico"
-                          name="correoElectronico"
-                          value={formData.correoElectronico}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="direccion.calle">Calle</Label>
-                        <Input
-                          id="direccion.calle"
-                          name="direccion.calle"
-                          value={formData.direccion.calle}
-                          onChange={(e) => setFormData(prev => ({
-                            ...prev,
-                            direccion: { ...prev.direccion, calle: e.target.value }
-                          }))}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="direccion.numero">Número</Label>
-                        <Input
-                          id="direccion.numero"
-                          name="direccion.numero"
-                          value={formData.direccion.numero}
-                          onChange={(e) => setFormData(prev => ({
-                            ...prev,
-                            direccion: { ...prev.direccion, numero: e.target.value }
-                          }))}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="direccion.departamentoId">Departamento</Label>
-                        <Select
-                          name="direccion.departamentoId"
-                          onValueChange={(value) => setFormData(prev => ({
-                            ...prev,
-                            direccion: { ...prev.direccion, departamentoId: value }
-                          }))}
-                          value={formData.direccion.departamentoId}
-                        >
-                          <SelectTrigger id="direccion.departamentoId">
-                            <SelectValue placeholder="Seleccione un departamento" />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-60 overflow-y-auto">
-                            {departamentos.map((departamento) => (
-                              <SelectItem key={departamento.id} value={departamento.id.toString()}>
-                                {departamento.nombre}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label>Cargos de Horas</Label>
-                        <div className="space-y-3">
-                          {formData.cargosHoras.map((cargo, index) => (
-                            <div key={index} className="flex gap-2 items-end border p-3 rounded-lg">
-                              <div className="flex-1">
-                                <Label htmlFor={`cargo-tipo-${index}`}>Tipo de Cargo</Label>
-                                <Select
-                                  value={cargo.tipo}
-                                  onValueChange={(value) => handleCargoHorasChange(index, 'tipo', value as any)}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Seleccione tipo" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="comunes">Comunes</SelectItem>
-                                    <SelectItem value="investigacion">Investigación</SelectItem>
-                                    <SelectItem value="mision_especial_primaria">Misión Especial Primaria</SelectItem>
-                                    <SelectItem value="mision_especial_secundaria">Misión Especial Secundaria</SelectItem>
-                                    <SelectItem value="regimen_27">Régimen 27</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="flex-1">
-                                <Label htmlFor={`cargo-horas-${index}`}>Cantidad de Horas</Label>
-                                <Input
-                                  id={`cargo-horas-${index}`}
-                                  type="number"
-                                  value={cargo.cantidadHoras}
-                                  onChange={(e) => handleCargoHorasChange(index, 'cantidadHoras', parseInt(e.target.value) || 0)}
-                                  min="0"
-                                />
-                              </div>
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => removeCargoHoras(index)}
-                                className="mb-0"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={addCargoHoras}
-                            className="w-full"
-                          >
-                            <Plus className="mr-2 h-4 w-4" /> Agregar Cargo de Horas
-                          </Button>
+                        <h3 className="font-semibold mb-2 text-sm text-gray-700">Datos personales</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {/* nombre */}
+                          <div>
+                            <Label htmlFor="nombre">Nombre</Label>
+                            <Input id="nombre" name="nombre" value={formData.nombre} onChange={handleInputChange} required />
+                          </div>
+                          <div>
+                            <Label htmlFor="apellido">Apellido</Label>
+                            <Input id="apellido" name="apellido" value={formData.apellido} onChange={handleInputChange} required />
+                          </div>
+                          <div>
+                            <Label htmlFor="profesion">Profesión</Label>
+                            <Input id="profesion" name="profesion" value={formData.profesion} onChange={handleInputChange} required />
+                          </div>
+                          <div>
+                            <Label htmlFor="cuil">CUIL</Label>
+                            <Input id="cuil" name="cuil" value={formData.cuil} onChange={handleInputChange} />
+                          </div>
+                          <div>
+                            <Label htmlFor="dni">DNI</Label>
+                            <Input id="dni" name="dni" value={formData.dni} onChange={handleInputChange} />
+                          </div>
+                          <div>
+                            <Label htmlFor="correoElectronico">Correo Electrónico</Label>
+                            <Input id="correoElectronico" name="correoElectronico" value={formData.correoElectronico} onChange={handleInputChange} />
+                          </div>
+                          <div>
+                            <Label htmlFor="telefono">Teléfono</Label>
+                            <Input id="telefono" name="telefono" value={formData.telefono} onChange={handleInputChange} />
+                          </div>
+                          <div>
+                            <Label htmlFor="fechaNacimiento">Fecha de Nacimiento</Label>
+                            <Input id="fechaNacimiento" name="fechaNacimiento" type="date" value={formData.fechaNacimiento} onChange={handleInputChange} />
+                          </div>
+                          <div>
+                            <Label htmlFor="matricula">Matrícula</Label>
+                            <Input id="matricula" name="matricula" value={formData.matricula} onChange={handleInputChange} />
+                          </div>
+                          <div>
+                            <Label htmlFor="fechaVencimientoMatricula">Vto. Matrícula</Label>
+                            <Input id="fechaVencimientoMatricula" name="fechaVencimientoMatricula" type="date" value={formData.fechaVencimientoMatricula} onChange={handleInputChange} />
+                          </div>
+                          <div>
+                            <Label htmlFor="fechaVencimientoPsicofisico">Vto. Psicofísico</Label>
+                            <Input id="fechaVencimientoPsicofisico" name="fechaVencimientoPsicofisico" type="date" value={formData.fechaVencimientoPsicofisico} onChange={handleInputChange} />
+                          </div>
                         </div>
                       </div>
+                      {/* Dirección */}
                       <div>
-                        <Label htmlFor="equiposIds">Equipos</Label>
-                        <Select
-                          name="equiposIds"
-                          onValueChange={(value) => {
-                            const equipoId = parseInt(value);
-                            setFormData(prev => ({
-                              ...prev,
-                              equiposIds: prev.equiposIds.includes(equipoId)
-                                ? prev.equiposIds.filter(id => id !== equipoId)
-                                : [...prev.equiposIds, equipoId]
-                            }))
-                          }}
-                          value=""
-                        >
-                          <SelectTrigger id="equiposIds">
-                            <SelectValue placeholder="Seleccione equipos" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {equipos.map((equipo) => (
-                              <SelectItem key={equipo.id} value={equipo.id.toString()}>
-                                {equipo.nombre}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {formData.equiposIds.map(id => {
-                            const equipo = equipos.find(e => e.id === id);
-                            return equipo ? (
-                              <Badge key={id} variant="secondary" className="flex items-center gap-1">
-                                {equipo.nombre}
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-4 w-4 p-0"
-                                  onClick={() => setFormData(prev => ({
-                                    ...prev,
-                                    equiposIds: prev.equiposIds.filter(eid => eid !== id)
-                                  }))}
-                                >
-                                  <XIcon className="h-3 w-3" />
+                        <h3 className="font-semibold mb-2 text-sm text-gray-700">Dirección</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div>
+                            <Label htmlFor="direccion.calle">Calle</Label>
+                            <Input id="direccion.calle" name="direccion.calle" value={formData.direccion.calle}
+                              onChange={(e) => setFormData(prev => ({ ...prev, direccion: { ...prev.direccion, calle: e.target.value } }))} />
+                          </div>
+                          <div>
+                            <Label htmlFor="direccion.numero">Número</Label>
+                            <Input id="direccion.numero" name="direccion.numero" value={formData.direccion.numero}
+                              onChange={(e) => setFormData(prev => ({ ...prev, direccion: { ...prev.direccion, numero: e.target.value } }))} />
+                          </div>
+                          <div>
+                            <Label htmlFor="direccion.departamentoId">Departamento</Label>
+                            <Select
+                              onValueChange={(value) => setFormData(prev => ({ ...prev, direccion: { ...prev.direccion, departamentoId: value } }))}
+                              value={formData.direccion.departamentoId}
+                            >
+                              <SelectTrigger id="direccion.departamentoId"><SelectValue placeholder="Seleccione" /></SelectTrigger>
+                              <SelectContent className="max-h-60 overflow-y-auto">
+                                {departamentos.map((d) => <SelectItem key={d.id} value={d.id.toString()}>{d.nombre}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Cargos de horas + Equipos */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                          <Label>Cargos de Horas</Label>
+                          <div className="space-y-3">
+                            {formData.cargosHoras.map((cargo, index) => (
+                              <div key={index} className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end border p-3 rounded-lg">
+                                <div className="flex-1">
+                                  <Label>Tipo de Cargo</Label>
+                                  <Select value={cargo.tipo} onValueChange={(v) => handleCargoHorasChange(index, 'tipo', v as any)}>
+                                    <SelectTrigger><SelectValue placeholder="Seleccione tipo" /></SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="comunes">Comunes</SelectItem>
+                                      <SelectItem value="investigacion">Investigación</SelectItem>
+                                      <SelectItem value="mision_especial_primaria">Misión Especial Primaria</SelectItem>
+                                      <SelectItem value="mision_especial_secundaria">Misión Especial Secundaria</SelectItem>
+                                      <SelectItem value="regimen_27">Régimen 27</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="flex-1">
+                                  <Label>Cantidad de Horas</Label>
+                                  <Input type="number" value={cargo.cantidadHoras} min={0}
+                                    onChange={(e) => handleCargoHorasChange(index, 'cantidadHoras', parseInt(e.target.value) || 0)} />
+                                </div>
+                                <Button type="button" variant="destructive" size="sm" onClick={() => removeCargoHoras(index)} className="sm:self-end">
+                                  <X className="h-4 w-4" />
                                 </Button>
-                              </Badge>
-                            ) : null;
-                          })}
+                              </div>
+                            ))}
+                            <Button type="button" variant="outline" onClick={addCargoHoras} className="w-full">
+                              <Plus className="mr-2 h-4 w-4" /> Agregar Cargo de Horas
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="equiposIds">Equipos</Label>
+                          <Select
+                            onValueChange={(value) => {
+                              const id = parseInt(value)
+                              setFormData(prev => ({
+                                ...prev,
+                                equiposIds: prev.equiposIds.includes(id) ? prev.equiposIds.filter(eid => eid !== id) : [...prev.equiposIds, id]
+                              }))
+                            }}
+                            value=""
+                          >
+                            <SelectTrigger id="equiposIds"><SelectValue placeholder="Seleccione equipos" /></SelectTrigger>
+                            <SelectContent>
+                              {equipos.map((e) => <SelectItem key={e.id} value={e.id.toString()}>{e.nombre}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {formData.equiposIds.map(id => {
+                              const eq = equipos.find(e => e.id === id)
+                              return eq ? (
+                                <Badge key={id} variant="secondary" className="flex items-center gap-1">
+                                  {eq.nombre}
+                                  <Button
+                                    variant="ghost" size="sm" className="h-4 w-4 p-0"
+                                    onClick={() => setFormData(prev => ({ ...prev, equiposIds: prev.equiposIds.filter(eid => eid !== id) }))}
+                                  >
+                                    <XIcon className="h-3 w-3" />
+                                  </Button>
+                                </Badge>
+                              ) : null
+                            })}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex justify-end space-x-2">
-                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                          Cancelar
-                        </Button>
+                      <div className="flex flex-col sm:flex-row justify-end gap-2">
+                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
                         <Button type="submit">Guardar Cambios</Button>
                       </div>
                     </form>
@@ -775,10 +671,11 @@ export default function ListaProfesionales() {
                   {profesionales.map((profesional) => {
                     return (
                       <AccordionItem key={profesional.id} value={String(profesional.id)}>
-                        <AccordionTrigger className="px-6 py-4 hover:bg-gray-50">
-                          <div className="flex justify-between w-full">
-                            <div className="flex items-center gap-2">
-                              {/* Indicador psicofísico con puntito rojo si está mal */}
+                        <AccordionTrigger className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 w-full">
+                            {/* Izquierda: nombre + badges (wrap en móvil) */}
+                            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                              {/* psicofísico */}
                               {(() => {
                                 const psic = getPsicofisicoEstado(profesional);
                                 return (psic === "FALTA" || psic === "VENCIDO") ? (
@@ -789,22 +686,22 @@ export default function ListaProfesionales() {
                                 ) : null;
                               })()}
 
-                              <span className="font-medium">{`${profesional.apellido} ${profesional.nombre}`}</span>
+                              <span className="font-medium text-sm sm:text-base">
+                                {`${profesional.apellido} ${profesional.nombre}`}
+                              </span>
 
-                              {/* Badge de Licencia (si corresponde) */}
+                              {/* Licencia */}
                               {profesional.licenciaActiva && profesional.fechaFinLicencia && new Date(profesional.fechaFinLicencia) >= new Date() && (
-                                <Badge variant="destructive" className="text-xs px-2 py-0 h-5">
-                                  En Licencia
-                                </Badge>
+                                <Badge variant="destructive" className="text-[11px] px-2 py-0 h-5">En Licencia</Badge>
                               )}
 
-                              {/* Badge de faltantes personales */}
+                              {/* Faltantes personales */}
                               {(() => {
                                 const faltan = getMissingPersonalFields(profesional);
                                 return faltan.length > 0 ? (
                                   <Badge
                                     variant="outline"
-                                    className="text-xs px-2 py-0 h-5 bg-yellow-50 text-yellow-800 border-yellow-300"
+                                    className="text-[11px] px-2 py-0 h-5 bg-yellow-50 text-yellow-800 border-yellow-300"
                                     title={`Faltan: ${faltan.join(", ")}`}
                                   >
                                     Faltan datos · {faltan.length}
@@ -812,87 +709,75 @@ export default function ListaProfesionales() {
                                 ) : null;
                               })()}
 
-                              {/* Badge estado psicofísico */}
+                              {/* Estado psicofísico */}
                               {(() => {
                                 const psic = getPsicofisicoEstado(profesional);
-                                if (psic === "FALTA") {
-                                  return (
-                                    <Badge variant="outline" className="text-xs px-2 py-0 h-5 bg-orange-50 text-orange-800 border-orange-300">
-                                      Psicofísico faltante
-                                    </Badge>
-                                  );
-                                }
-                                if (psic === "VENCIDO") {
-                                  return (
-                                    <Badge variant="destructive" className="text-xs px-2 py-0 h-5">
-                                      Psicofísico vencido
-                                    </Badge>
-                                  );
-                                }
-                                return null;
+                                if (psic === "FALTA")
+                                  return <Badge variant="outline" className="text-[11px] px-2 py-0 h-5 bg-orange-50 text-orange-800 border-orange-300">Psicofísico faltante</Badge>
+                                if (psic === "VENCIDO")
+                                  return <Badge variant="destructive" className="text-[11px] px-2 py-0 h-5">Psicofísico vencido</Badge>
+                                return null
                               })()}
                             </div>
 
-                            <span className="text-sm text-gray-500">{profesional.profesion}</span>
+                            {/* Derecha: profesión (baja a segunda línea en móvil) */}
+                            <span className="text-xs sm:text-sm text-gray-500">{profesional.profesion}</span>
                           </div>
                         </AccordionTrigger>
-                        <AccordionContent className="px-6 py-4">
+                        <AccordionContent className="px-4 sm:px-6 py-4">
                           <div className="space-y-4">
                             <div>
                               <strong>Cargos de Horas:</strong>
-                              {profesional.cargosHoras && profesional.cargosHoras.length > 0 ? (
-                                <div className="mt-2 space-y-2">
-                                  {profesional.cargosHoras.map((cargo, index) => (
-                                    <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                                      <span className="capitalize">{cargo.tipo.replace(/_/g, ' ')}</span>
-                                      <Badge variant="outline">{cargo.cantidadHoras} horas</Badge>
+                              {profesional.cargosHoras?.length ? (
+                                <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                  {profesional.cargosHoras.map((cargo, i) => (
+                                    <div key={i} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                                      <span className="capitalize text-sm">{cargo.tipo.replace(/_/g, ' ')}</span>
+                                      <Badge variant="outline" className="text-xs">{cargo.cantidadHoras} horas</Badge>
                                     </div>
                                   ))}
                                 </div>
                               ) : (
-                                <p>No hay cargos de horas asignados</p>
+                                <p className="text-sm text-gray-600 mt-1">No hay cargos de horas asignados</p>
                               )}
                             </div>
-                            
-                            <div>
-                              <strong>Equipos:</strong>
-                              {profesional.equipos && profesional.equipos.length > 0 ? (
-                                <ul className="list-disc pl-5 mt-2 space-y-1">
-                                  {profesional.equipos.map((equipo) => (
-                                    <li key={equipo.id} className="flex items-center justify-between">
-                                      <span>{equipo.nombre}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p>No hay equipos asignados</p>
-                              )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <strong>Equipos:</strong>
+                                {profesional.equipos?.length ? (
+                                  <ul className="list-disc pl-5 mt-2 space-y-1 text-sm">
+                                    {profesional.equipos.map(eq => <li key={eq.id}>{eq.nombre}</li>)}
+                                  </ul>
+                                ) : <p className="text-sm text-gray-600 mt-1">No hay equipos asignados</p>}
+                              </div>
+
+                              <div>
+                                <strong>Paquetes de Horas Activos:</strong>
+                                {profesional.paquetesHoras?.length ? (
+                                  <ul className="list-disc pl-5 mt-2 space-y-1 text-sm">
+                                    {profesional.paquetesHoras.map(ph => (
+                                      <li key={ph.id}>
+                                        {ph.tipo} - {ph.cantidad} horas
+                                        {ph.escuela && ` - ${ph.escuela.nombre}`}
+                                        {` (${ph.equipo?.nombre})`}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                ) : <p className="text-sm text-gray-600 mt-1">No hay paquetes de horas activos</p>}
+                              </div>
                             </div>
-                            
-                            <div>
-                              <strong>Paquetes de Horas Activos:</strong>
-                              {profesional.paquetesHoras.length > 0 ? (
-                                <ul className="list-disc pl-5 mt-2 space-y-1">
-                                  {profesional.paquetesHoras.map((paquete) => (
-                                    <li key={paquete.id}>
-                                      {paquete.tipo} - {paquete.cantidad} horas
-                                      {paquete.escuela && ` - ${paquete.escuela.nombre}`}
-                                      {` (${paquete.equipo?.nombre})`}
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p>No hay paquetes de horas activos</p>
-                              )}
-                            </div>
-                            
-                            <div className="flex justify-end space-x-2">
-                            <Button onClick={() => {
-                              console.log('ID profesional:', profesional.id, profesional)
-                              router.push(`/perfil/${profesional.id}`)
-                            }}>
-                              Ver Perfil Detallado
-                            </Button>
+
+                            {/* Acciones: apiladas en móvil */}
+                            <div className="flex flex-col sm:flex-row justify-end gap-2">
+                              <Button
+                                onClick={() => {
+                                  router.push(`/perfil/${profesional.id}`)
+                                }}
+                              >
+                                Ver Perfil Detallado
+                              </Button>
+
                               <PermissionButton
                                 requiredPermission={{ entity: "profesional", action: "update" }}
                                 variant="outline"
@@ -900,6 +785,7 @@ export default function ListaProfesionales() {
                               >
                                 <Edit className="mr-2 h-4 w-4" /> Editar
                               </PermissionButton>
+
                               <PermissionButton
                                 requiredPermission={{ entity: "profesional", action: "delete" }}
                                 variant="destructive"
@@ -916,9 +802,9 @@ export default function ListaProfesionales() {
                 </Accordion>
 
                 {/* Paginación */}
-                <div className="mt-4 flex justify-center items-center space-x-2">
+                <div className="mt-4 flex flex-col sm:flex-row justify-center items-center gap-2">
                   <Button
-                    variant="outline"
+                    variant="outline" size="sm"
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
                   >
@@ -928,7 +814,7 @@ export default function ListaProfesionales() {
                     Página {currentPage} de {totalPages}
                   </span>
                   <Button
-                    variant="outline"
+                    variant="outline" size="sm"
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
                   >
