@@ -65,7 +65,8 @@ interface PaqueteHoras {
   horaInicio: string; // HH:mm
   horaFin: string; // HH:mm
   rotativo: boolean;
-  semanas?: number[] | null; // solo si rotativo
+  semanas?: number[] | null;
+   // solo si rotativo
 }
 
 export default function GrillaHorarios() {
