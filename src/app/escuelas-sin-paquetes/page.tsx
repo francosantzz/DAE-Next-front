@@ -158,8 +158,16 @@ const fetchCatalogos = useCallback(async () => {
     const headers = { Authorization: `Bearer ${session.user.accessToken}` }
 
     // 1) equipos/short (primero intentá cache)
-    const eqCache = fromCache<Equipo[]>('equiposShort_v1')
-    if (eqCache) setEquipos(eqCache)
+const eqCache = fromCache<Equipo[]>('equiposShort_v2')
+if (eqCache) {
+  setEquipos(eqCache)
+  // Sembrar observaciones desde cache
+  const nextObs: Record<string, string> = {}
+  for (const eq of eqCache) {
+    if (eq?.observaciones != null) nextObs[String(eq.id)] = eq.observaciones
+  }
+  setObsByEquipo(prev => ({ ...nextObs, ...prev }))
+}
 
     // 2) departamentos
     const depCache = fromCache<Departamento[]>('departamentos_v1')
@@ -176,12 +184,19 @@ const fetchCatalogos = useCallback(async () => {
       fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/regions`, { headers, signal: controller.signal }), // ✅ /regions
     ])
 
-    if (equiposRes.status === "fulfilled" && equiposRes.value.ok) {
-      const je = await equiposRes.value.json()
-      const next = je.data || je
-      setEquipos(prev => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next))
-      toCache('equiposShort_v1', next)
-    }
+if (equiposRes.status === "fulfilled" && equiposRes.value.ok) {
+  const je = await equiposRes.value.json()
+  const next: Equipo[] = je.data || je
+  setEquipos(prev => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next))
+  toCache('equiposShort_v2', next)
+
+  // Sembrar observaciones desde el back short
+  const nextObs: Record<string, string> = {}
+  for (const eq of next) {
+    if (eq?.observaciones != null) nextObs[String(eq.id)] = eq.observaciones
+  }
+  setObsByEquipo(prev => ({ ...nextObs, ...prev }))
+}
 
     if (departamentosRes.status === "fulfilled" && departamentosRes.value.ok) {
       const jd = await departamentosRes.value.json()
@@ -489,11 +504,29 @@ const fetchPromediosBatch = useCallback(async (ids: number[]) => {
       if (!res.ok) throw new Error("No se pudo guardar en el servidor")
 
       setSavedEquipoOk((s) => ({ ...s, [key]: "ok" }))
-      setEscuelas((prev) =>
-        prev.map((es) =>
-          es.equipo?.id === equipoId ? { ...es, equipo: { ...es.equipo, observaciones: texto } as Equipo } : es,
-        ),
-      )
+
+// 1) Actualizá escuelas que muestran ese equipo
+setEscuelas((prev) =>
+  prev.map((es) =>
+    es.equipo?.id === equipoId ? { ...es, equipo: { ...es.equipo, observaciones: texto } as Equipo } : es,
+  ),
+)
+
+// 2) Actualizá el catálogo equipos en memoria
+setEquipos(prev => prev.map(eq => eq.id === equipoId ? { ...eq, observaciones: texto } : eq))
+
+// 3) Actualizá el estado centralizado de obs
+setObsByEquipo(o => ({ ...o, [key]: texto }))
+
+// 4) (opcional) refrescá el cache corto si lo usás luego
+try {
+  const cached = sessionStorage.getItem('equiposShort_v2')
+  if (cached) {
+    const arr: Equipo[] = JSON.parse(cached)
+    const upd = arr.map(eq => eq.id === equipoId ? { ...eq, observaciones: texto } : eq)
+    sessionStorage.setItem('equiposShort_v2', JSON.stringify(upd))
+  }
+} catch {}
     } catch (err) {
       console.error(err)
       setSavedEquipoOk((s) => ({ ...s, [key]: "err" }))
