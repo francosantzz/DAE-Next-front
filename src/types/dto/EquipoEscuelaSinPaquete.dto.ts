@@ -1,6 +1,8 @@
+import { Departamento } from "../Departamento.interface"
+
 export interface EquipoEscuelaSinPaqueteDTO {
   id: number
   nombre: string
-//   departamento: Departamento  Crear interface departamento
+  departamento: Departamento
   observaciones?: string
 }

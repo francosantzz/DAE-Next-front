@@ -1,8 +1,11 @@
+import { Direccion } from "../Direccion.interface"
+import { Equipo } from "../equipos"
+
 export interface EscuelaSinPaqueteDTO {
   id: number
   nombre: string
   Numero?: string
   observaciones?: string
-//   direccion: Direccion Crear interface direccion
-//   equipo: Equipo | null Crear interface equipo
+  direccion: Direccion
+  equipo: Equipo | null 
 }

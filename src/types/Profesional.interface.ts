@@ -1,3 +1,7 @@
+import { Direccion } from "./Direccion.interface"
+import { EquipoProfesionalDTO } from "./dto/EquipoProfesional.dto"
+import { PaqueteHorasProfesional } from "./dto/PaqueteHorasProfesional.dto"
+
 export interface Profesional {
   id: number
   nombre: string
@@ -12,10 +16,10 @@ export interface Profesional {
   fechaVencimientoPsicofisico: string
   correoElectronico: string
   totalHoras: number
-//   cargosHoras: CargoHoras[] crear interface cargoHoras
-//   equipos: Equipo[] crear interface equipos
-//   paquetesHoras: PaqueteHoras[]  crear interface paquetehoras
-//   direccion: Direccion crear interface direccion
+  // cargosHoras: CargoHoras[]
+  equipos: EquipoProfesionalDTO[]
+  paquetesHoras: PaqueteHorasProfesional[]
+  direccion: Direccion
   // NUEVOS CAMPOS DE LICENCIA
   tipoLicencia?: string
   fechaInicioLicencia?: string
