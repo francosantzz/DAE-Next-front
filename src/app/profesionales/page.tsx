@@ -31,18 +31,10 @@ import { useDebounce } from "@/hooks/useDebounce"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { PermissionButton } from "@/components/PermissionButton"
 import { PermissionContent } from "@/components/PermissionContent"
+import { Direccion } from '@/types/Direccion.interface'
+import { Departamento } from '@/types/Departamento.interface'
+import { PaqueteHorasProfesional } from '@/types/dto/PaqueteHorasProfesional.dto'
 
-interface Departamento {
-  id: number;
-  nombre: string;
-}
-
-interface Direccion {
-  id: number;
-  calle: string;
-  numero: string;
-  departamento: Departamento;
-}
 
 interface Equipo {
   id: number;
@@ -55,13 +47,6 @@ interface Escuela {
   nombre: string;
 }
 
-interface PaqueteHoras {
-  id: number;
-  tipo: string;
-  cantidad: number;
-  escuela?: Escuela;
-  equipo?: Equipo;
-}
 
 interface CargoHoras {
   id?: number;
@@ -85,7 +70,7 @@ interface Profesional {
   totalHoras: number;
   cargosHoras: CargoHoras[];
   equipos: Equipo[];
-  paquetesHoras: PaqueteHoras[];
+  paquetesHoras: PaqueteHorasProfesional[];
   direccion: Direccion;
   // NUEVOS CAMPOS DE LICENCIA
   tipoLicencia?: string;

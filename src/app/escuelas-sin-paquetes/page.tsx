@@ -15,22 +15,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useDebounce } from "@/hooks/useDebounce"
 import { cn } from "@/lib/utils"
 import { Loader2, Save, CheckCircle2, XCircle, Filter, ChevronDown, ChevronUp, Info, AlertTriangle } from "lucide-react"
+import { Direccion } from "@/types/Direccion.interface"
+import { Departamento } from "@/types/Departamento.interface"
+import { Region } from "@/types/Region.interface"
 
-/* ========= Tipos ========= */
-interface Region { id: number; nombre: string }
-interface Departamento { id: number; nombre: string; region?: Region }
+
 interface Equipo {
   id: number
   nombre: string
   departamento: Departamento
   observaciones?: string
 }
-interface Direccion {
-  id: number
-  calle: string
-  numero: string
-  departamento: Departamento
-}
+
 interface Escuela {
   id: number
   nombre: string

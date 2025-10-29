@@ -1,5 +1,7 @@
 // Tipos comunes y “flexibles” (propiedades opcionales donde pueden faltar)
 
+import { Departamento } from "./Departamento.interface";
+
 export interface Profesional {
     id: number;
     nombre: string;
@@ -17,13 +19,6 @@ export interface Profesional {
     totalHoras?: number;         // opcional
   }
   
-  export interface Region { id: number; nombre: string; }
-  
-  export interface Departamento {
-    id: number;
-    nombre: string;
-    region?: Region;
-  }
   
   export interface Escuela {
     id: number;

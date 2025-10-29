@@ -19,25 +19,10 @@ import ErrorBoundary from "../ErrorBoundary"
 import { useSession } from "next-auth/react"
 import { ProtectedRoute } from "../ProtectedRoute"
 import { PermissionButton } from "../PermissionButton"
+import { Direccion } from "@/types/Direccion.interface"
+import { Departamento } from "@/types/Departamento.interface"
 
 // Interfaces
-interface Departamento {
-  id: number
-  nombre: string
-}
-
-interface Region {
-  id: number
-  nombre: string
-}
-
-interface Direccion {
-  id: number
-  calle: string
-  numero: string
-  departamento: Departamento
-  region?: Region
-}
 
 interface Escuela {
   id: number
@@ -704,7 +689,7 @@ const [licenciaFormData, setLicenciaFormData] = useState({
                               {profesional.direccion.departamento && (
                                 <p className="text-base text-gray-600">
                                   {profesional.direccion.departamento.nombre}
-                                  {profesional.direccion.region?.nombre && `, ${profesional.direccion.region.nombre}`}
+                                  {profesional.direccion.departamento?.region?.nombre && `, ${profesional.direccion.departamento?.region?.nombre}`}
                                 </p>
                               )}
                             </>

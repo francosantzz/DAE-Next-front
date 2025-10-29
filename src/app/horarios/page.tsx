@@ -17,6 +17,7 @@ import { useSession } from "next-auth/react"
 import { PermissionButton } from "@/components/PermissionButton"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
+import { PaqueteHoras } from "@/types/PaqueteHoras.interface"
  
 interface Profesional {
   id: number;
@@ -43,31 +44,6 @@ interface Equipo {
   profesionales?: Profesional[]; // Added profesionales to the interface
 }
 
-interface PaqueteHoras {
-  id: number;
-  tipo: string;
-  cantidad: number; // calculada por backend
-  profesional: {
-    id: number;
-    nombre: string;
-    apellido: string;
-  };
-  escuela?: {
-    id: number;
-    Numero: string;
-    nombre: string;
-  };
-  equipo: {
-    id: number;
-    nombre: string;
-  };
-  diaSemana: number; // 0=Domingo .. 6=Sábado
-  horaInicio: string; // HH:mm
-  horaFin: string; // HH:mm
-  rotativo: boolean;
-  semanas?: number[] | null;
-   // solo si rotativo
-}
 
 export default function GrillaHorarios() {
   const { data: session} = useSession()
