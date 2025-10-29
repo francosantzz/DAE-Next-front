@@ -30,66 +30,17 @@ import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { usePermissions } from "@/hooks/usePermissions"
 import { Direccion } from "@/types/Direccion.interface"
 import { Departamento } from "@/types/Departamento.interface"
+import { Anexo } from "@/types/Anexo.interface"
+import { PaqueteHorasEscuela } from "@/types/dto/PaqueteHorasEscuela.dto"
+import { EquipoDepartamentoDTO } from "@/types/dto/EquipoDepartamento.dto"
+import { Escuela } from "@/types/Escuela.interface"
 
-interface Anexo {
-  id: number
-  nombre: string
-  matricula: number
-  escuela: {
-    id: number
-    nombre: string
-  }
-}
-
-interface PaqueteHoras {
-  id: number
-  cantidad: string
-  profesional: {
-    id: number
-    nombre: string
-    apellido: string
-    // AGREGAR ESTOS CAMPOS
-    licenciaActiva: boolean
-    tipoLicencia?: string
-    fechaFinLicencia?: string
-  }
-}
-
-interface Seccion {
-  id: number
-  nombre: string
-}
-
-
-interface Equipo {
-  id: number
-  nombre: string
-  departamento: Departamento
-}
-
-interface Escuela {
-  id: number
-  nombre: string
-  CUE?: number
-  Numero?: string
-  telefono?: string
-  matricula?: number
-  IVE?: string
-  Ambito?: string
-  direccion: Direccion
-  equipo: Equipo
-  anexos: Anexo[]
-  paquetesHoras: PaqueteHoras[]
-  observaciones?: string
-}
-
-//
 
 export default function ListaEscuelas() {
   const { data: session } = useSession()
   const { hasPermission, userRole } = usePermissions()
   const [escuelas, setEscuelas] = useState<Escuela[]>([])
-  const [equipos, setEquipos] = useState<Equipo[]>([])
+  const [equipos, setEquipos] = useState<EquipoDepartamentoDTO[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [busquedaInput, setBusquedaInput] = useState('')
   const busqueda = useDebounce(busquedaInput, 1000)
@@ -487,7 +438,7 @@ export default function ListaEscuelas() {
   }
 
   // Función para calcular estadísticas de horas
-const calcularEstadisticasHoras = (paquetesHoras: PaqueteHoras[]) => {
+const calcularEstadisticasHoras = (paquetesHoras: PaqueteHorasEscuela[]) => {
   const totalHoras = paquetesHoras.reduce((total, ph) => total + parseFloat(ph.cantidad), 0);
   
   // Filtrar paquetes de profesionales que NO están en licencia activa

@@ -18,42 +18,20 @@ import { PermissionButton } from "@/components/PermissionButton"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { PaqueteHoras } from "@/types/PaqueteHoras.interface"
- 
-interface Profesional {
-  id: number;
-  nombre: string;
-  apellido: string;
-  licenciaActiva: boolean;
-  totalHoras: number;
-  fechaBaja?: string | null;
-  equipos: {
-    id: number;
-    nombre: string;
-  }[];
-}
-
-interface Escuela {
-  id: number;
-  Numero: string;
-  nombre: string;
-}
-
-interface Equipo {
-  id: number;
-  nombre: string;
-  profesionales?: Profesional[]; // Added profesionales to the interface
-}
+import { EscuelaShortDTO } from "@/types/dto/EscuelaShort.dto"
+import { EquipoProfesionalDTO } from "@/types/dto/EquipoProfesional.dto"
+import { ProfesionalListado } from "@/types/dto/ProfesionalListado.dto"
+import { Profesional } from "@/types/Profesional.interface"
 
 
 export default function GrillaHorarios() {
   const { data: session} = useSession()
   const [paquetes, setPaquetes] = useState<PaqueteHoras[]>([])
-  const [profesionales, setProfesionales] = useState<Profesional[]>([])
-  const [profesionalesFiltrados, setProfesionalesFiltrados] = useState<Profesional[]>([])
-  const [escuelas, setEscuelas] = useState<Escuela[]>([])
-  const [escuelasDelEquipo, setEscuelasDelEquipo] = useState<Escuela[]>([])
+  const [profesionalesFiltrados, setProfesionalesFiltrados] = useState<ProfesionalListado[]>([])
+  const [escuelas, setEscuelas] = useState<EscuelaShortDTO[]>([])
+  const [escuelasDelEquipo, setEscuelasDelEquipo] = useState<EscuelaShortDTO[]>([])
   const [verAnteriores, setVerAnteriores] = useState(false);
-  const [equipos, setEquipos] = useState<Equipo[]>([])
+  const [equipos, setEquipos] = useState<EquipoProfesionalDTO[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [openModal, setOpenModal] = useState(false)
   const [currentPaquete, setCurrentPaquete] = useState<PaqueteHoras | null>(null)
@@ -90,12 +68,18 @@ export default function GrillaHorarios() {
         { headers: { Authorization: `Bearer ${session?.user?.accessToken}` } }
       );
       if (!res.ok) return;
-      const prof = await res.json();
+  
+      const prof: Profesional = await res.json();
+      const totalNum = prof?.totalHoras != null ? Number(prof.totalHoras) : 0;
+  
       setProfesionalesFiltrados(prev =>
-        prev.map(p => (p.id === prof.id ? { ...p, totalHoras: prof.totalHoras } : p))
+        prev.map(p => (p.id === prof.id ? { ...p, totalHoras: isNaN(totalNum) ? 0 : totalNum } : p))
       );
-    } catch {/* no-op */}
+    } catch {
+      /* no-op */
+    }
   }, [profesionalSeleccionado, session?.user?.accessToken]);
+  
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -162,7 +146,11 @@ export default function GrillaHorarios() {
     try {
       const equipo = equipos.find(e => e.id.toString() === equipoSeleccionado)
       if (equipo && equipo.profesionales) {
-        setProfesionalesFiltrados(equipo.profesionales)
+        const lista: ProfesionalListado[] = equipo.profesionales.map(p => ({
+          ...p,
+          totalHoras: typeof p.totalHoras === "number" ? p.totalHoras : 0,
+        }))
+        setProfesionalesFiltrados(lista)
       } else {
         setProfesionalesFiltrados([])
       }
@@ -207,13 +195,13 @@ export default function GrillaHorarios() {
         // Normalizar estructura (soportar backend con campo 'dias')
         const normalizados: PaqueteHoras[] = paquetesFiltrados.map((p: any) => ({
           ...p,
+          cantidad: p.cantidad != null ? Number(p.cantidad) : (p.dias?.cantidad != null ? Number(p.dias.cantidad) : undefined),
           diaSemana: p.diaSemana ?? p.dias?.diaSemana ?? null,
-          horaInicio: (p.horaInicio ?? p.dias?.horaInicio ?? '').toString().slice(0,5),
-          horaFin: (p.horaFin ?? p.dias?.horaFin ?? '').toString().slice(0,5),
+          horaInicio: (p.horaInicio ?? p.dias?.horaInicio ?? "").toString().slice(0, 5),
+          horaFin: (p.horaFin ?? p.dias?.horaFin ?? "").toString().slice(0, 5),
           rotativo: p.rotativo ?? p.dias?.rotativo ?? false,
-          semanas: p.semanas ?? p.dias?.semanas ?? null,
+          semanas: Array.isArray(p.semanas ?? p.dias?.semanas) ? (p.semanas ?? p.dias?.semanas) : null,
         }))
-
         setPaquetes(normalizados)
         setFilteredPaquetes(normalizados)
         await refreshProfesionalTotalHoras()
@@ -416,15 +404,16 @@ export default function GrillaHorarios() {
   }
 
   const getNombreProfesionalSeleccionado = () => {
-    const profesional = profesionalesFiltrados.find(p => p.id.toString() === profesionalSeleccionado)
-    return profesional ? `${profesional.nombre} ${profesional.apellido}` : ""
+    const p = profesionalesFiltrados.find(p => p.id.toString() === profesionalSeleccionado)
+    return p ? `${p.nombre} ${p.apellido}` : ""
   }
-
+  
   const getTotalHoras = () => {
-    if (!profesionalSeleccionado) return 0;
-    const profesional = profesionalesFiltrados.find(p => p.id.toString() === profesionalSeleccionado);
-    return profesional?.totalHoras || 0;
-  };
+    if (!profesionalSeleccionado) return 0
+    const p = profesionalesFiltrados.find(p => p.id.toString() === profesionalSeleccionado)
+    return typeof p?.totalHoras === "number" ? p.totalHoras : 0
+  }
+  
 
   const sortedPaquetes = useMemo(() => {
     const toHM = (t?: string) => (t ?? "").slice(0, 5);           // "HH:MM"
@@ -551,16 +540,16 @@ export default function GrillaHorarios() {
                       <SelectValue placeholder="Seleccione un profesional" />
                     </SelectTrigger>
                     <SelectContent position="popper">
-                      {profesionalesFiltrados.map((p) => (
-                        <SelectItem key={p.id} value={p.id.toString()}>
-                          {p.nombre} {p.apellido}
-                          {verAnteriores && p.fechaBaja && (
-                            <span className="ml-2 text-xs text-red-600">
-                              (baja {new Date(p.fechaBaja).toLocaleDateString('es-AR')})
-                            </span>
-                          )}
-                        </SelectItem>
-                      ))}
+                    {profesionalesFiltrados.map((p) => (
+                      <SelectItem key={p.id} value={p.id.toString()}>
+                        {p.nombre} {p.apellido}
+                        {verAnteriores && p.fechaBaja && (
+                          <span className="ml-2 text-xs text-red-600">
+                            (baja {new Date(p.fechaBaja).toLocaleDateString('es-AR')})
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))}
                     </SelectContent>
                   </Select>
                 </div>

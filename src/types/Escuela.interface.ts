@@ -1,6 +1,7 @@
 import { Anexo } from "./Anexo.interface"
 import { Direccion } from "./Direccion.interface"
 import { EquipoDepartamentoDTO } from "./dto/EquipoDepartamento.dto"
+import { PaqueteHorasEscuela } from "./dto/PaqueteHorasEscuela.dto"
 import { PaqueteHoras } from "./PaqueteHoras.interface"
 
 export interface Escuela {
@@ -15,6 +16,6 @@ export interface Escuela {
   direccion: Direccion
   equipo: EquipoDepartamentoDTO
     anexos: Anexo[] 
-    paquetesHoras: PaqueteHoras[]
+    paquetesHoras: PaqueteHorasEscuela[]
   observaciones?: string
 }
