@@ -21,88 +21,24 @@ import { ProtectedRoute } from "../ProtectedRoute"
 import { PermissionButton } from "../PermissionButton"
 import { Direccion } from "@/types/Direccion.interface"
 import { Departamento } from "@/types/Departamento.interface"
-
-// Interfaces
-
-interface Escuela {
-  id: number
-  Numero: string
-  nombre: string
-}
-
-interface Equipo {
-  id: number
-  nombre: string
-  departamento: Departamento
-}
-
-interface PaqueteHoras {
-  id: number
-  tipo: string
-  cantidad: number
-  equipo: Equipo
-  escuela?: Escuela
-  // Campos directos (pueden venir del backend o ser normalizados)
-  diaSemana?: number
-  horaInicio?: string
-  horaFin?: string
-  rotativo?: boolean
-  semanas?: number[] | null
-  // Estructura anidada (puede venir del backend)
-  dias?: {
-    diaSemana: number
-    horaInicio: string
-    horaFin: string
-    rotativo: boolean
-    semanas?: number[] | null
-    cicloSemanas?: number
-  }
-}
-
-interface CargoHoras {
-  id?: number;
-  tipo: 'comunes' | 'investigacion' | 'mision_especial_primaria' | 'mision_especial_secundaria' | 'regimen_27';
-  cantidadHoras: number;
-}
-
-interface Profesional {
-  id: number
-  nombre: string
-  apellido: string
-  cuil: string
-  profesion: string
-  matricula: string
-  telefono: string
-  fechaNacimiento: string
-  dni: string
-  fechaVencimientoMatricula: string
-  fechaVencimientoPsicofisico: string
-  correoElectronico: string
-  totalHoras: number
-  cargosHoras: CargoHoras[]
-  equipos: Equipo[]
-  paquetesHoras: PaqueteHoras[]
-  direccion: Direccion
-  // NUEVOS CAMPOS DE LICENCIA
-  tipoLicencia?: string
-  fechaInicioLicencia?: string
-  fechaFinLicencia?: string
-  licenciaActiva: boolean
-  disponible?: boolean
-}
+import { Profesional } from "@/types/Profesional.interface"
+import { EquipoDepartamentoDTO } from "@/types/dto/EquipoDepartamento.dto"
+import { EscuelaShortDTO } from "@/types/dto/EscuelaShort.dto"
+import { PaqueteHorasPerfil } from "@/types/dto/PaqueteHorasPerfil.dto"
+import { CargoHoras } from "@/types/CargoHoras.interface"
 
 export default function PerfilProfesional() {
   const { data: session } = useSession()
   const params = useParams();
   const id = params?.id;
   const [profesional, setProfesional] = useState<Profesional | null>(null)
-  const [equipos, setEquipos] = useState<Equipo[]>([])
+  const [equipos, setEquipos] = useState<EquipoDepartamentoDTO[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
-  const [escuelasFiltradas, setEscuelasFiltradas] = useState<Escuela[]>([])
+  const [escuelasFiltradas, setEscuelasFiltradas] = useState<EscuelaShortDTO[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isPaqueteDialogOpen, setIsPaqueteDialogOpen] = useState(false)
-  const [currentPaquete, setCurrentPaquete] = useState<PaqueteHoras | null>(null)
+  const [currentPaquete, setCurrentPaquete] = useState<PaqueteHorasPerfil | null>(null)
   const [isLicenciaDialogOpen, setIsLicenciaDialogOpen] = useState(false)
 const [licenciaFormData, setLicenciaFormData] = useState({
   tipoLicencia: "",
@@ -186,7 +122,7 @@ const [licenciaFormData, setLicenciaFormData] = useState({
           fechaVencimientoMatricula: profesionalData.fechaVencimientoMatricula || "",
           fechaVencimientoPsicofisico: profesionalData.fechaVencimientoPsicofisico || "",
           correoElectronico: profesionalData.correoElectronico || "",
-          equiposIds: profesionalData.equipos?.map((e: Equipo) => e.id) || [],
+          equiposIds: profesionalData.equipos?.map((e: EquipoDepartamentoDTO) => e.id) || [],
           cargosHoras: profesionalData.cargosHoras || [],
           direccion: {
             calle: profesionalData.direccion?.calle || "",
@@ -396,7 +332,7 @@ const [licenciaFormData, setLicenciaFormData] = useState({
   };
   
 
-  const handlePaqueteEdit = async (paquete: PaqueteHoras) => {
+  const handlePaqueteEdit = async (paquete: PaqueteHorasPerfil) => {
     
     const normalizedPaquete = normalizePaquete(paquete);
   
@@ -489,7 +425,7 @@ const [licenciaFormData, setLicenciaFormData] = useState({
       const updatedProfesional = await response.json()
       
       const updatedPaquete = updatedProfesional.paquetesHoras.find(
-        (p: PaqueteHoras) => p.id === (currentPaquete?.id || updatedProfesional.paquetesHoras[updatedProfesional.paquetesHoras.length - 1].id)
+        (p: PaqueteHorasPerfil) => p.id === (currentPaquete?.id || updatedProfesional.paquetesHoras[updatedProfesional.paquetesHoras.length - 1].id)
       )
 
       const paqueteCompleto = updatedPaquete;
@@ -1007,7 +943,7 @@ const [licenciaFormData, setLicenciaFormData] = useState({
                                 <div className="bg-gray-100 p-1 rounded-full">
                                   <UsersIcon className="w-3 h-3 text-gray-600" />
                                 </div>
-                                <p className="text-base text-gray-700">{paquete.equipo.nombre}</p>
+                                <p className="text-base text-gray-700">{paquete.equipo!.nombre}</p>
                               </div>
                               
                               {paquete.escuela && (

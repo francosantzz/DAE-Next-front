@@ -34,56 +34,14 @@ import { PermissionContent } from "@/components/PermissionContent"
 import { Direccion } from '@/types/Direccion.interface'
 import { Departamento } from '@/types/Departamento.interface'
 import { PaqueteHorasProfesional } from '@/types/dto/PaqueteHorasProfesional.dto'
-
-
-interface Equipo {
-  id: number;
-  nombre: string;
-  departamento: Departamento;
-}
-
-interface Escuela {
-  id: number;
-  nombre: string;
-}
-
-
-interface CargoHoras {
-  id?: number;
-  tipo: 'comunes' | 'investigacion' | 'mision_especial_primaria' | 'mision_especial_secundaria' | 'regimen_27';
-  cantidadHoras: number;
-}
-
-interface Profesional {
-  id: number;
-  nombre: string;
-  apellido: string;
-  cuil: string;
-  profesion: string;
-  matricula: string;
-  telefono: string;
-  fechaNacimiento: string;
-  dni: string;
-  fechaVencimientoMatricula: string;
-  fechaVencimientoPsicofisico: string;
-  correoElectronico: string;
-  totalHoras: number;
-  cargosHoras: CargoHoras[];
-  equipos: Equipo[];
-  paquetesHoras: PaqueteHorasProfesional[];
-  direccion: Direccion;
-  // NUEVOS CAMPOS DE LICENCIA
-  tipoLicencia?: string;
-  fechaInicioLicencia?: string;
-  fechaFinLicencia?: string;
-  licenciaActiva: boolean;
-  disponible?: boolean;
-}
+import { EquipoDepartamentoDTO } from '@/types/dto/EquipoDepartamento.dto'
+import { Profesional } from '@/types/Profesional.interface'
+import { CargoHoras } from '@/types/CargoHoras.interface'
 
 export default function ListaProfesionales() {
   const { data: session } = useSession()
   const [profesionales, setProfesionales] = useState<Profesional[]>([])
-  const [equipos, setEquipos] = useState<Equipo[]>([])
+  const [equipos, setEquipos] = useState<EquipoDepartamentoDTO[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [filtroNombre, setFiltroNombre] = useState('')
   const busqueda = useDebounce(filtroNombre, 1000)
