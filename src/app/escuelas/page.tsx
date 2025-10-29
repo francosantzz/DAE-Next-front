@@ -28,6 +28,8 @@ import { useDebounce } from "@/hooks/useDebounce"
 import { PermissionButton } from "@/components/PermissionButton"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { usePermissions } from "@/hooks/usePermissions"
+import { Direccion } from "@/types/Direccion.interface"
+import { Departamento } from "@/types/Departamento.interface"
 
 interface Anexo {
   id: number
@@ -36,20 +38,6 @@ interface Anexo {
   escuela: {
     id: number
     nombre: string
-  }
-}
-
-interface Direccion {
-  id: number
-  calle: string
-  numero: string
-  departamento: {
-    id: number
-    nombre: string
-    region?: {
-      id: number
-      nombre: string
-    }
   }
 }
 
@@ -72,10 +60,6 @@ interface Seccion {
   nombre: string
 }
 
-interface Departamento {
-  id: number
-  nombre: string
-}
 
 interface Equipo {
   id: number

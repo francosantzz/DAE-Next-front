@@ -17,6 +17,7 @@ import { useSession } from "next-auth/react"
 import { PermissionButton } from "@/components/PermissionButton"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
+import { PaqueteHoras } from "@/types/PaqueteHoras.interface"
  
 interface Profesional {
   id: number;
@@ -43,31 +44,6 @@ interface Equipo {
   profesionales?: Profesional[]; // Added profesionales to the interface
 }
 
-interface PaqueteHoras {
-  id: number;
-  tipo: string;
-  cantidad: number; // calculada por backend
-  profesional: {
-    id: number;
-    nombre: string;
-    apellido: string;
-  };
-  escuela?: {
-    id: number;
-    Numero: string;
-    nombre: string;
-  };
-  equipo: {
-    id: number;
-    nombre: string;
-  };
-  diaSemana: number; // 0=Domingo .. 6=Sábado
-  horaInicio: string; // HH:mm
-  horaFin: string; // HH:mm
-  rotativo: boolean;
-  semanas?: number[] | null;
-   // solo si rotativo
-}
 
 export default function GrillaHorarios() {
   const { data: session} = useSession()
@@ -515,13 +491,17 @@ export default function GrillaHorarios() {
 
   return (
     <ErrorBoundary>
-    <div className="container mx-auto p-2 sm:p-4 max-w-full">
-      <Card className="w-full">
+    <div className="container mx-auto px-2 sm:px-4">
+      <Card className="w-full max-w-[100vw] overflow-x-hidden">
         <CardHeader className="px-3 sm:px-6">
           <CardTitle className="text-lg sm:text-xl">Grilla de Paquetes de Horas</CardTitle>
         </CardHeader>
-        <CardContent className="px-3 sm:px-6">
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "seleccion" | "horarios")}>
+        <CardContent className="px-3 sm:px-6 overflow-x-hidden max-w-[100vw]">
+          <Tabs 
+            value={activeTab} 
+            onValueChange={(value) => setActiveTab(value as "seleccion" | "horarios")}
+            className="w-full max-w-[100vw] overflow-x-hidden"
+            >
             <TabsList className="w-full grid grid-cols-2">
               <TabsTrigger value="seleccion" className="text-xs sm:text-sm">Selección</TabsTrigger>
               <TabsTrigger value="horarios" disabled={!paquetesCargados} className="text-xs sm:text-sm">Paquetes</TabsTrigger>
@@ -601,167 +581,198 @@ export default function GrillaHorarios() {
 
 
             <TabsContent value="horarios">
-              <div className="space-y-4 w-full">
-                {/* HEADER RESPONSIVE */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-6">
-                    <div className="flex items-center space-x-2">
-                      <UsersIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                      <span className="font-semibold text-sm sm:text-base truncate max-w-[150px] sm:max-w-none">
-                        {getNombreEquipoSeleccionado()}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <UserIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                      <span className="font-semibold text-sm sm:text-base truncate max-w-[120px] sm:max-w-none">
-                        {getNombreProfesionalSeleccionado()}
-                      </span>
-                      {/* Indicador de licencia */}
-                      {profesionalesFiltrados.find(p => p.id.toString() === profesionalSeleccionado)?.licenciaActiva && (
-                        <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
-                          ⚠️ En Licencia
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-2 bg-blue-50 px-2 py-1 rounded-lg">
-                      <span className="text-xs sm:text-sm font-medium text-blue-700">Total:</span>
-                      <span className="text-sm sm:text-lg font-bold text-blue-800">{getTotalHoras()}h</span>
-                    </div>
-                  </div>
-                  {verAnteriores && (
-                    <Badge variant="destructive" className="text-xs self-start sm:self-auto">
-                      Vista histórica (sólo lectura)
-                    </Badge>
-                  )}
-                </div>
+  <div className="space-y-4 w-full overflow-x-hidden max-w-[100vw] min-w-0">
+    {/* HEADER RESPONSIVE */}
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-6 min-w-0">
+        <div className="flex items-center space-x-2 min-w-0">
+          <UsersIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="font-semibold text-sm sm:text-base truncate max-w-[150px] sm:max-w-none">
+            {getNombreEquipoSeleccionado()}
+          </span>
+        </div>
+        <div className="flex items-center space-x-2 min-w-0">
+          <UserIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="font-semibold text-sm sm:text-base max-w-[150px] sm:max-w-none">
+            {getNombreProfesionalSeleccionado()}
+          </span>
+          {profesionalesFiltrados.find(p => p.id.toString() === profesionalSeleccionado)?.licenciaActiva && (
+            <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+              ⚠️ En Licencia
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center space-x-2 bg-blue-50 px-2 py-1 rounded-lg">
+          <span className="text-xs sm:text-sm font-medium text-blue-700">Total:</span>
+          <span className="text-sm sm:text-lg font-bold text-blue-800">{getTotalHoras()}h</span>
+        </div>
+      </div>
+      {verAnteriores && (
+        <Badge variant="destructive" className="text-xs self-start sm:self-auto">
+          Vista histórica (sólo lectura)
+        </Badge>
+      )}
+    </div>
 
-                {/* BARRA DE BÚSQUEDA Y BOTÓN */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="relative w-full sm:w-64">
-                    <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
-                    <Input
-                      placeholder="Buscar..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-8 text-sm sm:text-base"
-                    />
-                  </div>
-                  <PermissionButton
-                    requiredPermission={{ entity: 'paquetehoras', action: 'create'}}
-                    onClick={() => handleOpenModal()}
-                    disabled={verAnteriores}
-                    className="w-full sm:w-auto text-sm"
+    {/* BARRA DE BÚSQUEDA Y BOTÓN */}
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0">
+      <div className="relative w-full sm:w-64 min-w-0">
+        <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+        <Input
+          placeholder="Buscar..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-8 text-sm sm:text-base"
+        />
+      </div>
+      <PermissionButton
+        requiredPermission={{ entity: 'paquetehoras', action: 'create'}}
+        onClick={() => handleOpenModal()}
+        disabled={verAnteriores}
+        className="w-full sm:w-auto text-sm"
+      >
+        <PlusIcon className="h-4 w-4 mr-2" />
+        Agregar Paquete
+      </PermissionButton>
+    </div>
+
+    {/* CONTENEDOR DE TABLA — móvil: solo la tabla scrollea; desktop: sin scroll */}
+<div className="w-full rounded-lg border">
+  {/* Este contenedor crea el scroll horizontal SOLO para la tabla en móvil */}
+  <div className="overflow-x-auto md:overflow-visible [-webkit-overflow-scrolling:touch]">
+    {/* inline-block evita que el hijo fuerce el ancho del body; min-w da scroll en móvil */}
+    <div className="inline-block align-top min-w-[760px] md:min-w-0 md:w-full">
+      <Table className="w-full table-fixed md:table-auto">
+        {/* Anchos proporcionales en desktop; 'Escuela' ancho grande */}
+        <colgroup>
+          <col className="md:w-[10%]" />   {/* Tipo */}
+          <col className="md:w-[8%]" />    {/* Cantidad */}
+          <col className="md:w-[45%]" />   {/* Escuela */}
+          <col className="md:w-[10%]" />   {/* Día */}
+          <col className="md:w-[7%]" />    {/* Inicio */}
+          <col className="md:w-[7%]" />    {/* Fin */}
+          <col className="md:w-[6%]" />    {/* Rotativo */}
+          <col className="md:w-[7%]" />    {/* Semanas */}
+          <col className="md:w-[10%]" />   {/* Acciones */}
+        </colgroup>
+
+        <TableHeader>
+          <TableRow>
+            <TableHead className="text-xs md:text-sm whitespace-nowrap">Tipo</TableHead>
+            <TableHead className="text-xs md:text-sm whitespace-nowrap">Cantidad</TableHead>
+            <TableHead className="text-xs md:text-sm">Escuela</TableHead>
+            <TableHead className="text-xs md:text-sm whitespace-nowrap">Día</TableHead>
+            <TableHead className="text-xs md:text-sm whitespace-nowrap">Inicio</TableHead>
+            <TableHead className="text-xs md:text-sm whitespace-nowrap">Fin</TableHead>
+            <TableHead className="text-xs md:text-sm whitespace-nowrap">Rotativo</TableHead>
+            <TableHead className="text-xs md:text-sm whitespace-nowrap">Semanas</TableHead>
+            <TableHead className="text-xs md:text-sm text-right whitespace-nowrap">Acciones</TableHead>
+          </TableRow>
+        </TableHeader>
+
+        <TableBody>
+          {sortedPaquetes.map((paquete) => {
+            let tipoBorder = "", tipoBadge = ""
+            if (paquete.tipo === "Escuela") {
+              tipoBorder = "border-l-4 border-l-green-400 bg-green-50"
+              tipoBadge  = "bg-green-100 text-green-800"
+            } else if (paquete.tipo === "Carga en GEI") {
+              tipoBorder = "border-l-4 border-l-violet-400 bg-violet-50"
+              tipoBadge  = "bg-violet-100 text-violet-800"
+            } else if (paquete.tipo === "Trabajo Interdisciplinario") {
+              tipoBorder = "border-l-4 border-l-blue-400 bg-blue-100"
+              tipoBadge  = "bg-blue-200 text-blue-800"
+            }
+
+            return (
+              <TableRow key={paquete.id} className={paquete.rotativo ? "font-semibold" : ""}>
+                <TableCell className={tipoBorder}>
+                  <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold ${tipoBadge}`}>
+                    {paquete.tipo}
+                  </span>
+                </TableCell>
+
+                <TableCell className="whitespace-nowrap">{paquete.cantidad} h</TableCell>
+
+                {/* ESCUELA
+                   - móvil: truncado 1 línea + title
+                   - desktop: envuelve por palabra (sin romper letra a letra) */}
+                <TableCell>
+                  <div
+                    className="
+                      max-w-[240px] md:max-w-none
+                      whitespace-nowrap md:whitespace-normal
+                      truncate md:truncate-none
+                      md:break-words
+                    "
+                    title={
+                      paquete.escuela?.nombre
+                        ? `${paquete.escuela.nombre}${paquete.escuela?.Numero ? ` • N° ${paquete.escuela.Numero}` : ""}`
+                        : "-"
+                    }
+                    style={{ wordBreak: "break-word", hyphens: "auto" }}
                   >
-                    <PlusIcon className="h-4 w-4 mr-2" />
-                    Agregar Paquete
-                  </PermissionButton>
-                </div>
-
-                {/* CONTENEDOR RESPONSIVE DE LA TABLA - SOLO LA TABLA SCROLLEA EN X */}
-                <div className="border rounded-md overflow-hidden w-full">
-                  <div className="overflow-x-auto max-w-full">
-                    <Table className="min-w-[900px] w-full">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[100px] sm:w-[120px] text-xs sm:text-sm">Tipo</TableHead>
-                          <TableHead className="w-[80px] sm:w-[100px] whitespace-nowrap text-xs sm:text-sm">Cantidad</TableHead>
-                          <TableHead className="w-[150px] sm:w-[200px] text-xs sm:text-sm">Escuela</TableHead>
-                          <TableHead className="w-[80px] sm:w-[120px] whitespace-nowrap text-xs sm:text-sm">Día</TableHead>
-                          <TableHead className="w-[80px] sm:w-[100px] whitespace-nowrap text-xs sm:text-sm">Inicio</TableHead>
-                          <TableHead className="w-[80px] sm:w-[100px] whitespace-nowrap text-xs sm:text-sm">Fin</TableHead>
-                          <TableHead className="w-[90px] sm:w-[110px] whitespace-nowrap text-xs sm:text-sm">Rotativo</TableHead>
-                          <TableHead className="w-[100px] sm:w-[140px] whitespace-nowrap text-xs sm:text-sm">Semanas</TableHead>
-                          <TableHead className="w-[100px] sm:w-[140px] text-right whitespace-nowrap text-xs sm:text-sm">Acciones</TableHead>
-                        </TableRow>
-                      </TableHeader>
-
-                      <TableBody>
-                        {sortedPaquetes.map((paquete) => {
-                          let tipoBorder = ''
-                          let tipoBadge = ''
-                          if (paquete.tipo === "Escuela") {
-                            tipoBorder = 'border-l-4 border-l-green-400 bg-green-50'
-                            tipoBadge = 'bg-green-100 text-green-800'
-                          } else if (paquete.tipo === "Carga en GEI") {
-                            tipoBorder = 'border-l-4 border-l-violet-400 bg-violet-50'
-                            tipoBadge = 'bg-violet-100 text-violet-800'
-                          } else if (paquete.tipo === "Trabajo Interdisciplinario") {
-                            tipoBorder = 'border-l-4 border-l-blue-400 bg-blue-100'
-                            tipoBadge = 'bg-blue-200 text-blue-800'
-                          }
-
-                          const rotativoStyle = paquete.rotativo ? 'font-semibold' : ''
-
-                          return (
-                            <TableRow key={paquete.id} className={rotativoStyle}>
-                              <TableCell className={`${tipoBorder} font-medium`}>
-                                <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold ${tipoBadge}`}>
-                                  {paquete.tipo}
-                                </span>
-                              </TableCell>
-
-                              <TableCell className="whitespace-nowrap text-xs sm:text-sm">{paquete.cantidad} h</TableCell>
-
-                              <TableCell className="max-w-[150px] sm:max-w-none">
-                                <div className="truncate text-xs sm:text-sm">
-                                  {paquete.escuela?.nombre}
-                                </div>
-                                <small className="text-gray-500 text-xs">{paquete.escuela?.Numero}</small>
-                              </TableCell>
-
-                              <TableCell className="whitespace-nowrap text-xs sm:text-sm">
-                                {["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][paquete.diaSemana] || "-"}
-                              </TableCell>
-
-                              <TableCell className="whitespace-nowrap text-xs sm:text-sm">{paquete.horaInicio}</TableCell>
-                              <TableCell className="whitespace-nowrap text-xs sm:text-sm">{paquete.horaFin}</TableCell>
-
-                              <TableCell className={`${paquete.rotativo ? "bg-yellow-100 text-yellow-800 font-semibold" : ""} whitespace-nowrap text-xs sm:text-sm`}>
-                                {paquete.rotativo ? "Sí" : "No"}
-                              </TableCell>
-
-                              <TableCell className="whitespace-nowrap text-xs sm:text-sm">
-                                {paquete.rotativo && paquete.semanas?.length ? paquete.semanas.join(', ') : '-'}
-                              </TableCell>
-
-                              <TableCell className="text-right whitespace-nowrap">
-                                <div className="flex justify-end gap-1">
-                                  <PermissionButton
-                                    requiredPermission={{ entity: 'paquetehoras', action: 'update'}}
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleOpenModal(paquete)}
-                                    className="h-8 w-8"
-                                  >
-                                    <FilePenIcon className="h-3 w-3 sm:h-4 sm:w-4" />
-                                  </PermissionButton>
-                                  <PermissionButton
-                                    requiredPermission={{ entity: 'paquetehoras', action: 'delete'}}
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleDelete(paquete.id)}
-                                    className="h-8 w-8"
-                                  >
-                                    <TrashIcon className="h-3 w-3 sm:h-4 sm:w-4" />
-                                  </PermissionButton>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })}
-                      </TableBody>
-                    </Table>
+                    <div className="font-medium md:leading-snug">
+                      {paquete.escuela?.nombre || "-"}
+                    </div>
+                    {paquete.escuela?.Numero && (
+                      <div className="text-xs text-gray-500 md:leading-tight">
+                        N° {paquete.escuela.Numero}
+                      </div>
+                    )}
                   </div>
-                </div>
+                </TableCell>
 
-                {sortedPaquetes.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    No se encontraron paquetes de horas
+                <TableCell className="whitespace-nowrap">
+                  {["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][paquete.diaSemana] || "-"}
+                </TableCell>
+                <TableCell className="whitespace-nowrap">{paquete.horaInicio}</TableCell>
+                <TableCell className="whitespace-nowrap">{paquete.horaFin}</TableCell>
+                <TableCell className={`whitespace-nowrap ${paquete.rotativo ? "bg-yellow-100 text-yellow-800 font-semibold" : ""}`}>
+                  {paquete.rotativo ? "Sí" : "No"}
+                </TableCell>
+                <TableCell className="whitespace-nowrap">
+                  {paquete.rotativo && paquete.semanas?.length ? paquete.semanas.join(", ") : "-"}
+                </TableCell>
+
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <PermissionButton
+                      requiredPermission={{ entity: "paquetehoras", action: "update" }}
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleOpenModal(paquete)}
+                      className="h-8 w-8"
+                    >
+                      <FilePenIcon className="h-4 w-4" />
+                    </PermissionButton>
+                    <PermissionButton
+                      requiredPermission={{ entity: "paquetehoras", action: "delete" }}
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(paquete.id)}
+                      className="h-8 w-8"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </PermissionButton>
                   </div>
-                )}
+                </TableCell>
+              </TableRow>
+            )
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  </div>
+</div>
 
-              </div>
-            </TabsContent>
+    {sortedPaquetes.length === 0 && (
+      <div className="text-center py-8 text-gray-500">
+        No se encontraron paquetes de horas
+      </div>
+    )}
+  </div>
+</TabsContent>
           </Tabs>
         </CardContent>
       </Card>

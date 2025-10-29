@@ -27,7 +27,8 @@ import { useSession } from 'next-auth/react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { PermissionButton } from '@/components/PermissionButton'
 import { DetalleEquipoDialog } from '@/components/equipo/detalle-equipo-dialog'
-import { Equipo, Profesional, Departamento, Escuela } from '@/types/equipos'
+import { Equipo, Profesional, Escuela } from '@/types/equipos'
+import { Departamento } from '@/types/Departamento.interface'
 
 
 export default function ListaEquiposPantallaCompleta() {

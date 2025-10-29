@@ -15,39 +15,11 @@ import { UsersIcon, BriefcaseIcon, CalendarIcon, PlusIcon, FilePenIcon, TrashIco
 import { useSession } from "next-auth/react"
 import { Badge } from "@/components/ui/badge"
 import { PermissionButton } from '../PermissionButton'
+import { Direccion } from '@/types/Direccion.interface'
+import { Departamento } from '@/types/Departamento.interface'
+import { PaqueteHorasProfesional } from '@/types/dto/PaqueteHorasProfesional.dto'
 
 
-interface Region {
-  id: number;
-  nombre: string;
-}
-
-interface Departamento {
-  id: number;
-  nombre: string;
-  region?: Region;
-}
-
-interface Direccion {
-  id: number;
-  calle: string;
-  numero: string;
-  departamento: Departamento;
-}
-
-interface Escuela {
-  id: number;
-  nombre: string;
-}
-
-interface PaqueteHoras {
-  id: number;
-  tipo: string;
-  cantidad: number;
-  escuela: Escuela;
-  equipo: string;
-  createdAt?: string;
-}
 
 interface Equipo {
   id: number;
@@ -65,7 +37,7 @@ interface Professional {
   matricula: string;
   telefono: string;
   direccion: Direccion;
-  paquetesHoras: PaqueteHoras[];
+  paquetesHoras: PaqueteHorasProfesional[];
   equipos: Equipo[];
   totalHoras: number;
   createdAt?: string;
