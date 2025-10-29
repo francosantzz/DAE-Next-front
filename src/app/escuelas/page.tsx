@@ -29,12 +29,6 @@ import { PermissionButton } from "@/components/PermissionButton"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { usePermissions } from "@/hooks/usePermissions"
 
-interface Profesional {
-  id: number
-  nombre: string
-  apellido: string
-}
-
 interface Anexo {
   id: number
   nombre: string

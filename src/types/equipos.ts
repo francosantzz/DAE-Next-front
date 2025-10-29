@@ -62,9 +62,9 @@ export interface Profesional {
   export interface Equipo {
     id: number;
     nombre: string;
-    profesionales?: Profesional[];
+    profesionales?: Profesional[]; 
     departamento?: Departamento;
-    escuelas?: Escuela[];
+    escuelas?: Escuela[]; 
     paquetesHoras?: PaqueteHoras[];
     totalHoras?: number;
   }
