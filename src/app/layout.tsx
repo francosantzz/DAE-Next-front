@@ -4,7 +4,7 @@ import { Manrope } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import './globals.css'
 import SessionAuthProvider from '@/context/SessionAuthProvider'
-import { Sidebar } from '@/components/Sidebar'
+import { Sidebar } from '@/components/ui/Sidebar'
 
 const fontHeading = Manrope({
   subsets: ['latin'],

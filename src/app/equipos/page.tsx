@@ -22,11 +22,11 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { PlusCircle, Edit, Trash2, X, UserCheck, Building, Eye } from 'lucide-react'
-import ErrorBoundary from '@/components/ErrorBoundary'
+import ErrorBoundary from '@/components/ui/ErrorBoundary'
 import { useSession } from 'next-auth/react'
 import { useDebounce } from '@/hooks/useDebounce'
-import { PermissionButton } from '@/components/PermissionButton'
-import { DetalleEquipoDialog } from '@/components/equipo/detalle-equipo-dialog'
+import { PermissionButton } from '@/components/ui/PermissionButton'
+import { DetalleEquipoDialog } from '@/components/ui/equipo/detalle-equipo-dialog'
 import { Equipo, Profesional, Escuela } from '@/types/equipos'
 import { Departamento } from '@/types/Departamento.interface'
 

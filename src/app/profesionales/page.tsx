@@ -23,14 +23,14 @@ import {
 import { PlusCircle, Edit, Trash2, Plus, X } from 'lucide-react'
 import Layout from '../../components/profesional/LayoutProf'
 import { ScrollArea } from '@radix-ui/react-scroll-area'
-import ErrorBoundary from '@/components/ErrorBoundary'
+import ErrorBoundary from '@/components/ui/ErrorBoundary'
 import { Badge } from '@/components/ui/badge'
 import { XIcon } from 'lucide-react'
 import { useSession } from "next-auth/react"
 import { useDebounce } from "@/hooks/useDebounce"
-import { ProtectedRoute } from "@/components/ProtectedRoute"
-import { PermissionButton } from "@/components/PermissionButton"
-import { PermissionContent } from "@/components/PermissionContent"
+import { ProtectedRoute } from "@/components/ui/ProtectedRoute"
+import { PermissionButton } from "@/components/ui/PermissionButton"
+import { PermissionContent } from "@/components/ui/PermissionContent"
 import { Direccion } from '@/types/Direccion.interface'
 import { Departamento } from '@/types/Departamento.interface'
 import { PaqueteHorasProfesional } from '@/types/dto/PaqueteHorasProfesional.dto'

@@ -28,9 +28,9 @@ import {
   X,
 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import ErrorBoundary from "@/components/ErrorBoundary"
+import ErrorBoundary from "@/components/ui/ErrorBoundary"
 import { useDebounce } from "@/hooks/useDebounce"
-import { PermissionButton } from "@/components/PermissionButton"
+import { PermissionButton } from "@/components/ui/PermissionButton"
 import { Role, Usuario, Permission, roleLabels, roleColors } from "@/types/roles"
 
 

@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useSession } from "next-auth/react"
 import { useDebounce } from "@/hooks/useDebounce"
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@radix-ui/react-accordion"
-import DetallesModificacion from "@/components/DetallesModificacion"
+import DetallesModificacion from "@/components/ui/DetallesModificacion"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 interface Usuario {

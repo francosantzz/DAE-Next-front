@@ -14,7 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { UsersIcon, BriefcaseIcon, CalendarIcon, PlusIcon, FilePenIcon, TrashIcon, TrendingUpIcon, PhoneIcon, MapPinIcon, ClockIcon, UserCheckIcon, XIcon } from 'lucide-react'
 import { useSession } from "next-auth/react"
 import { Badge } from "@/components/ui/badge"
-import { PermissionButton } from '../PermissionButton'
+import { PermissionButton } from '../../components/ui/PermissionButton'
 import { Direccion } from '@/types/Direccion.interface'
 import { Departamento } from '@/types/Departamento.interface'
 import { PaqueteHorasProfesional } from '@/types/dto/PaqueteHorasProfesional.dto'
