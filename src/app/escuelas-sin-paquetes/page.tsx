@@ -38,6 +38,7 @@ interface Escuela {
   observaciones?: string
   direccion: Direccion
   equipo: Equipo | null
+  cubierta: boolean
 }
 
 type GrupoEquipo = {
@@ -179,7 +180,7 @@ if (eqCache) {
 
     // pedí en paralelo solo lo que falte o para refrescar
     const [equiposRes, departamentosRes, regionesRes] = await Promise.allSettled([
-      fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/short?page=1&limit=1000`, { headers, signal: controller.signal }),
+      fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/muy-short?page=1&limit=1000`, { headers, signal: controller.signal }),
       fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`, { headers, signal: controller.signal }),
       fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/regions`, { headers, signal: controller.signal }), // ✅ /regions
     ])
@@ -252,7 +253,7 @@ if (equiposRes.status === "fulfilled" && equiposRes.value.ok) {
       const controller = new AbortController()
       abortMainRef.current = controller
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas?${qs}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas/short?${qs}`, {
         headers: { Authorization: `Bearer ${session.user.accessToken}` },
         signal: controller.signal,
       })
@@ -908,7 +909,7 @@ try {
                             <span className="text-xs text-muted-foreground truncate">{g.equipoNombre}</span>
                           </div>
                           <div className="mt-1 font-medium text-sm line-clamp-2">
-                            {e.nombre}
+                            {e.nombre} {e.cubierta ? <Badge variant="outline" className="border-emerald-400 text-emerald-700 bg-emerald-50">Cubierta</Badge> : <Badge variant="outline" className="border-rose-400 text-rose-700 bg-rose-50">Sin cubrir</Badge>}
                           </div>
                           <div className="mt-0.5 text-xs text-muted-foreground flex items-center justify-between">
                             <span>Anexo: {e.Numero || "—"}</span>
@@ -944,7 +945,7 @@ try {
                               </span>
                             </TableCell>
                             <TableCell className="whitespace-nowrap">{g.equipoNombre}</TableCell>
-                            <TableCell className="truncate">{e.nombre}</TableCell>
+                            <TableCell className="truncate">{e.nombre} {e.cubierta ? <Badge variant="outline" className="border-emerald-400 text-emerald-700 bg-emerald-50">Cubierta</Badge> : <Badge variant="outline" className="border-rose-400 text-rose-700 bg-rose-50">Sin cubrir</Badge>}</TableCell>
                             <TableCell className="whitespace-nowrap">{e.Numero || ""}</TableCell>
                             <TableCell className="text-muted-foreground">
                               {e.observaciones || <span className="text-xs italic">—</span>}
@@ -1023,12 +1024,12 @@ try {
                       <ul className="list-disc pl-5 space-y-1">
                         {g.escuelas.map((e) => (
                           <li key={e.id} className="text-base">
-                            {e.nombre}{e.Numero ? ` — Anexo ${e.Numero}` : ""}
+                            {e.nombre} {e.cubierta ? <Badge variant="outline" className="border-emerald-400 text-emerald-700 bg-emerald-50">Cubierta</Badge> : <Badge variant="outline" className="border-rose-400 text-rose-700 bg-rose-50">Sin cubrir</Badge>} {e.Numero ? ` — Anexo ${e.Numero}` : ""}
                             {e.observaciones ? (
                               <span className="text-sm text-muted-foreground"> — {e.observaciones}</span>
                             ) : null}
                           </li>
-                        ))}
+                        ))} 
                       </ul>
                     </CardContent>
                   </Card>
