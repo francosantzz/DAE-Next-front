@@ -18,7 +18,7 @@ import {
   AlertTriangle,
   Loader2
 } from "lucide-react"
-import type { Equipo, Profesional, PaqueteHoras, Escuela, Departamento } from "@/types/equipos";
+import type { Equipo, Profesional, PaqueteHoras, Escuela} from "@/types/equipos";
 
 
 

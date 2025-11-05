@@ -29,326 +29,108 @@ import { PermissionButton } from '@/components/ui/PermissionButton'
 import { DetalleEquipoDialog } from '@/components/ui/equipo/detalle-equipo-dialog'
 import { Equipo, Profesional, Escuela } from '@/types/equipos'
 import { Departamento } from '@/types/Departamento.interface'
+import EquipoForm from '@/components/ui/equipo/formulario-equipo'
+import EquipoActions from '@/components/ui/equipo/EquipoActions'
 
 
 export default function ListaEquiposPantallaCompleta() {
   const { data: session } = useSession()
   const [equipos, setEquipos] = useState<Equipo[]>([])
-  const [profesionales, setProfesionales] = useState<Profesional[]>([])
   const [departamentos, setDepartamentos] = useState<Departamento[]>([])
-  const [escuelas, setEscuelas] = useState<Escuela[]>([])
   const [busquedaInput, setBusquedaInput] = useState('')
-  const [isDetailLoading, setIsDetailLoading] = useState(false)
   const busqueda = useDebounce(busquedaInput, 1000)
-  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
   const [filtroDepartamento, setFiltroDepartamento] = useState('todos')
   const [isLoading, setIsLoading] = useState(true)
+
+  // dialog crear/editar
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [currentEquipo, setCurrentEquipo] = useState<Equipo | null>(null)
-  const [formData, setFormData] = useState({
-    id: 0,
-    nombre: '',
-    departamentoId: 0,
-    profesionalesIds: [] as number[],
-    escuelasIds: [] as number[]
-  })
-  const [profesionalSearch, setProfesionalSearch] = useState('')
-  const [escuelaSearch, setEscuelaSearch] = useState('')
-  const [profesionalesSeleccionados, setProfesionalesSeleccionados] = useState<Profesional[]>([])
-  const [escuelasSeleccionadas, setEscuelasSeleccionadas] = useState<Escuela[]>([])
+
+  // dialog detalle
   const [selectedEquipo, setSelectedEquipo] = useState<Equipo | null>(null)
-  const [isEditing, setIsEditing] = useState(false)
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
+  const [isDetailLoading, setIsDetailLoading] = useState(false)
+
+  // paginación
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
   const itemsPerPage = 10
-  const [errorMessage, setErrorMessage] = useState('')
-  const [profesionalesBusqueda, setProfesionalesBusqueda] = useState<Profesional[]>([])
-  const [escuelasBusqueda, setEscuelasBusqueda] = useState<Escuela[]>([])
-  const profesionalSearchTimeout = useRef<NodeJS.Timeout | null>(null)
-  const escuelaSearchTimeout = useRef<NodeJS.Timeout | null>(null)
 
+  const token = session?.user?.accessToken || ''
 
   const fetchData = useCallback(async () => {
-    if (!session?.user?.accessToken) return
-    
+    if (!token) return
     setIsLoading(true)
     try {
       const [equiposRes, departamentosRes] = await Promise.all([
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/short?page=${currentPage}&limit=${itemsPerPage}&search=${busqueda}${filtroDepartamento !== 'todos' ? `&departamentoId=${filtroDepartamento}` : ''}`, {
-          headers: { Authorization: `Bearer ${session.user.accessToken}` }
+          headers: { Authorization: `Bearer ${token}` }
         }),
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/departamentos`, {
-          headers: { Authorization: `Bearer ${session.user.accessToken}`}
+          headers: { Authorization: `Bearer ${token}` }
         })
       ])
-      
-      if (!equiposRes.ok || !departamentosRes.ok) 
-        throw new Error('Error al obtener los datos')
 
-      const [equiposData, departamentosData] = await Promise.all([
-        equiposRes.json(),
-        departamentosRes.json()
-      ])
+      if (!equiposRes.ok || !departamentosRes.ok) throw new Error('Error al obtener los datos')
 
+      const [equiposData, departamentosData] = await Promise.all([equiposRes.json(), departamentosRes.json()])
       setEquipos(equiposData.data || [])
       setTotalPages(equiposData.meta.totalPages)
       setTotalItems(equiposData.meta.total)
       setDepartamentos(departamentosData)
-    } catch (error) {
-      console.error('Error al obtener datos:', error)
+    } catch (e) {
+      console.error('Error al obtener datos:', e)
     } finally {
       setIsLoading(false)
     }
-  }, [session?.user?.accessToken, currentPage, busqueda, filtroDepartamento])
+  }, [token, currentPage, busqueda, filtroDepartamento])
 
-  useEffect(() => {
-    fetchData()
-  }, [fetchData])
-
-  // Resetear página cuando cambie la búsqueda
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [busqueda, filtroDepartamento])
-
-  // Buscar profesionales dinámicamente
-  useEffect(() => {
-    if (!profesionalSearch || !session?.user?.accessToken) {
-      setProfesionalesBusqueda([])
-      return
-    }
-    if (profesionalSearchTimeout.current) clearTimeout(profesionalSearchTimeout.current)
-    profesionalSearchTimeout.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals?page=1&limit=20&search=${encodeURIComponent(profesionalSearch)}`, {
-          headers: { Authorization: `Bearer ${session.user.accessToken}` }
-        })
-        if (res.ok) {
-          const data = await res.json()
-          // Asegurarse de que los seleccionados estén presentes
-          const seleccionados = profesionalesSeleccionados.filter(sel => !data.data.some((p: Profesional) => p.id === sel.id))
-          setProfesionalesBusqueda([...seleccionados, ...data.data])
-        } else {
-          setProfesionalesBusqueda([])
-        }
-      } catch {
-        setProfesionalesBusqueda([])
-      }
-    }, 400)
-    // eslint-disable-next-line
-  }, [profesionalSearch, session?.user?.accessToken, profesionalesSeleccionados])
-
-  // Buscar escuelas dinámicamente
-  useEffect(() => {
-    if (!escuelaSearch || !session?.user?.accessToken) {
-      setEscuelasBusqueda([])
-      return
-    }
-    if (escuelaSearchTimeout.current) clearTimeout(escuelaSearchTimeout.current)
-    escuelaSearchTimeout.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas?page=1&limit=20&search=${encodeURIComponent(escuelaSearch)}`, {
-          headers: { Authorization: `Bearer ${session.user.accessToken}` }
-        })
-        if (res.ok) {
-          const data = await res.json()
-          // Asegurarse de que los seleccionados estén presentes
-          const seleccionadas = escuelasSeleccionadas.filter(sel => !data.data.some((e: Escuela) => e.id === sel.id))
-          setEscuelasBusqueda([...seleccionadas, ...data.data])
-        } else {
-          setEscuelasBusqueda([])
-        }
-      } catch {
-        setEscuelasBusqueda([])
-      }
-    }, 400)
-    // eslint-disable-next-line
-  }, [escuelaSearch, session?.user?.accessToken, escuelasSeleccionadas])
-
-  const profesionalesFiltrados = profesionalesBusqueda.filter(
-    profesional => !profesionalesSeleccionados.some(p => p.id === profesional.id)
-  )
-  const escuelasFiltradas = escuelasBusqueda.filter(
-    escuela => !escuelasSeleccionadas.some(e => e.id === escuela.id)
-  )
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
-  }
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData({ ...formData, [name]: Number(value) })
-  }
-
-  const handleProfesionalSelect = (profesional: Profesional) => {
-    setProfesionalesSeleccionados(prev => [...prev, profesional])
-    setFormData(prev => ({
-      ...prev,
-      profesionalesIds: [...prev.profesionalesIds, profesional.id]
-    }))
-    setProfesionalSearch('')
-  }
-
-  const handleProfesionalRemove = (profesionalId: number) => {
-    setProfesionalesSeleccionados(prev => prev.filter(p => p.id !== profesionalId))
-    setFormData(prev => ({
-      ...prev,
-      profesionalesIds: prev.profesionalesIds.filter(id => id !== profesionalId)
-    }))
-  }
-
-  const handleEscuelaSelect = (escuela: Escuela) => {
-    setEscuelasSeleccionadas(prev => [...prev, escuela])
-    setFormData(prev => ({
-      ...prev,
-      escuelasIds: [...prev.escuelasIds, escuela.id]
-    }))
-    setEscuelaSearch('')
-  }
-
-  const handleEscuelaRemove = (escuelaId: number) => {
-    setEscuelasSeleccionadas(prev => prev.filter(e => e.id !== escuelaId))
-    setFormData(prev => ({
-      ...prev,
-      escuelasIds: prev.escuelasIds.filter(id => id !== escuelaId)
-    }))
-  }
+  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => { setCurrentPage(1) }, [busqueda, filtroDepartamento])
 
   const fetchEquipoCompleto = async (equipoId: number): Promise<Equipo | null> => {
-    if (!session?.user?.accessToken) return null;
-    
+    if (!token) return null
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/${equipoId}`, {
-        headers: { Authorization: `Bearer ${session.user.accessToken}` }
-      });
-      
-      if (!response.ok) throw new Error('Error al cargar detalles del equipo');
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Error al cargar equipo completo:', error);
-      return null;
-    }
-  };
-
-  const handleEdit = (equipo: Equipo) => {
-    setCurrentEquipo(equipo)
-    setErrorMessage('')
-    const departamentoId = equipo.departamento?.id ?? 0
-    const profesionales = equipo.profesionales ?? []
-    const escuelas = equipo.escuelas ?? []
-
-    setFormData({
-      id: equipo.id,
-      nombre: equipo.nombre ?? '',
-      departamentoId,
-      profesionalesIds: profesionales.map(p => p.id),
-      escuelasIds: escuelas.map(e => e.id)
-    })
-    setProfesionalesSeleccionados(profesionales)
-    setEscuelasSeleccionadas(escuelas)
-    setIsEditing(true)
-    setIsDialogOpen(true)
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!session?.user?.accessToken) return
-
-    setErrorMessage('')
-
-    try {
-      const url = currentEquipo
-        ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/${currentEquipo.id}`
-        : `${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos`
-      const method = currentEquipo ? 'PATCH' : 'POST'
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.user.accessToken}`
-        },
-        body: JSON.stringify(formData)
+        headers: { Authorization: `Bearer ${token}` }
       })
-      const responseData = await response.json()
-      if (!response.ok) {
-        if (response.status === 404 && responseData.message?.includes('escuelas ya pertenecen')) {
-        throw new Error(responseData.message)
-      }
-      throw new Error(responseData.message || 'Error al guardar el equipo')
-      }
-
-      setIsDialogOpen(false)
-      fetchData()
-      resetForm()
-    } catch (error: any) {
-      console.error('Error al guardar el equipo:', error)
-      setErrorMessage(error.message || 'Error al guardar el equipo')
+      if (!response.ok) throw new Error('Error al cargar detalles del equipo')
+      return await response.json()
+    } catch (error) {
+      console.error('Error al cargar equipo completo:', error)
+      return null
     }
   }
 
   const handleDelete = async (id: number) => {
-    if (!session?.user?.accessToken) return
-
-    if (!confirm('¿Estás seguro de que quieres eliminar este equipo?')) {
-      return
-    }
-
+    if (!token) return
+    if (!confirm('¿Estás seguro de que quieres eliminar este equipo?')) return
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/equipos/${id}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${session.user.accessToken}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       })
-
-      if (!response.ok) {
-        throw new Error('Error al eliminar el equipo')
-      }
-
+      if (!response.ok) throw new Error('Error al eliminar el equipo')
       fetchData()
     } catch (error) {
       console.error('Error al eliminar el equipo:', error)
     }
   }
 
-  const resetForm = () => {
-    setFormData({
-      id: 0,
-      nombre: '',
-      departamentoId: 0,
-      profesionalesIds: [],
-      escuelasIds: []
-    })
-    setProfesionalesSeleccionados([])
-    setEscuelasSeleccionadas([])
-    setIsEditing(false)
+  const handleEdit = async (equipo: Equipo) => {
+    setCurrentEquipo(equipo)
+    setIsDialogOpen(true)
   }
 
   const handleViewDetails = async (equipo: Equipo) => {
-    if (!equipo || !equipo.id) {
-      console.error("Equipo inválido:", equipo);
-      return;
-    }
-    
-    // Abrir el dialog inmediatamente
-    setIsDetailDialogOpen(true);
-    setIsDetailLoading(true); // Activar loading
-    setSelectedEquipo(equipo); // Mostrar datos básicos mientras carga
-    
-    // Cargar los datos completos en segundo plano
-    const equipoCompleto = await fetchEquipoCompleto(equipo.id);
-    
-    if (equipoCompleto) {
-      setSelectedEquipo(equipoCompleto);
-    }
-    
-    setIsDetailLoading(false); // Desactivar loading
-  };
-
-  if (isLoading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>
+    if (!equipo?.id) return
+    setIsDetailDialogOpen(true)
+    setIsDetailLoading(true)
+    setSelectedEquipo(equipo)
+    const full = await fetchEquipoCompleto(equipo.id)
+    if (full) setSelectedEquipo(full)
+    setIsDetailLoading(false)
   }
 
   return (
@@ -389,117 +171,40 @@ export default function ListaEquiposPantallaCompleta() {
               </Select>
             </div>
             <div className="flex sm:items-end">
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <PermissionButton
                     requiredPermission={{ entity: 'equipo', action: 'create'}}
-                    onClick={() => { setCurrentEquipo(null); setErrorMessage(''); resetForm(); setIsDialogOpen(true) }}
+                    onClick={() => { setCurrentEquipo(null); setIsDialogOpen(true) }}
                     className="w-full sm:w-auto"
                   >
                     <PlusCircle className="mr-2 h-4 w-4" /> Agregar Equipo
                   </PermissionButton>
                 </DialogTrigger>
+
                 <DialogContent className="w-[95vw] h-[90vh] sm:max-w-[1000px] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
-                    <DialogTitle>{isEditing ? 'Editar' : 'Agregar'} Equipo</DialogTitle>
-                    <DialogDescription>
-                      Complete los detalles del equipo aquí. Haga clic en guardar cuando termine.
-                    </DialogDescription>
+                    <DialogTitle>{currentEquipo ? 'Editar' : 'Agregar'} Equipo</DialogTitle>
+                    <DialogDescription>Complete los detalles del equipo y guarde.</DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="nombre">Nombre</Label>
-                        <Input id="nombre" name="nombre" value={formData.nombre} onChange={handleInputChange} required />
-                      </div>
-                      <div>
-                        <Label htmlFor="departamento">Departamento</Label>
-                        <Select onValueChange={(v) => handleSelectChange('departamentoId', v)} value={formData.departamentoId.toString()}>
-                          <SelectTrigger id="departamento"><SelectValue placeholder="Selecciona" /></SelectTrigger>
-                          <SelectContent className="max-h-60 overflow-y-auto">
-                            {departamentos.map((d) => <SelectItem key={d.id} value={d.id.toString()}>{d.nombre}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
 
-                    {/* Buscadores apilados en móvil */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      <div>
-                        <Label htmlFor="profesionalSearch">Buscar profesionales</Label>
-                        <Input id="profesionalSearch" value={profesionalSearch} onChange={(e)=>setProfesionalSearch(e.target.value)} placeholder="Buscar..." />
-                        {profesionalSearch && profesionalesFiltrados.length > 0 && (
-                          <ScrollArea className="mt-2 max-h-40 border rounded-md">
-                            <div className="p-2">
-                              {profesionalesFiltrados.map(p => (
-                                <button
-                                  type="button"
-                                  key={p.id}
-                                  className="w-full text-left p-2 rounded hover:bg-gray-100"
-                                  onClick={() => handleProfesionalSelect(p)}
-                                >
-                                  {p.nombre} {p.apellido}
-                                </button>
-                              ))}
-                            </div>
-                          </ScrollArea>
-                        )}
-                        <Label className="mt-3 block">Profesionales seleccionados</Label>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {profesionalesSeleccionados.map(p => (
-                            <Badge key={p.id} variant="secondary" className="px-3 py-1">
-                              <UserCheck className="h-3 w-3 mr-1" />
-                              {p.nombre} {p.apellido}
-                              <Button type="button" variant="ghost" size="sm" className="h-4 w-4 p-0 ml-2" onClick={() => handleProfesionalRemove(p.id)}>
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="escuelaSearch">Buscar escuelas</Label>
-                        <Input id="escuelaSearch" value={escuelaSearch} onChange={(e)=>setEscuelaSearch(e.target.value)} placeholder="Buscar..." />
-                        {escuelaSearch && escuelasFiltradas.length > 0 && (
-                          <ScrollArea className="mt-2 max-h-40 border rounded-md">
-                            <div className="p-2">
-                              {escuelasFiltradas.map(e => (
-                                <button
-                                  type="button"
-                                  key={e.id}
-                                  className="w-full text-left p-2 rounded hover:bg-gray-100"
-                                  onClick={() => handleEscuelaSelect(e)}
-                                >
-                                  {e.nombre} {e.Numero}
-                                </button>
-                              ))}
-                            </div>
-                          </ScrollArea>
-                        )}
-                        <Label className="mt-3 block">Escuelas seleccionadas</Label>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {escuelasSeleccionadas.map(e => (
-                            <Badge key={e.id} variant="secondary" className="px-3 py-1">
-                              <Building className="h-3 w-3 mr-1" />
-                              {e.nombre} {e.Numero}
-                              <Button type="button" variant="ghost" size="sm" className="h-4 w-4 p-0 ml-2" onClick={() => handleEscuelaRemove(e.id)}>
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {errorMessage && (
-                      <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm">{errorMessage}</div>
-                    )}
-
-                    <div className="flex flex-col sm:flex-row justify-end gap-2">
-                      <Button type="submit" className="w-full sm:w-auto">Guardar</Button>
-                    </div>
-                  </form>
+                  {/* —— AQUÍ USAMOS EL FORM REUTILIZABLE —— */}
+                  {session?.user?.accessToken && (
+                    <EquipoForm
+                      accessToken={session.user.accessToken}
+                      departamentos={departamentos}
+                      equipo={currentEquipo}
+                      onSaved={() => {
+                        setIsDialogOpen(false)
+                        setCurrentEquipo(null)
+                        fetchData()
+                      }}
+                      onCancel={() => {
+                        setIsDialogOpen(false)
+                        setCurrentEquipo(null)
+                      }}
+                    />
+                  )}
                 </DialogContent>
               </Dialog>
             </div>
@@ -563,32 +268,15 @@ export default function ListaEquiposPantallaCompleta() {
 
                         {/* Acciones: apiladas en móvil */}
                         <div className="flex flex-col sm:flex-row justify-end gap-2">
-                          <PermissionButton
-                            requiredPermission={{ entity: 'equipo', action: 'read'}}
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewDetails(equipo)}
-                            className="hover:bg-green-50 hover:border-green-300 text-green-600"
-                          >
-                            <Eye className="mr-1 h-3 w-3" />
-                            Ver Detalles
-                          </PermissionButton>
-
-                          <PermissionButton
-                            requiredPermission={{entity: "equipo", action: "update"}}
-                            variant="outline"
-                            onClick={() => handleEdit(equipo)}
-                          >
-                            <Edit className="mr-2 h-4 w-4" /> Editar
-                          </PermissionButton>
-
-                          <PermissionButton
-                            requiredPermission={{entity: "equipo", action: "delete"}}
-                            variant="destructive"
-                            onClick={() => handleDelete(equipo.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" /> Eliminar
-                          </PermissionButton>
+                        <EquipoActions
+                          equipo={equipo}
+                          compact
+                          onView={handleViewDetails}
+                          onEdit={handleEdit}
+                          onDelete={async (id) => {
+                          await handleDelete(id)
+                          }}
+                          />
                         </div>
                       </div>
                     </AccordionContent>
