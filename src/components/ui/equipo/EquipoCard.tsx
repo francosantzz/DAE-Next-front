@@ -1,17 +1,21 @@
+// components/equipo/EquipoCard.tsx
 'use client'
 
 import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Trash2, Eye } from 'lucide-react'
+import { Edit, Trash2, Eye } from "lucide-react"
 import { Equipo } from "@/types/equipos"
-import { useEquipos } from "@/hooks/useEquipo"
 import { PermissionButton } from "../PermissionButton"
+import EquipoActions from "./EquipoActions"
 
-type Props = { equipo: Equipo }
+type Props = {
+  equipo: Equipo
+  onView: (equipo: Equipo) => void
+  onEdit: (equipo: Equipo) => void
+  onDelete: (id: number) => void
+}
 
-export default function EquipoCard({ equipo }: Props) {
-  const { handleViewDetails, handleEdit, handleDelete } = useEquipos()
-
+export default function EquipoCard({ equipo, onView, onEdit, onDelete }: Props) {
   return (
     <AccordionItem value={String(equipo.id)}>
       <AccordionTrigger className="px-4 sm:px-6 py-3 sm:py-4 hover:bg-gray-50">
@@ -61,34 +65,12 @@ export default function EquipoCard({ equipo }: Props) {
           </div>
 
           <p className="text-sm"><strong>Horas totales del Equipo:</strong> {equipo.totalHoras ?? 0}</p>
-
-          <div className="flex flex-col sm:flex-row justify-end gap-2">
-            <PermissionButton
-              requiredPermission={{ entity: 'equipo', action: 'read'}}
-              variant="outline"
-              size="sm"
-              onClick={() => handleViewDetails(equipo)}
-              className="hover:bg-green-50 hover:border-green-300 text-green-600"
-            >
-              <Eye className="mr-1 h-3 w-3" /> Ver Detalles
-            </PermissionButton>
-
-            <PermissionButton
-              requiredPermission={{ entity: 'equipo', action: 'update'}}
-              variant="outline"
-              onClick={() => handleEdit(equipo)}
-            >
-              <Edit className="mr-2 h-4 w-4" /> Editar
-            </PermissionButton>
-
-            <PermissionButton
-              requiredPermission={{ entity: 'equipo', action: 'delete'}}
-              variant="destructive"
-              onClick={() => handleDelete(equipo.id)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" /> Eliminar
-            </PermissionButton>
-          </div>
+           <EquipoActions
+           equipo={equipo}
+           onDelete={() => onDelete(equipo.id)}
+           onEdit={() => onEdit(equipo)}
+           onView={() => onView(equipo)}
+           />
         </div>
       </AccordionContent>
     </AccordionItem>

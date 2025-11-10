@@ -23,7 +23,7 @@ export default function ProfesionalesSelector({
   seleccionados,
   onAdd,
   onRemove,
-  minLength = 2,
+  minLength = 1,
   limit = 20,
 }: Props) {
   const [search, setSearch] = useState('')
@@ -31,7 +31,10 @@ export default function ProfesionalesSelector({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    if (!accessToken) return
+    if (!accessToken) {
+      console.debug('[ProfesionalesSelector] no accessToken, skipping search', { search })
+      return
+    }
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
 
     if (!search || search.trim().length < minLength) {
@@ -40,19 +43,21 @@ export default function ProfesionalesSelector({
     }
 
     timeoutRef.current = setTimeout(async () => {
+      const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals?page=1&limit=${limit}&search=${encodeURIComponent(search)}`
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals?page=1&limit=${limit}&search=${encodeURIComponent(search)}`,
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        )
+        console.debug('[ProfesionalesSelector] fetching', { url })
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } })
+        console.debug('[ProfesionalesSelector] response status', res.status)
         if (!res.ok) throw new Error(String(res.status))
         const data = await res.json()
         const arr: Profesional[] = Array.isArray(data) ? data : (data?.data ?? [])
+        console.debug('[ProfesionalesSelector] fetched count', arr.length)
         const faltantes = seleccionados.filter(sel => !arr.some((p) => p.id === sel.id))
         const mezclados = [...faltantes, ...arr]
         const filtrados = mezclados.filter(p => !seleccionados.some(s => s.id === p.id))
         setResultados(filtrados)
-      } catch {
+      } catch (err) {
+        console.error('[ProfesionalesSelector] fetch error', err)
         setResultados([])
       }
     }, 400)
@@ -78,7 +83,7 @@ export default function ProfesionalesSelector({
                 type="button"
                 key={p.id}
                 className="w-full text-left p-2 rounded hover:bg-gray-100"
-                onClick={() => onAdd(p)}
+                onClick={() => { onAdd(p); setSearch('') }}
               >
                 {p.nombre} {p.apellido}
               </button>

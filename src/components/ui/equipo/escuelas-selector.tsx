@@ -23,7 +23,7 @@ export default function EscuelasSelector({
   seleccionadas,
   onAdd,
   onRemove,
-  minLength = 2,
+  minLength = 1,
   limit = 20,
 }: Props) {
   const [search, setSearch] = useState('')
@@ -31,7 +31,10 @@ export default function EscuelasSelector({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    if (!accessToken) return
+    if (!accessToken) {
+      console.debug('[EscuelasSelector] no accessToken, skipping search', { search })
+      return
+    }
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
 
     if (!search || search.trim().length < minLength) {
@@ -40,16 +43,19 @@ export default function EscuelasSelector({
     }
 
     timeoutRef.current = setTimeout(async () => {
+      const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas?page=1&limit=${limit}&search=${encodeURIComponent(search)}`
       try {
-        const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/escuelas?page=1&limit=${limit}&search=${encodeURIComponent(search)}`
+        console.debug('[EscuelasSelector] fetching', { url })
         const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } })
+        console.debug('[EscuelasSelector] response status', res.status)
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const json = await res.json()
         const arr: Escuela[] = Array.isArray(json) ? json : (json?.data ?? [])
+        console.debug('[EscuelasSelector] fetched count', arr.length)
         const filtrados = arr.filter(e => !seleccionadas.some(s => s.id === e.id))
         setResultados(filtrados)
       } catch (err) {
-        console.error('Error buscando escuelas:', err)
+        console.error('[EscuelasSelector] Error buscando escuelas:', err)
         setResultados([])
       }
     }, 400)
@@ -81,7 +87,7 @@ export default function EscuelasSelector({
                   type="button"
                   key={e.id}
                   className="w-full text-left p-2 rounded hover:bg-gray-100"
-                  onClick={() => onAdd(e)}
+                  onClick={() => { onAdd(e); setSearch('') }}
                 >
                   {e.nombre} {e.Numero && <>Nº {e.Numero}</>}
                 </button>

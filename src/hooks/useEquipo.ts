@@ -178,47 +178,62 @@ export function useEquipos() {
 
   const handleDelete = async (id: number) => {
     if (!token) return
-    if (!confirm('¿Estás seguro de que quieres eliminar este equipo?')) return
+
+    // optimista inline
+    const snapshot = equipos
+    const filtered = equipos.filter(e => e.id !== id)
+    setEquipos(filtered)
+    setTotalItems(t => Math.max(0, t - 1))
+    if (selectedEquipo?.id === id) {
+      setSelectedEquipo(null)
+      setIsDetailDialogOpen(false)
+    }
+
     try {
       const response = await fetch(`${API}/equipos/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!response.ok) throw new Error('Error al eliminar el equipo')
-      fetchData()
     } catch (e) {
       console.error('Error al eliminar el equipo:', e)
+      // rollback simple
+      setEquipos(snapshot)
+      setTotalItems(t => t + 1)
     }
   }
 
-  const handleSubmit = async () => {
-    if (!token) { setErrorMessage(''); return }
-    try {
-      const url = currentEquipo ? `${API}/equipos/${currentEquipo.id}` : `${API}/equipos`
-      const method = currentEquipo ? 'PATCH' : 'POST'
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData)
-      })
-      const responseData = await response.json()
-      if (!response.ok) {
-        if (response.status === 404 && responseData.message?.includes('escuelas ya pertenecen')) {
-          throw new Error(responseData.message)
-        }
-        throw new Error(responseData.message || 'Error al guardar el equipo')
-      }
-      setIsDialogOpen(false)
-      fetchData()
-      resetForm()
-    } catch (e: any) {
-      console.error('Error al guardar el equipo:', e)
-      setErrorMessage(e?.message || 'Error al guardar el equipo')
+const handleSubmit = async () => {
+  if (!token) { setErrorMessage(''); return }
+  try {
+    const url = currentEquipo ? `${API}/equipos/${currentEquipo.id}` : `${API}/equipos`
+    const method = currentEquipo ? 'PATCH' : 'POST'
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(formData)
+    })
+    const saved: Equipo = await res.json()
+    if (!res.ok) throw new Error((saved as any)?.message || 'Error al guardar el equipo')
+
+    if (currentEquipo) {
+      // EDIT inline
+      setEquipos(prev => prev.map(e => e.id === saved.id ? { ...e, ...saved } : e))
+      setSelectedEquipo(prev => prev?.id === saved.id ? { ...prev, ...saved } : prev)
+    } else {
+      // CREATE inline (al inicio)
+      setEquipos(prev => [saved, ...prev])
+      setTotalItems(t => t + 1)
     }
+
+    setIsDialogOpen(false)
+    resetForm()
+  } catch (e: any) {
+    console.error('Error al guardar el equipo:', e)
+    setErrorMessage(e?.message || 'Error al guardar el equipo')
   }
+}
+
 
   const fetchEquipoCompleto = async (equipoId: number): Promise<Equipo | null> => {
     if (!token) return null
@@ -235,6 +250,8 @@ export function useEquipos() {
   }
 
   const handleViewDetails = async (equipo: Equipo) => {
+    console.log("Ingresando a detalles...", equipo);
+
     if (!equipo?.id) return
     setIsDetailDialogOpen(true)
     setIsDetailLoading(true)
