@@ -21,7 +21,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { PlusCircle, Edit, Trash2, Plus, X } from 'lucide-react'
-import Layout from '../../components/profesional/LayoutProf'
+import Layout from '../../components/ui/profesional/LayoutProf'
 import { ScrollArea } from '@radix-ui/react-scroll-area'
 import ErrorBoundary from '@/components/ui/ErrorBoundary'
 import { Badge } from '@/components/ui/badge'

@@ -30,6 +30,7 @@ import { ProtectedRoute } from "@/components/ui/ProtectedRoute"
 import { usePermissions } from "@/hooks/usePermissions"
 import { Direccion } from "@/types/Direccion.interface"
 import { Departamento } from "@/types/Departamento.interface"
+import { Paginator } from "@/components/ui/Paginator"
 
 interface Anexo {
   id: number
@@ -893,21 +894,11 @@ const calcularEstadisticasHoras = (paquetesHoras: PaqueteHoras[]) => {
 
             {/* Paginación */}
             <div className="mt-4 flex flex-col sm:flex-row justify-center items-center gap-2">
-              <Button variant="outline" size="sm"
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-              >
-                Anterior
-              </Button>
-              <span className="text-sm text-gray-600">
-                Página {currentPage} de {totalPages}
-              </span>
-              <Button variant="outline" size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-              >
-                Siguiente
-              </Button>
+            <Paginator
+            page={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            />
             </div>
           </>
         ) : (

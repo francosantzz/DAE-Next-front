@@ -12,6 +12,7 @@ import { PermissionButton } from "@/components/ui/PermissionButton"
 import EquiposList from "@/components/ui/equipo/EquipoList"
 import EquipoFormDialog from "@/components/ui/equipo/EquipoFormDialog"
 import { DetalleEquipoDialog } from "@/components/ui/equipo/detalle-equipo-dialog"
+import { Paginator } from "@/components/ui/Paginator"
 
 export default function PageEquipos() {
   const vm = useEquipos()  // ← SOLO acá
@@ -76,25 +77,11 @@ export default function PageEquipos() {
           />
 
           {/* Paginación */}
-          <div className="mt-4 flex flex-col sm:flex-row justify-center items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => vm.setCurrentPage(p => Math.max(p - 1, 1))}
-              disabled={vm.currentPage === 1}
-            >
-              Anterior
-            </Button>
-            <span className="text-sm text-gray-600">Página {vm.currentPage} de {vm.totalPages}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => vm.setCurrentPage(p => Math.min(p + 1, vm.totalPages))}
-              disabled={vm.currentPage === vm.totalPages}
-            >
-              Siguiente
-            </Button>
-          </div>
+          <Paginator
+            page={vm.currentPage}
+            totalPages={vm.totalPages}
+            onPageChange={vm.setCurrentPage}
+          />
         </div>
 
         {/* Dialog: Form (controlado por el estado del hook) */}
