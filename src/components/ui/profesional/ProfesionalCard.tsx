@@ -216,8 +216,8 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
           {verPaqutesHoras &&
             profesional.paquetesHoras.map((ph) => (
               <div className="flex gap-2" key={ph.id}>
-                <p className="">{ph.escuela ? ph.escuela.nombre : ph.tipo}: </p>
-                <p>{ph.cantidad}</p>
+                <p className="font-semibold">- {ph.escuela ? ph.escuela.nombre : ph.tipo} {`(${ph.equipo?.nombre})`}: </p>
+                <p>{ph.cantidad} hs</p>
               </div>
             ))}
         </div>

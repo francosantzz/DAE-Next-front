@@ -166,13 +166,12 @@ export default function ProfesionalForm({ vm }: Props) {
   }
 
   // Filtrar equipos mostrados en el select para no mostrar los ya seleccionados
-  const equiposDisponibles = (equipos ?? []).filter((eq: any) => !((form.equiposIds ?? []).includes(eq.id))
-
-  )
+  const equiposDisponibles = (equipos ?? []).filter((eq: any) => !((form.equiposIds ?? []).includes(eq.id)))
 
   return (
     <Dialog open={!!isDialogOpen} onOpenChange={(o) => { if (!o) close(); else setIsDialogOpen(true) }}>
-      <DialogContent className="w-[95vw] sm:max-w-[1000px] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
+      {/* DialogContent con padding y max-height para móviles; overflow-y para scroll */}
+      <DialogContent className="w-[95vw] sm:max-w-[1000px] max-h-[90vh] overflow-y-auto p-4">
         <DialogHeader>
           <DialogTitle>{currentProfesional ? 'Editar Profesional' : 'Agregar Profesional'}</DialogTitle>
         </DialogHeader>
@@ -181,49 +180,49 @@ export default function ProfesionalForm({ vm }: Props) {
           <div>
             <h3 className="font-semibold mb-2 text-sm text-gray-700">Datos personales</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="nombre">Nombre</Label>
-                <Input id="nombre" name="nombre" value={form.nombre} onChange={handleChange} required />
+                <Input id="nombre" name="nombre" className="w-full min-w-0" value={form.nombre} onChange={handleChange} required />
               </div>
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="apellido">Apellido</Label>
-                <Input id="apellido" name="apellido" value={form.apellido} onChange={handleChange} required />
+                <Input id="apellido" name="apellido" className="w-full min-w-0" value={form.apellido} onChange={handleChange} required />
               </div>
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="profesion">Profesión</Label>
-                <Input id="profesion" name="profesion" value={form.profesion} onChange={handleChange} required />
+                <Input id="profesion" name="profesion" className="w-full min-w-0" value={form.profesion} onChange={handleChange} required />
               </div>
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="cuil">CUIL</Label>
-                <Input id="cuil" name="cuil" value={form.cuil} onChange={handleChange} />
+                <Input id="cuil" name="cuil" className="w-full min-w-0" value={form.cuil} onChange={handleChange} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="dni">DNI</Label>
-                <Input id="dni" name="dni" value={form.dni} onChange={handleChange} />
+                <Input id="dni" name="dni" className="w-full min-w-0" value={form.dni} onChange={handleChange} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="correoElectronico">Correo Electrónico</Label>
-                <Input id="correoElectronico" name="correoElectronico" value={form.correoElectronico} onChange={handleChange} />
+                <Input id="correoElectronico" name="correoElectronico" className="w-full min-w-0" value={form.correoElectronico} onChange={handleChange} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="telefono">Teléfono</Label>
-                <Input id="telefono" name="telefono" value={form.telefono} onChange={handleChange} />
+                <Input id="telefono" name="telefono" className="w-full min-w-0" value={form.telefono} onChange={handleChange} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="fechaNacimiento">Fecha de Nacimiento</Label>
-                <Input id="fechaNacimiento" name="fechaNacimiento" type="date" value={form.fechaNacimiento} onChange={handleChange} />
+                <Input id="fechaNacimiento" name="fechaNacimiento" type="date" className="w-full min-w-0" value={form.fechaNacimiento} onChange={handleChange} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="matricula">Matrícula</Label>
-                <Input id="matricula" name="matricula" value={form.matricula} onChange={handleChange} />
+                <Input id="matricula" name="matricula" className="w-full min-w-0" value={form.matricula} onChange={handleChange} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="fechaVencimientoMatricula">Vto. Matrícula</Label>
-                <Input id="fechaVencimientoMatricula" name="fechaVencimientoMatricula" type="date" value={form.fechaVencimientoMatricula || ''} onChange={(e) => setForm((p:any)=>({...p, fechaVencimientoMatricula: e.target.value}))} />
+                <Input id="fechaVencimientoMatricula" name="fechaVencimientoMatricula" type="date" className="w-full min-w-0" value={form.fechaVencimientoMatricula || ''} onChange={(e) => setForm((p:any)=>({...p, fechaVencimientoMatricula: e.target.value}))} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="fechaVencimientoPsicofisico">Vto. Psicofísico</Label>
-                <Input id="fechaVencimientoPsicofisico" name="fechaVencimientoPsicofisico" type="date" value={form.fechaVencimientoPsicofisico} onChange={handleChange} />
+                <Input id="fechaVencimientoPsicofisico" name="fechaVencimientoPsicofisico" type="date" className="w-full min-w-0" value={form.fechaVencimientoPsicofisico} onChange={handleChange} />
               </div>
             </div>
           </div>
@@ -232,21 +231,21 @@ export default function ProfesionalForm({ vm }: Props) {
           <div>
             <h3 className="font-semibold mb-2 text-sm text-gray-700">Dirección</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="direccion.calle">Calle</Label>
-                <Input id="direccion.calle" name="direccion.calle" value={form.direccion.calle} onChange={(e) => handleDireccionChange('calle', e.target.value)} />
+                <Input id="direccion.calle" name="direccion.calle" className="w-full min-w-0" value={form.direccion.calle} onChange={(e) => handleDireccionChange('calle', e.target.value)} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="direccion.numero">Número</Label>
-                <Input id="direccion.numero" name="direccion.numero" value={form.direccion.numero} onChange={(e) => handleDireccionChange('numero', e.target.value)} />
+                <Input id="direccion.numero" name="direccion.numero" className="w-full min-w-0" value={form.direccion.numero} onChange={(e) => handleDireccionChange('numero', e.target.value)} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="direccion.departamentoId">Departamento</Label>
                 <Select
                   onValueChange={(value) => handleDireccionChange('departamentoId', value)}
                   value={form.direccion.departamentoId}
                 >
-                  <SelectTrigger id="direccion.departamentoId"><SelectValue placeholder="Seleccione" /></SelectTrigger>
+                  <SelectTrigger id="direccion.departamentoId" className="w-full min-w-0"><SelectValue placeholder="Seleccione" /></SelectTrigger>
                   <SelectContent className="max-h-60 overflow-y-auto">
                     {departamentos.map((d: any) => <SelectItem key={d.id} value={d.id.toString()}>{d.nombre}</SelectItem>)}
                   </SelectContent>
@@ -262,10 +261,10 @@ export default function ProfesionalForm({ vm }: Props) {
               <div className="space-y-3">
                 {(form.cargosHoras ?? []).map((cargo: CargoHoras, index: number) => (
                   <div key={index} className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-end border p-3 rounded-lg">
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <Label>Tipo de Cargo</Label>
                       <Select value={cargo.tipo} onValueChange={(v) => handleCargoHorasChange(index, 'tipo', v as any)}>
-                        <SelectTrigger><SelectValue placeholder="Seleccione tipo" /></SelectTrigger>
+                        <SelectTrigger className="w-full min-w-0"><SelectValue placeholder="Seleccione tipo" /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="comunes">Comunes</SelectItem>
                           <SelectItem value="investigacion">Investigación</SelectItem>
@@ -275,9 +274,9 @@ export default function ProfesionalForm({ vm }: Props) {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <Label>Cantidad de Horas</Label>
-                      <Input type="number" value={cargo.cantidadHoras} min={0} onChange={(e) => handleCargoHorasChange(index, 'cantidadHoras', parseInt((e.target as HTMLInputElement).value) || 0)} />
+                      <Input type="number" className="w-full min-w-0" value={cargo.cantidadHoras} min={0} onChange={(e) => handleCargoHorasChange(index, 'cantidadHoras', parseInt((e.target as HTMLInputElement).value) || 0)} />
                     </div>
                     <Button type="button" variant="destructive" size="sm" onClick={() => removeCargoHoras(index)} className="sm:self-end">
                       <XIcon className="h-4 w-4" />
@@ -297,7 +296,7 @@ export default function ProfesionalForm({ vm }: Props) {
                 onValueChange={(v) => handleEquipoAddFromSelect(v)}
                 value={""} // mantenemos value vacío para mostrar placeholder
               >
-                <SelectTrigger id="equiposIds"><SelectValue placeholder="Seleccione equipos" /></SelectTrigger>
+                <SelectTrigger id="equiposIds" className="w-full min-w-0"><SelectValue placeholder="Seleccione equipos" /></SelectTrigger>
                 <SelectContent>
                   { (equiposDisponibles ?? []).map((e: any) => (
                     <SelectItem key={e.id} value={String(e.id)}>{e.nombre}</SelectItem>
