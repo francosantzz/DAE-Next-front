@@ -1,3 +1,4 @@
+import { CargoHoras } from "./CargoHoras"
 import { Direccion } from "./Direccion.interface"
 import { EquipoProfesionalDTO } from "./dto/EquipoProfesional.dto"
 import { PaqueteHorasProfesional } from "./dto/PaqueteHorasProfesional.dto"
@@ -16,7 +17,7 @@ export interface Profesional {
   fechaVencimientoPsicofisico: string
   correoElectronico: string
   totalHoras: number
-  // cargosHoras: CargoHoras[]
+  cargosHoras: CargoHoras[]
   equipos: EquipoProfesionalDTO[]
   paquetesHoras: PaqueteHorasProfesional[]
   direccion: Direccion
