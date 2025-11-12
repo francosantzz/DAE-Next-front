@@ -52,8 +52,6 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
       profesional.telefono,
       profesional.matricula,
       profesional.fechaNacimiento,
-      profesional.fechaFinLicencia,
-      profesional.fechaInicioLicencia,
       profesional.fechaVencimientoMatricula,
     ];
 
