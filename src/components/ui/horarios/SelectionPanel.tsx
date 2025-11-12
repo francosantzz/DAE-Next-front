@@ -1,9 +1,9 @@
 'use client'
 import React from "react"
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { PermissionButton } from "../PermissionButton"
+import { Label } from "../genericos/label"
+import { Switch } from "../genericos/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../genericos/select"
+import { PermissionButton } from "../genericos/PermissionButton"
 
 export default function SelectionPanel({
   equipos, profesionales, equipoSeleccionado, profesionalSeleccionado,

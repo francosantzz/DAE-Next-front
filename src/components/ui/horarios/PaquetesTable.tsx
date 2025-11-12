@@ -1,11 +1,10 @@
 'use client'
 import React from "react"
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { UsersIcon, UserIcon, PlusIcon, FilePenIcon, TrashIcon, SearchIcon } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { PermissionButton } from "../PermissionButton"
+import { Input } from "../genericos/input"
+import { PermissionButton } from "../genericos/PermissionButton"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../genericos/table"
+import { Badge } from "../genericos/badge"
 
 function HeaderInfo({ getNombreEquipoSeleccionado, getNombreProfesionalSeleccionado, getTotalHoras, verAnteriores, licenciaActiva }: any) {
   return (

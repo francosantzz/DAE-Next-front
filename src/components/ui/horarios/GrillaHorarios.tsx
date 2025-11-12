@@ -1,12 +1,12 @@
 'use client'
 import React, { useState } from "react"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import useHorariosData, { PaquetePayload } from "@/hooks/useHorariosData"
 import { useSession } from "next-auth/react"
-import ErrorBoundary from "../ErrorBoundary"
 import SelectionPanel from "./SelectionPanel"
 import PaquetesTable from "./PaquetesTable"
 import PaqueteModal from "./PaquetesModal"
+import ErrorBoundary from "../genericos/ErrorBoundary"
+import { Card, CardContent, CardHeader, CardTitle } from "../genericos/card"
 
 export default function GrillaHorarios() {
   const { data: session } = useSession()

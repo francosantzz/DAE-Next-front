@@ -1,10 +1,10 @@
 'use client'
 import React from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "../genericos/dialog"
+import { Label } from "../genericos/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../genericos/select"
+import { Input } from "../genericos/input"
+import { Button } from "../genericos/button"
 
 export default function PaqueteModal({
   open, setOpen, currentPaquete, formData, setFormData, tiposPaquete,
