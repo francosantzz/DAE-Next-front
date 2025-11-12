@@ -1,11 +1,13 @@
 // components/profesionales/ProfesionalesFilters.tsx
 'use client'
 
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/genericos/input'
+import { Label } from '@/components/ui/genericos/label'
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/genericos/select'
 import { ScrollArea } from '@radix-ui/react-scroll-area'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/components/ui/genericos/button'
+import { PermissionButton } from '../genericos/PermissionButton'
+import { PlusCircle } from 'lucide-react'
 
 type VM = ReturnType<typeof import('@/hooks/useProfesional').useProfesional>
 
@@ -80,9 +82,12 @@ export default function FiltrosProfesionales({ vm }: Props) {
 
         {/* Botón de crear profesional */}
         <div className="flex items-end">
-          <Button onClick={handleAgregarProfesional} className="w-full">
-            Agregar Profesional
-          </Button>
+        <PermissionButton
+          requiredPermission={{ entity: "profesional", action: "create" }} 
+          onClick={handleAgregarProfesional}
+          className="w-full sm:w-auto">
+          <PlusCircle className="mr-2 h-4 w-4" /> Agregar Profesional
+          </PermissionButton>
         </div>
       </div>
     </div>

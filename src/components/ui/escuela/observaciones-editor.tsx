@@ -1,11 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/genericos/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/genericos/card"
+import { Textarea } from "@/components/ui/genericos/textarea"
 import { Edit, Save, X } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Alert, AlertDescription } from "@/components/ui/genericos/alert"
 import { useSession } from "next-auth/react"
 import { usePermissions } from "@/hooks/usePermissions"
 

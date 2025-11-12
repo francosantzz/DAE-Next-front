@@ -2,19 +2,19 @@
 
 import { useState, useEffect } from 'react'
 import Link from "next/link"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { Input } from "@/components/ui/genericos/input"
+import { Button } from "@/components/ui/genericos/button"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/genericos/card"
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/genericos/table"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/genericos/avatar"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/genericos/dialog"
+import { Label } from "@/components/ui/genericos/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/genericos/select"
+import { ScrollArea } from "@/components/ui/genericos/scroll-area"
 import { UsersIcon, BriefcaseIcon, CalendarIcon, PlusIcon, FilePenIcon, TrashIcon, TrendingUpIcon, PhoneIcon, MapPinIcon, ClockIcon, UserCheckIcon, XIcon } from 'lucide-react'
 import { useSession } from "next-auth/react"
-import { Badge } from "@/components/ui/badge"
-import { PermissionButton } from '../../components/ui/PermissionButton'
+import { Badge } from "@/components/ui/genericos/badge"
+import { PermissionButton } from '../../components/ui/genericos/PermissionButton'
 import { Direccion } from '@/types/Direccion.interface'
 import { Departamento } from '@/types/Departamento.interface'
 import { PaqueteHorasProfesional } from '@/types/dto/PaqueteHorasProfesional.dto'

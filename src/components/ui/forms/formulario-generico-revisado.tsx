@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/genericos/button"
+import { Input } from "@/components/ui/genericos/input"
+import { Label } from "@/components/ui/genericos/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/genericos/select"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/genericos/card"
 
 interface FieldOption {
   value: string;

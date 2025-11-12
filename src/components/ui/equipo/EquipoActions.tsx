@@ -7,7 +7,7 @@
 'use client'
 
 import { Eye, Edit, Trash2 } from 'lucide-react'
-import { PermissionButton } from '@/components/ui/PermissionButton'
+import { PermissionButton } from '@/components/ui/genericos/PermissionButton'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
+} from '@/components/ui/genericos/alert-dialog'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
 import type { Equipo } from '@/types/equipos'

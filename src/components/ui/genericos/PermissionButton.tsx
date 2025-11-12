@@ -1,7 +1,7 @@
 "use client";
 
 import { usePermissions } from "@/hooks/usePermissions";
-import { Button, ButtonProps } from "@/components/ui/button";
+import { Button, ButtonProps } from "@/components/ui/genericos/button";
 import { ReactNode } from "react";
 
 interface PermissionButtonProps extends ButtonProps {

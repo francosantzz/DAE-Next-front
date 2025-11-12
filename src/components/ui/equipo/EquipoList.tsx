@@ -1,7 +1,7 @@
 // components/equipo/EquiposList.tsx
 'use client'
 
-import { Accordion } from "@/components/ui/accordion"
+import { Accordion } from "@/components/ui/genericos/accordion"
 import EquipoCard from "./EquipoCard"
 import { Equipo } from "@/types/equipos"
 

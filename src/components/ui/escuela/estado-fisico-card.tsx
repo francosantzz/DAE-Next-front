@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/genericos/card"
+import { Badge } from "@/components/ui/genericos/badge"
 import { AlertTriangle, CheckCircle, HelpCircle, Info } from "lucide-react"
 
 interface EstadoFisicoCardProps {

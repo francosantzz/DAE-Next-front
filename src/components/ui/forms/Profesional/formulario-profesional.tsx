@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/genericos/button"
+import { Input } from "@/components/ui/genericos/input"
+import { Label } from "@/components/ui/genericos/label"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/genericos/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/genericos/select"
 import { XIcon } from "lucide-react"; // Icono de la cruz para cerrar
 
 interface Profesional {

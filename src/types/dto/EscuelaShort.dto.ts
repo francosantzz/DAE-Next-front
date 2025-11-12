@@ -1,5 +1,5 @@
 export interface EscuelaShortDTO{
   id: number;
-  numero?: string;
+  Numero?: string;
   nombre: string;
 }

@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/genericos/label"
+import { Input } from "@/components/ui/genericos/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/genericos/select"
+import { Button } from "@/components/ui/genericos/button"
 import { EquipoFormData, EquipoFormProps } from "@/types/formulario-equipo-props.types"
 import { Escuela, Profesional } from '@/types/equipos'
 

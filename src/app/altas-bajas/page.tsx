@@ -1,11 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Button } from "@/components/ui/genericos/button"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/genericos/card"
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/genericos/table"
+import { Avatar, AvatarFallback } from "@/components/ui/genericos/avatar"
+import { Checkbox } from "@/components/ui/genericos/checkbox"
 import { RefreshCwIcon, TrendingUpIcon, UserPlusIcon, UserMinusIcon } from "lucide-react"
 
 interface MovimientoProfesional {

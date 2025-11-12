@@ -1,4 +1,4 @@
-export interface PaqueteHoras {
+export interface PaqueteHorasEscuela {
     id: number
     cantidad: string
     profesional: {

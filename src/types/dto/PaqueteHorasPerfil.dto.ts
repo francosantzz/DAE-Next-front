@@ -1,4 +1,6 @@
 import { Equipo, Escuela } from "../equipos"
+import { EquipoMuyShortResponseDto } from "./EquipoShort.dto"
+import { EscuelaShortDTO } from "./EscuelaShort.dto"
 
 // interface Escuela {
 //   id: number
@@ -12,12 +14,12 @@ import { Equipo, Escuela } from "../equipos"
 //   departamento: Departamento
 // }
 
-export interface PaqueteHoras {
+export interface PaqueteHorasPerfil {
     id: number
     tipo: string
     cantidad: number
-    equipo: Equipo
-    escuela?: Escuela
+    escuela?: EscuelaShortDTO
+    equipo: EquipoMuyShortResponseDto
     diaSemana?: number
     horaInicio?: string
     horaFin?: string
