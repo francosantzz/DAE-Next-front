@@ -7,19 +7,19 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+} from "@/components/ui/genericos/dialog";
+import { Label } from "@/components/ui/genericos/label";
+import { Input } from "@/components/ui/genericos/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from "@/components/ui/genericos/select";
+import { ScrollArea } from "@/components/ui/genericos/scroll-area";
+import { Badge } from "@/components/ui/genericos/badge";
+import { Button } from "@/components/ui/genericos/button";
 import { UserCheck, Building, X } from "lucide-react";
 import ProfesionalesSelector from "./profesionales-selector";
 import EscuelasSelector from "./escuelas-selector";

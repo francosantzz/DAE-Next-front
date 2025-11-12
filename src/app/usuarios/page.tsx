@@ -3,15 +3,15 @@
 import type React from "react"
 import { useState, useEffect, useCallback } from "react"
 import { useSession } from "next-auth/react"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/genericos/input"
+import { Label } from "@/components/ui/genericos/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/genericos/select"
+import { Button } from "@/components/ui/genericos/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/genericos/card"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/genericos/table"
+import { Badge } from "@/components/ui/genericos/badge"
+import { ScrollArea } from "@/components/ui/genericos/scroll-area"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/genericos/dialog"
 import {
   PlusCircle,
   Edit,
@@ -27,10 +27,10 @@ import {
   Trash,
   X,
 } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import ErrorBoundary from "@/components/ui/ErrorBoundary"
+import { Alert, AlertDescription } from "@/components/ui/genericos/alert"
+import ErrorBoundary from "@/components/ui/genericos/ErrorBoundary"
 import { useDebounce } from "@/hooks/useDebounce"
-import { PermissionButton } from "@/components/ui/PermissionButton"
+import { PermissionButton } from "@/components/ui/genericos/PermissionButton"
 import { Role, Usuario, Permission, roleLabels, roleColors } from "@/types/roles"
 
 

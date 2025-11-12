@@ -1,8 +1,8 @@
 // components/profesionales/ProfesionalCard.tsx
 "use client";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/genericos/badge";
+import { Button } from "@/components/ui/genericos/button";
 import { ChevronDown, Edit, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -19,7 +19,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "../alert-dialog";
+} from "../genericos/alert-dialog";
+import ProfesionalActions from "./ProfesionalActions";
 
 // VM type correcto apuntando al hook real
 type VM = ReturnType<typeof import("@/hooks/useProfesional").useProfesional>;
@@ -52,8 +53,6 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
       profesional.telefono,
       profesional.matricula,
       profesional.fechaNacimiento,
-      profesional.fechaFinLicencia,
-      profesional.fechaInicioLicencia,
       profesional.fechaVencimientoMatricula,
     ];
 
@@ -109,56 +108,13 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button onClick={() => router.push(`/perfil/${profesional.id}`)}>
-            Ver
-          </Button>
-
-          <Button variant="outline" onClick={handleEditClick}>
-            <Edit className="h-4 w-4" />
-          </Button>
-
-          {/* ---------- Reemplazamos el confirm() por AlertDialog ---------- */}
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </AlertDialogTrigger>
-
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>¿Eliminar profesional?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Esta acción es permanente y eliminará al profesional
-                  seleccionado.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-
-              <AlertDialogFooter>
-                <AlertDialogCancel asChild>
-                  <Button variant="outline">Cancelar</Button>
-                </AlertDialogCancel>
-                <AlertDialogAction asChild>
-                  <Button
-                    variant="destructive"
-                    onClick={async () => {
-                      try {
-                        await remove(profesional.id);
-                      } catch (err) {
-                        console.error("Error eliminando profesional:", err);
-                        // fallback visual simple
-                        alert("Error al eliminar profesional");
-                      }
-                    }}
-                  >
-                    Confirmar
-                  </Button>
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+        <ProfesionalActions
+          profesional={profesional}
+          onView={(p) => router.push(`/profesionales/${p.id}`)}
+          onEdit={(p) => vm.handleEdit?.(p) ?? (vm.setCurrentProfesional?.(p), vm.setIsDialogOpen?.(true))}
+          onDelete={(id) => vm.remove(id)}
+          compact
+        />
       </div>
 
       {handleFaltanDatos() > 0 && (

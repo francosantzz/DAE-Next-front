@@ -1,11 +1,11 @@
 // components/equipo/EquipoCard.tsx
 'use client'
 
-import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Badge } from "@/components/ui/badge"
+import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/genericos/accordion"
+import { Badge } from "@/components/ui/genericos/badge"
 import { Edit, Trash2, Eye } from "lucide-react"
 import { Equipo } from "@/types/equipos"
-import { PermissionButton } from "../PermissionButton"
+import { PermissionButton } from "../genericos/PermissionButton"
 import EquipoActions from "./EquipoActions"
 
 type Props = {

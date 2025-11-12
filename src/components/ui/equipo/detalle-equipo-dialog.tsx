@@ -1,9 +1,9 @@
 "use client"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Separator } from "@/components/ui/separator"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/genericos/dialog"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/genericos/card"
+import { Badge } from "@/components/ui/genericos/badge"
+import { Avatar, AvatarFallback } from "@/components/ui/genericos/avatar"
+import { Separator } from "@/components/ui/genericos/separator"
 import {
   Users,
   Building,

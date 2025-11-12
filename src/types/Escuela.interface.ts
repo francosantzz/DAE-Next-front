@@ -1,3 +1,4 @@
+// types/Escuela.interface.ts
 import { Anexo } from "./Anexo.interface"
 import { Direccion } from "./Direccion.interface"
 import { EquipoDepartamentoDTO } from "./dto/EquipoDepartamento.dto"
@@ -13,8 +14,8 @@ export interface Escuela {
   IVE?: string
   Ambito?: string
   direccion: Direccion
-  equipo: EquipoDepartamentoDTO
-    anexos: Anexo[] 
-    paquetesHoras: PaqueteHoras[]
+  equipo: EquipoDepartamentoDTO | null
+  anexos: Anexo[]
+  paquetesHoras: PaqueteHoras[]
   observaciones?: string
 }

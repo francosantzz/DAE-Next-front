@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { usePermissions } from "@/hooks/usePermissions";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/genericos/alert";
 import { AlertCircle } from "lucide-react";
 
 interface ProtectedRouteProps {

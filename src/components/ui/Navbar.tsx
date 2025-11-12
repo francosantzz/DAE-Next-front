@@ -4,7 +4,7 @@ import { CalendarCheckIcon } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Button } from "./button";
+import { Button } from "./genericos/button";
 import { cn } from "@/lib/utils";
 
 const Navbar = () => {

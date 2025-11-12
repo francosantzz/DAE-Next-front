@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/genericos/label"
+import { Input } from "@/components/ui/genericos/input"
+import { ScrollArea } from "@/components/ui/genericos/scroll-area"
+import { Badge } from "@/components/ui/genericos/badge"
+import { Button } from "@/components/ui/genericos/button"
 import { Building, X } from 'lucide-react'
 import type { Escuela } from '@/types/equipos'
 

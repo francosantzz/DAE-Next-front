@@ -1,18 +1,18 @@
 // app/.../equipos/page.tsx
 'use client'
 
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/genericos/label"
+import { Input } from "@/components/ui/genericos/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/genericos/select"
+import { Button } from "@/components/ui/genericos/button"
 import { PlusCircle } from "lucide-react"
 import { useEquipos } from "@/hooks/useEquipo"
-import ErrorBoundary from "@/components/ui/ErrorBoundary"
-import { PermissionButton } from "@/components/ui/PermissionButton"
+import ErrorBoundary from "@/components/ui/genericos/ErrorBoundary"
+import { PermissionButton } from "@/components/ui/genericos/PermissionButton"
 import EquiposList from "@/components/ui/equipo/EquipoList"
 import EquipoFormDialog from "@/components/ui/equipo/EquipoFormDialog"
 import { DetalleEquipoDialog } from "@/components/ui/equipo/detalle-equipo-dialog"
-import { Paginator } from "@/components/ui/Paginator"
+import { Paginator } from "@/components/ui/genericos/Paginator"
 
 export default function PageEquipos() {
   const vm = useEquipos()  // ← SOLO acá

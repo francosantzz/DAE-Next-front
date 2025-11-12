@@ -2,12 +2,12 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/genericos/dialog'
+import { Button } from '@/components/ui/genericos/button'
+import { Input } from '@/components/ui/genericos/input'
+import { Label } from '@/components/ui/genericos/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/genericos/select'
+import { Badge } from '@/components/ui/genericos/badge'
 import { X as XIcon, Plus } from 'lucide-react'
 import type { Profesional as ProfesionalType } from '@/types/Profesional.interface'
 
@@ -294,7 +294,7 @@ export default function ProfesionalForm({ vm }: Props) {
 
               <Select
                 onValueChange={(v) => handleEquipoAddFromSelect(v)}
-                value={""} // mantenemos value vacío para mostrar placeholder
+                value={undefined as unknown as string} // mantenemos value vacío para mostrar placeholder
               >
                 <SelectTrigger id="equiposIds" className="w-full min-w-0"><SelectValue placeholder="Seleccione equipos" /></SelectTrigger>
                 <SelectContent>

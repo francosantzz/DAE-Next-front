@@ -1,14 +1,14 @@
 "use client";
 
 import { ScrollArea } from "@radix-ui/react-scroll-area";
-import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import ErrorBoundary from "@/components/ui/genericos/ErrorBoundary";
 import { useProfesional } from "@/hooks/useProfesional";
 import FiltrosProfesionales from "@/components/ui/profesional/FiltrosProfesionales";
 import ListProfesionales from "@/components/ui/profesional/ListProfesional";
 import { useSession } from "next-auth/react";
-import { ProtectedRoute } from "@/components/ui/ProtectedRoute";
+import { ProtectedRoute } from "@/components/ui/genericos/ProtectedRoute";
 import Layout from "@/components/ui/profesional/LayoutProf";
-import { Paginator } from "@/components/ui/Paginator";
+import { Paginator } from "@/components/ui/genericos/Paginator";
 
 export default function ProfesionalesPage() {
   const { data: session } = useSession();
