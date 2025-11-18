@@ -43,12 +43,14 @@ export default function ProfesionalForm({ vm }: Props) {
     telefono: '',
     fechaNacimiento: '',
     fechaVencimientoPsicofisico: '',
+    fechaVencimientoMatricula: '',    
     matricula: '',
     correoElectronico: '',
     equiposIds: [] as number[],
     cargosHoras: [] as CargoHoras[],
     direccion: { calle: '', numero: '', departamentoId: '' },
   }
+  
 
   const [form, setForm] = useState<any>(emptyForm)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -66,6 +68,7 @@ export default function ProfesionalForm({ vm }: Props) {
         telefono: currentProfesional.telefono ?? '',
         fechaNacimiento: currentProfesional.fechaNacimiento ?? '',
         fechaVencimientoPsicofisico: currentProfesional.fechaVencimientoPsicofisico ?? '',
+        fechaVencimientoMatricula: currentProfesional.fechaVencimientoMatricula ?? '',
         matricula: currentProfesional.matricula ?? '',
         correoElectronico: currentProfesional.correoElectronico ?? '',
         equiposIds: (currentProfesional.equipos ?? []).map((e: any) => e.id),
@@ -140,6 +143,7 @@ export default function ProfesionalForm({ vm }: Props) {
         ...(form.telefono && { telefono: form.telefono }),
         ...(form.fechaNacimiento && { fechaNacimiento: form.fechaNacimiento }),
         ...(form.fechaVencimientoPsicofisico && { fechaVencimientoPsicofisico: form.fechaVencimientoPsicofisico }),
+        ...(form.fechaVencimientoMatricula && { fechaVencimientoMatricula: form.fechaVencimientoMatricula }),
         ...(form.matricula && { matricula: form.matricula }),
         ...(form.correoElectronico && { correoElectronico: form.correoElectronico }),
         equiposIds: form.equiposIds || [],
