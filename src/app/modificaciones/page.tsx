@@ -13,9 +13,15 @@ import { Calendar, User, FileText, Search, Filter, RefreshCw, Eye } from "lucide
 import { Alert, AlertDescription } from "@/components/ui/genericos/alert"
 import { useSession } from "next-auth/react"
 import { useDebounce } from "@/hooks/useDebounce"
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@radix-ui/react-accordion"
 import DetallesModificacion from "@/components/ui/DetallesModificacion"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/genericos/popover"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/genericos/dialog"
 
 interface Usuario {
   id: number
@@ -32,24 +38,24 @@ interface Modificacion {
   entidad: string
   entidadId: number
   descripcion: string
-  detalles?: string
+  detalles?: any   // ahora aceptamos string u objeto
   ipAddress?: string
 }
 
-const accionColors = {
+const accionColors: Record<Modificacion["accion"], string> = {
   CREATE: "bg-green-100 text-green-800",
   UPDATE: "bg-blue-100 text-blue-800",
   DELETE: "bg-red-100 text-red-800",
 }
 
-const accionLabels = {
+const accionLabels: Record<Modificacion["accion"], string> = {
   CREATE: "Creación",
   UPDATE: "Modificación",
   DELETE: "Eliminación",
 }
 
 export default function ListaModificaciones() {
-    const { data: session } = useSession()
+  const { data: session } = useSession()
   const [modificaciones, setModificaciones] = useState<Modificacion[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [filtroAccion, setFiltroAccion] = useState("todas")
@@ -64,20 +70,27 @@ export default function ListaModificaciones() {
   const itemsPerPage = 10
 
   const fetchData = useCallback(async () => {
+    if (!session?.user?.accessToken) return
+
     setIsLoading(true)
     try {
-      // Formatear fecha para evitar problemas de zona horaria
-      const fechaFormateada = filtroFecha 
-      ? new Date(`${filtroFecha}T00:00:00Z`).toISOString().split('T')[0]
-      : '';
-      console.log("Fecha seleccionada:", filtroFecha);
-      console.log("Fecha formateada:", fechaFormateada);
+      const fechaFormateada = filtroFecha
+        ? new Date(`${filtroFecha}T00:00:00Z`).toISOString().split("T")[0]
+        : ""
+
+      const queryParams = new URLSearchParams()
+      queryParams.set("page", String(currentPage))
+      queryParams.set("limit", String(itemsPerPage))
+      if (busqueda) queryParams.set("search", busqueda)
+      if (filtroAccion !== "todas") queryParams.set("accion", filtroAccion)
+      if (fechaFormateada) queryParams.set("fecha", fechaFormateada)
+
       const [modificacionesRes, usuariosRes] = await Promise.all([
-        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/modificaciones?page=${currentPage}&limit=${itemsPerPage}&search=${busqueda}${filtroAccion !== 'todas' ? `&accion=${filtroAccion}` : ''}${filtroFecha ? `&fecha=${fechaFormateada}` : ''}`, {
-          headers: { Authorization: `Bearer ${session?.user?.accessToken}` }
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/modificaciones?${queryParams.toString()}`, {
+          headers: { Authorization: `Bearer ${session.user.accessToken}` },
         }),
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/users`, {
-          headers: { Authorization: `Bearer ${session?.user?.accessToken}` }
+          headers: { Authorization: `Bearer ${session.user.accessToken}` },
         }),
       ])
 
@@ -87,7 +100,7 @@ export default function ListaModificaciones() {
 
       const [modificacionesData, usuariosData] = await Promise.all([
         modificacionesRes.json(),
-        usuariosRes.json()
+        usuariosRes.json(),
       ])
 
       setModificaciones(modificacionesData.data)
@@ -95,12 +108,14 @@ export default function ListaModificaciones() {
       setTotalItems(modificacionesData.meta.total)
       setUsuarios(usuariosData)
 
-      // Extraer entidades únicas
-      const entidadesUnicas = Array.from(new Set(modificacionesData.data.map((mod: Modificacion) => mod.entidad))) as string[]
+      const entidadesUnicas = Array.from(
+        new Set(modificacionesData.data.map((mod: Modificacion) => mod.entidad)),
+      ) as string[]
       setEntidades(entidadesUnicas)
     } catch (error) {
       console.error("Error al obtener datos:", error)
-      // Datos de ejemplo para desarrollo
+
+      // fallback de ejemplo (opcional, lo podes sacar en prod)
       const modificacionesEjemplo: Modificacion[] = [
         {
           id: 1,
@@ -110,64 +125,16 @@ export default function ListaModificaciones() {
           entidad: "Escuela",
           entidadId: 1,
           descripcion: "Creó la escuela 'Escuela Primaria N° 1'",
-          detalles: "Nueva escuela agregada al sistema",
-          ipAddress: "192.168.1.100",
-        },
-        {
-          id: 2,
-          fecha: "2024-01-15T11:45:00Z",
-          usuario: { id: 2, nombre: "María", apellido: "González", email: "maria.gonzalez@sistema.com" },
-          accion: "UPDATE",
-          entidad: "Profesional",
-          entidadId: 5,
-          descripcion: "Modificó los datos del profesional 'Carlos Rodríguez'",
-          detalles: "Actualizó teléfono y dirección",
-          ipAddress: "192.168.1.101",
-        },
-        {
-          id: 3,
-          fecha: "2024-01-15T14:20:00Z",
-          usuario: { id: 1, nombre: "Juan", apellido: "Pérez", email: "juan.perez@sistema.com" },
-          accion: "DELETE",
-          entidad: "PaqueteHoras",
-          entidadId: 12,
-          descripcion: "Eliminó paquete de horas de 20 horas",
-          detalles: "Paquete de horas administrativas eliminado",
-          ipAddress: "192.168.1.100",
-        },
-        {
-          id: 4,
-          fecha: "2024-01-16T09:15:00Z",
-          usuario: { id: 3, nombre: "Ana", apellido: "Martínez", email: "ana.martinez@sistema.com" },
-          accion: "CREATE",
-          entidad: "Horario",
-          entidadId: 8,
-          descripcion: "Creó nuevo horario semanal para profesional",
-          detalles: "Horario asignado para Escuela Secundaria N° 5",
-          ipAddress: "192.168.1.102",
-        },
-        {
-          id: 5,
-          fecha: "2024-01-16T16:30:00Z",
-          usuario: { id: 2, nombre: "María", apellido: "González", email: "maria.gonzalez@sistema.com" },
-          accion: "UPDATE",
-          entidad: "Escuela",
-          entidadId: 3,
-          descripcion: "Actualizó observaciones del espacio físico",
-          detalles: "Agregó observaciones sobre reparaciones necesarias",
-          ipAddress: "192.168.1.101",
+          detalles: null,
         },
       ]
-
       const usuariosEjemplo: Usuario[] = [
         { id: 1, nombre: "Juan", apellido: "Pérez", email: "juan.perez@sistema.com" },
-        { id: 2, nombre: "María", apellido: "González", email: "maria.gonzalez@sistema.com" },
-        { id: 3, nombre: "Ana", apellido: "Martínez", email: "ana.martinez@sistema.com" },
       ]
 
       setModificaciones(modificacionesEjemplo)
       setUsuarios(usuariosEjemplo)
-      setEntidades(["Escuela", "Profesional", "PaqueteHoras", "Horario"])
+      setEntidades(["Escuela"])
     } finally {
       setIsLoading(false)
     }
@@ -179,7 +146,6 @@ export default function ListaModificaciones() {
     }
   }, [fetchData, session?.user?.accessToken])
 
-  // Resetear página cuando cambie la búsqueda
   useEffect(() => {
     setCurrentPage(1)
   }, [busqueda, filtroAccion, filtroFecha])
@@ -187,12 +153,13 @@ export default function ListaModificaciones() {
   const modificacionesFiltradas = modificaciones
 
   const formatearFecha = (fecha: string) => {
-    return new Date(fecha).toLocaleString("es-ES", {
+    return new Date(fecha).toLocaleString("es-AR", {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: "America/Argentina/Mendoza",
     })
   }
 
@@ -200,7 +167,7 @@ export default function ListaModificaciones() {
     setFiltroAccion("todas")
     setFiltroFecha("")
     setBusquedaInput("")
-    setCurrentPage(1) // Resetear la página al limpiar filtros
+    setCurrentPage(1)
   }
 
   if (isLoading) {
@@ -235,12 +202,14 @@ export default function ListaModificaciones() {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <div>
-                <Label htmlFor="busqueda" className="text-sm">Búsqueda</Label>
+                <Label htmlFor="busqueda" className="text-sm">
+                  Búsqueda
+                </Label>
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="busqueda"
-                    placeholder="Buscar..."
+                    placeholder="Buscar por entidad, descripción o email..."
                     className="pl-8 h-8 text-sm"
                     value={busquedaInput}
                     onChange={(e) => setBusquedaInput(e.target.value)}
@@ -248,7 +217,9 @@ export default function ListaModificaciones() {
                 </div>
               </div>
               <div>
-                <Label htmlFor="filtroAccion" className="text-sm">Acción</Label>
+                <Label htmlFor="filtroAccion" className="text-sm">
+                  Acción
+                </Label>
                 <Select value={filtroAccion} onValueChange={setFiltroAccion}>
                   <SelectTrigger id="filtroAccion" className="h-8 text-sm">
                     <SelectValue placeholder="Todas las acciones" />
@@ -262,7 +233,9 @@ export default function ListaModificaciones() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="filtroFecha" className="text-sm">Fecha</Label>
+                <Label htmlFor="filtroFecha" className="text-sm">
+                  Fecha
+                </Label>
                 <Input
                   id="filtroFecha"
                   type="date"
@@ -270,28 +243,29 @@ export default function ListaModificaciones() {
                   value={filtroFecha}
                   onChange={(e) => {
                     setFiltroFecha(e.target.value)
-                    setCurrentPage(1) // Resetear la página al cambiar la fecha
+                    setCurrentPage(1)
                   }}
                 />
               </div>
             </div>
             <div className="flex justify-end mt-3">
               <Button variant="outline" size="sm" onClick={limpiarFiltros}>
-                Limpiar Filtros
+                Limpiar filtros
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Estadísticas */}
+        {/* Estadísticas rápidas */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           <Card>
             <CardContent className="p-3">
               <div className="flex items-center">
                 <FileText className="h-6 w-6 text-blue-600" />
                 <div className="ml-3">
-                  <p className="text-xs font-medium text-gray-600">Total</p>
+                  <p className="text-xs font-medium text-gray-600">Registros en esta página</p>
                   <p className="text-lg font-bold">{modificacionesFiltradas.length}</p>
+                  <p className="text-[11px] text-gray-500">Total filtrado: {totalItems}</p>
                 </div>
               </div>
             </CardContent>
@@ -346,7 +320,7 @@ export default function ListaModificaciones() {
         {/* Tabla de modificaciones */}
         <Card>
           <CardHeader className="py-3">
-            <CardTitle className="text-lg">Registro de Modificaciones</CardTitle>
+            <CardTitle className="text-lg">Registro de modificaciones</CardTitle>
           </CardHeader>
           <CardContent>
             {modificacionesFiltradas.length === 0 ? (
@@ -361,9 +335,9 @@ export default function ListaModificaciones() {
                       <TableHead className="w-[150px]">Fecha</TableHead>
                       <TableHead className="w-[180px]">Usuario</TableHead>
                       <TableHead className="w-[100px]">Acción</TableHead>
-                      <TableHead className="w-[120px]">Entidad</TableHead>
+                      <TableHead className="w-[140px]">Entidad</TableHead>
                       <TableHead>Descripción</TableHead>
-                      <TableHead>Detalles</TableHead>
+                      <TableHead className="w-[120px] text-center">Detalles</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -392,31 +366,54 @@ export default function ListaModificaciones() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-xs">{modificacion.entidad}</Badge>
+                          <div className="flex flex-col gap-0.5">
+                            <Badge variant="outline" className="text-xs w-fit">
+                              {modificacion.entidad}
+                            </Badge>
+                            <span className="text-[11px] text-muted-foreground">
+                              ID entidad: {modificacion.entidadId}
+                            </span>
+                          </div>
                         </TableCell>
-                        <TableCell className="max-w-[200px]">
+                        <TableCell className="max-w-[260px]">
                           <p className="truncate text-sm" title={modificacion.descripcion}>
                             {modificacion.descripcion}
                           </p>
                         </TableCell>
-                        <TableCell className="max-w-[300px]">
+                        <TableCell className="text-center">
                           {modificacion.detalles && (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-auto p-1 text-xs">
-                                  <Eye className="h-4 w-4 mr-1" />
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-7 px-2 text-xs">
+                                  <Eye className="h-3 w-3 mr-1" />
                                   Ver detalles
                                 </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-80">
-                                <DetallesModificacion 
-                                  detalles={modificacion.detalles} 
-                                  entidad={modificacion.entidad} 
-                                />
-                              </PopoverContent>
-                            </Popover>
-                        )}
-                      </TableCell>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl p-4 sm:p-6">
+                                <DialogHeader className="mb-2">
+                                  <DialogTitle className="text-base sm:text-lg">
+                                    Detalle de modificación
+                                  </DialogTitle>
+                                  <DialogDescription className="text-xs sm:text-sm">
+                                    {accionLabels[modificacion.accion]} de{" "}
+                                    <span className="font-semibold">{modificacion.entidad}</span>{" "}
+                                    (ID {modificacion.entidadId}) realizada por{" "}
+                                    <span className="font-semibold">
+                                      {modificacion.usuario.email} 
+                                    </span>{" "}
+                                    el {formatearFecha(modificacion.fecha)}.
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <ScrollArea className="max-h-[420px] pr-2">
+                                  <DetallesModificacion
+                                    detalles={modificacion.detalles}
+                                    entidad={modificacion.entidad}
+                                  />
+                                </ScrollArea>
+                              </DialogContent>
+                            </Dialog>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -426,6 +423,7 @@ export default function ListaModificaciones() {
           </CardContent>
         </Card>
 
+        {/* Paginación */}
         <div className="flex items-center justify-between px-2 py-4">
           <div className="flex-1 text-sm text-muted-foreground">
             Mostrando {modificaciones.length} de {totalItems} modificaciones
@@ -434,7 +432,7 @@ export default function ListaModificaciones() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
             >
               Anterior
@@ -445,7 +443,7 @@ export default function ListaModificaciones() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
             >
               Siguiente

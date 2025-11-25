@@ -41,7 +41,7 @@ export default function EquipoCard({ equipo, onView, onEdit, onDelete }: Props) 
                   {(equipo.profesionales ?? []).map((p) => (
                     <li key={p.id} className="flex items-center gap-2">
                       <span>{p.nombre} {p.apellido}</span>
-                      {p.licenciaActiva && (
+                      {!p.disponible && (
                         <Badge variant="outline" className="text-[11px] bg-orange-50 text-orange-700 border-orange-200">
                           En Licencia
                         </Badge>

@@ -16,6 +16,7 @@ export interface Profesional {
     fechaInicioLicencia?: string;
     fechaFinLicencia?: string;
     licenciaActiva: boolean;
+    disponible: boolean;
     totalHoras?: number;         // opcional
   }
   

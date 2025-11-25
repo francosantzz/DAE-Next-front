@@ -103,7 +103,7 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
             {`${profesional.apellido} ${profesional.nombre}`} -{" "}
             {profesional.profesion}
           </span>
-          {profesional.licenciaActiva && (
+          {!profesional.disponible && (
             <Badge variant="destructive">En Licencia</Badge>
           )}
         </div>

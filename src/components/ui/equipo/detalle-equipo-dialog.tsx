@@ -94,6 +94,19 @@ const horasEnOtrosTrabajos = paquetesOtrosSemana1.reduce(
 // Total calculado local (semana 1) — solo para chequeo visual
 const totalCalculado = horasEnEscuelas + horasEnOtrosTrabajos;
 
+const parseLocalDateFromYMD = (dateStr?: string | null): Date | null => {
+  if (!dateStr) return null;
+  const [y, m, d] = dateStr.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d); // ← esto NO toca UTC, es fecha local
+};
+
+const todayLocal = (): Date => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
 // Promedio por escuela SOLO contando las que efectivamente tienen horas en semana 1
 const escuelasConHorasSemana1 = new Set(
   paquetesEscuelaSemana1
@@ -223,10 +236,14 @@ const promedioHorasPorEscuela =
               {profesionales.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {profesionales.map((profesional) => {
-                    const tieneLicenciaActiva = profesional.licenciaActiva && 
-                      profesional.fechaFinLicencia && 
-                      new Date(profesional.fechaFinLicencia) >= new Date();
+                    const hoy = todayLocal();
+                    const finLic = parseLocalDateFromYMD(profesional.fechaFinLicencia);
                     
+                    const tieneLicenciaActiva = !!(
+                      profesional.licenciaActiva &&
+                      finLic &&
+                      finLic >= hoy
+                    );
                     return (
                       <div
                         key={profesional.id}
@@ -271,8 +288,8 @@ const promedioHorasPorEscuela =
                               <span className="font-medium">Licencia: </span>
                               {profesional.tipoLicencia}
                               {profesional.fechaFinLicencia && (
-                                <span> (hasta {new Date(profesional.fechaFinLicencia).toLocaleDateString('es-ES')})</span>
-                              )}
+                                <span> (hasta {finLic.toLocaleDateString('es-ES')})</span>                              
+                                )}
                             </div>
                           )}
                         </div>
@@ -313,13 +330,16 @@ const promedioHorasPorEscuela =
                       const tienePaquete = paquetesDeEstaEscuela.length > 0
                       
                       // Verificar si algún paquete tiene profesional en licencia
+                      const hoy = todayLocal();
                       const tieneProfesionalEnLicencia = paquetesDeEstaEscuela.some(paquete => {
                         const profesional = paquete.profesional;
-                        return profesional.licenciaActiva && 
-                              profesional.fechaFinLicencia && 
-                              new Date(profesional.fechaFinLicencia) >= new Date();
+                        const finLic = parseLocalDateFromYMD(profesional.fechaFinLicencia);
+                        return !!(
+                          profesional.licenciaActiva &&
+                          finLic &&
+                          finLic >= hoy
+                        );
                       });
-
                       return (
                         <div
                           key={escuela.id}
@@ -357,10 +377,12 @@ const promedioHorasPorEscuela =
                           {tienePaquete && (
                             <div className="space-y-3 mt-3">
                               {paquetesDeEstaEscuela.map((paquete) => {
-                                const profesionalEnLicencia = paquete.profesional.licenciaActiva && 
-                                  paquete.profesional.fechaFinLicencia && 
-                                  new Date(paquete.profesional.fechaFinLicencia) >= new Date();
-                                
+                                const finLic = parseLocalDateFromYMD(paquete.profesional.fechaFinLicencia);
+                                const profesionalEnLicencia = !!(
+                                  paquete.profesional.licenciaActiva &&
+                                  finLic &&
+                                  finLic >= hoy
+                                );                                
                                 return (
                                   <div
                                     key={paquete.id}
@@ -398,7 +420,7 @@ const promedioHorasPorEscuela =
                                           <div>Tipo: {paquete.profesional.tipoLicencia}</div>
                                         )}
                                         {paquete.profesional.fechaFinLicencia && (
-                                          <div>Hasta: {new Date(paquete.profesional.fechaFinLicencia).toLocaleDateString('es-ES')}</div>
+                                          <div>Hasta: {finLic.toLocaleDateString('es-ES')}</div>
                                         )}
                                       </div>
                                     )}
@@ -484,9 +506,11 @@ const promedioHorasPorEscuela =
                     </div>
                   <div className="text-center">
                     <p className="text-2xl font-bold text-red-600">
-                      {profesionales.filter(p => 
-                        p.licenciaActiva && p.fechaFinLicencia && new Date(p.fechaFinLicencia) >= new Date()
-                      ).length}
+                    {profesionales.filter(p => {
+                      const finLic = parseLocalDateFromYMD(p.fechaFinLicencia);
+                      const hoy = todayLocal();
+                      return !!(p.licenciaActiva && finLic && finLic >= hoy);
+                    }).length}
                     </p>
                     <p className="text-sm text-gray-600">En Licencia</p>
                   </div>

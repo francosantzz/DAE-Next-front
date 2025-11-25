@@ -8,99 +8,90 @@ import { Avatar, AvatarFallback } from "@/components/ui/genericos/avatar"
 import { Checkbox } from "@/components/ui/genericos/checkbox"
 import { RefreshCwIcon, TrendingUpIcon, UserPlusIcon, UserMinusIcon } from "lucide-react"
 
+type TipoMovimiento = "alta" | "baja"
+
 interface MovimientoProfesional {
   id: number
+  tipo: TipoMovimiento
+  fecha: string
+  dni: string
   nombre: string
   apellido: string
-  cuil: string
-  profesion: string
-  matricula: string
-  fecha: string
-  tipo: "alta" | "baja"
-  motivo?: string
+  profesion?: string | null
+  matricula?: string | null
+  cuil?: string | null
+  motivo?: string | null
+  tipoHora?: string | null
+  cantidadHoras?: number | null
+  grupoDistribucion?: number | null
+  tiposOrigen?: string | null
   registrado: boolean
 }
 
 export default function ListaAltasBajas() {
   const [isLoading, setIsLoading] = useState(false)
   const [ultimaActualizacion, setUltimaActualizacion] = useState<Date | null>(null)
-  const [movimientos, setMovimientos] = useState<MovimientoProfesional[]>([
-    {
-      id: 1,
-      nombre: "María",
-      apellido: "González",
-      cuil: "27-12345678-9",
-      profesion: "Psicóloga",
-      matricula: "PSI-001",
-      fecha: "2024-01-15",
-      tipo: "alta",
-      registrado: false,
-    },
-    {
-      id: 2,
-      nombre: "Carlos",
-      apellido: "Rodríguez",
-      cuil: "20-87654321-0",
-      profesion: "Fonoaudiólogo",
-      matricula: "FON-002",
-      fecha: "2024-01-14",
-      tipo: "alta",
-      registrado: true,
-    },
-    {
-      id: 3,
-      nombre: "Ana",
-      apellido: "Martínez",
-      cuil: "27-11223344-5",
-      profesion: "Terapista Ocupacional",
-      matricula: "TO-003",
-      fecha: "2024-01-13",
-      tipo: "baja",
-      motivo: "Renuncia voluntaria",
-      registrado: false,
-    },
-    {
-      id: 4,
-      nombre: "Luis",
-      apellido: "Fernández",
-      cuil: "20-55667788-9",
-      profesion: "Kinesiólogo",
-      matricula: "KIN-004",
-      fecha: "2024-01-12",
-      tipo: "baja",
-      motivo: "Jubilación",
-      registrado: true,
-    },
-  ])
+  const [movimientos, setMovimientos] = useState<MovimientoProfesional[]>([])
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const altas = movimientos.filter((m) => m.tipo === "alta")
   const bajas = movimientos.filter((m) => m.tipo === "baja")
 
   const handleTraerRegistros = async () => {
-    setIsLoading(true)
-    // Simular llamada a API del gobierno
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    try {
+      setIsLoading(true)
+      setErrorMsg(null)
 
-    // Simular nuevos datos
-    const nuevosMovimientos: MovimientoProfesional[] = [
-      ...movimientos,
-      {
-        id: Date.now(),
-        nombre: "Pedro",
-        apellido: "López",
-        cuil: "20-99887766-5",
-        profesion: "Psicopedagogo",
-        matricula: "PP-005",
-        fecha: new Date().toISOString().split("T")[0],
-        tipo: Math.random() > 0.5 ? "alta" : "baja",
-        motivo: Math.random() > 0.5 ? "Traslado" : undefined,
-        registrado: false,
-      },
-    ]
+      // ⬇️ Asegurate de usar la misma key que uses en tu login
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("token") /* o "accessToken" */ : null
 
-    setMovimientos(nuevosMovimientos)
-    setUltimaActualizacion(new Date())
-    setIsLoading(false)
+      const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/altas-bajas?limit=5`
+
+      console.log("Llamando a:", url)
+
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        // si usás cookies / sesiones, activá esto:
+        // credentials: "include",
+      })
+
+      console.log("Status altas-bajas:", res.status)
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "")
+        console.error("Error al traer registros", res.status, text)
+
+        if (res.status === 401) {
+          setErrorMsg("No autorizado. Revisá el token (sesión expirada o no logueado).")
+        } else {
+          setErrorMsg(`Error al traer registros (status ${res.status})`)
+        }
+
+        return
+      }
+
+      const data = (await res.json()) as Omit<MovimientoProfesional, "registrado">[]
+
+      console.log("Respuesta /altas-bajas:", data)
+
+      const conFlag: MovimientoProfesional[] = data.map((m) => ({
+        ...m,
+        registrado: false, // al principio todos pendientes
+      }))
+
+      setMovimientos(conFlag)
+      setUltimaActualizacion(new Date())
+    } catch (err) {
+      console.error("Error fetch /altas-bajas", err)
+      setErrorMsg("Error de red al conectar con el backend.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleToggleRegistrado = (id: number) => {
@@ -115,14 +106,14 @@ export default function ListaAltasBajas() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold mb-2">Altas y Bajas de Profesionales</h1>
-              <p className="text-blue-100">Sincronización con sistema del gobierno</p>
+              <p className="text-blue-100">Sincronización con sistema de horas (gestor_horas2)</p>
             </div>
             <TrendingUpIcon className="h-12 w-12 text-blue-200" />
           </div>
         </div>
 
-        {/* Botón y última actualización */}
-        <div className="flex items-center justify-between">
+        {/* Botón / último update / error */}
+        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <Button
             onClick={handleTraerRegistros}
             disabled={isLoading}
@@ -132,11 +123,14 @@ export default function ListaAltasBajas() {
             {isLoading ? "Sincronizando..." : "Traer Registros"}
           </Button>
 
-          {ultimaActualizacion && (
-            <p className="text-sm text-muted-foreground">
-              Última actualización: {ultimaActualizacion.toLocaleString()}
-            </p>
-          )}
+          <div className="flex flex-col items-start md:items-end gap-1">
+            {ultimaActualizacion && (
+              <p className="text-sm text-muted-foreground">
+                Última actualización: {ultimaActualizacion.toLocaleString()}
+              </p>
+            )}
+            {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
+          </div>
         </div>
 
         {/* Estadísticas */}
@@ -170,7 +164,7 @@ export default function ListaAltasBajas() {
 
         {/* Tablas */}
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* Tabla de Altas */}
+          {/* Altas */}
           <Card>
             <CardHeader className="bg-gradient-to-r from-green-50 to-green-100 border-b">
               <CardTitle className="flex items-center gap-2 text-green-700">
@@ -210,12 +204,14 @@ export default function ListaAltasBajas() {
                               <div className="font-medium">
                                 {alta.nombre} {alta.apellido}
                               </div>
-                              <div className="text-xs text-muted-foreground">{alta.matricula}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {alta.matricula || "Sin matrícula"}
+                              </div>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>{alta.profesion}</TableCell>
-                        <TableCell className="font-mono text-sm">{alta.cuil}</TableCell>
+                        <TableCell>{alta.profesion || "—"}</TableCell>
+                        <TableCell className="font-mono text-sm">{alta.cuil || "—"}</TableCell>
                         <TableCell>{new Date(alta.fecha).toLocaleDateString()}</TableCell>
                         <TableCell className="text-center">
                           <Checkbox
@@ -232,7 +228,7 @@ export default function ListaAltasBajas() {
             </CardContent>
           </Card>
 
-          {/* Tabla de Bajas */}
+          {/* Bajas */}
           <Card>
             <CardHeader className="bg-gradient-to-r from-red-50 to-red-100 border-b">
               <CardTitle className="flex items-center gap-2 text-red-700">
@@ -273,15 +269,19 @@ export default function ListaAltasBajas() {
                               <div className="font-medium">
                                 {baja.nombre} {baja.apellido}
                               </div>
-                              <div className="text-xs text-muted-foreground">{baja.matricula}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {baja.matricula || "Sin matrícula"}
+                              </div>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>{baja.profesion}</TableCell>
-                        <TableCell className="font-mono text-sm">{baja.cuil}</TableCell>
+                        <TableCell>{baja.profesion || "—"}</TableCell>
+                        <TableCell className="font-mono text-sm">{baja.cuil || "—"}</TableCell>
                         <TableCell>{new Date(baja.fecha).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <span className="text-sm text-muted-foreground">{baja.motivo || "No especificado"}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {baja.motivo || "No especificado"}
+                          </span>
                         </TableCell>
                         <TableCell className="text-center">
                           <Checkbox
