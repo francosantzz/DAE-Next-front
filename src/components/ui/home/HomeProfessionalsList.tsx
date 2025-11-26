@@ -217,7 +217,7 @@ export function HomeProfessionalsList({
             </div>
 
             <div className="mt-3 flex gap-2">
-              <ProfesionalActions profesional={p} onView={() => {}} onEdit={onEdit} onDelete={onDelete} />
+              <ProfesionalActions profesional={p} onView={() => {}} onEdit={onEdit} onDelete={onDelete} home={true} />
             </div>
           </div>
         ))}
