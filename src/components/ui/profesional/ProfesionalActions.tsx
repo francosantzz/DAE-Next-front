@@ -26,6 +26,7 @@ export type ProfesionalActionsProps = {
   className?: string;
   /** Si true, usa botones chicos y apila en mobile */
   compact?: boolean;
+  home?:boolean;
 };
 
 export default function ProfesionalActions({
@@ -35,6 +36,7 @@ export default function ProfesionalActions({
   onDelete,
   className,
   compact,
+  home
 }: ProfesionalActionsProps) {
   const [openConfirm, setOpenConfirm] = useState(false);
 
@@ -52,12 +54,11 @@ export default function ProfesionalActions({
         variant="outline"
         size={compact ? "sm" : "default"}
         onClick={() => onView(profesional)}
-        className="hover:bg-green-50 hover:border-green-300 text-green-600"
+        className={`${home && 'hidden'} hover:bg-green-50 hover:border-green-300 text-green-600`}
       >
         <Eye className="mr-1 h-3 w-3" />
         Ver
       </PermissionButton>
-
       {/* Editar */}
       <PermissionButton
         requiredPermission={{ entity: "profesional", action: "update" }}
@@ -65,8 +66,7 @@ export default function ProfesionalActions({
         size={compact ? "sm" : "default"}
         onClick={() => onEdit(profesional)}
       >
-        <Edit className="mr-2 h-4 w-4" />
-        Editar
+        <Edit className="h-4 w-4" />
       </PermissionButton>
 
       {/* Eliminar con confirmación */}
@@ -78,8 +78,7 @@ export default function ProfesionalActions({
             size={compact ? "sm" : "default"}
             onClick={() => setOpenConfirm(true)}
           >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Eliminar
+            <Trash2 className=" h-4 w-4" />
           </PermissionButton>
         </AlertDialogTrigger>
 
