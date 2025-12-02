@@ -108,13 +108,6 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
           )}
         </div>
 
-        <ProfesionalActions
-          profesional={profesional}
-          onView={(p) => router.push(`/profesionales/${p.id}`)}
-          onEdit={(p) => vm.handleEdit?.(p) ?? (vm.setCurrentProfesional?.(p), vm.setIsDialogOpen?.(true))}
-          onDelete={(id) => vm.remove(id)}
-          compact
-        />
       </div>
 
       {handleFaltanDatos() > 0 && (
@@ -177,6 +170,14 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
               </div>
             ))}
         </div>
+        
+        <ProfesionalActions
+          profesional={profesional}
+          onView={(p) => router.push(`/profesionales/${p.id}`)}
+          onEdit={(p) => vm.handleEdit?.(p) ?? (vm.setCurrentProfesional?.(p), vm.setIsDialogOpen?.(true))}
+          onDelete={(id) => vm.remove(id)}
+          compact
+        />
       </div>
     </div>
   );

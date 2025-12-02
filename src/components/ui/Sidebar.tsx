@@ -40,18 +40,18 @@ interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
       action: string
     }
   }[]
+  /** Se llama cuando el usuario hace click en un ítem (para cerrar el sidebar en mobile, por ejemplo) */
+  onItemClick?: () => void
 }
 
-export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
+export function SidebarNav({ className, items, onItemClick, ...props }: SidebarNavProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
   const { canViewPage } = usePermissions()
 
   const filteredItems = items.filter(item => {
-    // Si requiere autenticación y no hay sesión, filtrar
     if (item.authRequired && !session) return false
     
-    // Si requiere un permiso específico, verificar
     if (item.requiredPermission) {
       const entity = item.requiredPermission.entity
       return canViewPage(entity)
@@ -64,14 +64,20 @@ export function SidebarNav({ className, items, ...props }: SidebarNavProps) {
     <nav className={cn("flex flex-col space-y-1", className)} {...props}>
       {filteredItems.map((item) => {
         const Icon = item.icon
+        const isActive = pathname === item.href
+
         return (
           <Link
             key={item.href}
             href={item.href}
             className={cn(
               "flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
-              pathname === item.href ? "bg-accent text-accent-foreground" : "transparent",
+              isActive ? "bg-accent text-accent-foreground" : "transparent",
             )}
+            onClick={() => {
+              // cuando se hace click en un item, cerramos el sidebar (en mobile)
+              onItemClick?.()
+            }}
           >
             <Icon className="mr-2 h-4 w-4" />
             {item.title}
@@ -92,6 +98,7 @@ export function Sidebar() {
   const handleSignOut = async () => {
     await signOut({ redirect: false })
     router.push("/")
+    setIsOpen(false) // por si se cierra sesión desde mobile, cerramos el sidebar también
   }
 
   const items = [
@@ -175,7 +182,11 @@ export function Sidebar() {
         </button>
       </div>
       <div className="flex-1 overflow-auto py-2">
-        <SidebarNav items={items} className="px-2" />
+        <SidebarNav 
+          items={items} 
+          className="px-2" 
+          onItemClick={() => setIsOpen(false)} 
+        />
       </div>
       <div className="border-t bg-background p-4">
         {session ? (
@@ -197,7 +208,7 @@ export function Sidebar() {
             </Button>
           </>
         ) : (
-          <Link href="/login">
+          <Link href="/login" onClick={() => setIsOpen(false)}>
             <Button variant="outline" className="w-full justify-start">
               <UserIcon className="mr-2 h-4 w-4" />
               Iniciar Sesión
@@ -240,4 +251,4 @@ export function Sidebar() {
       </div>
     </>
   )
-} 
+}

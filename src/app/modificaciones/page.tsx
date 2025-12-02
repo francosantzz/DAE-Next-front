@@ -38,7 +38,7 @@ interface Modificacion {
   entidad: string
   entidadId: number
   descripcion: string
-  detalles?: any   // ahora aceptamos string u objeto
+  detalles?: any   
   ipAddress?: string
 }
 
@@ -115,7 +115,7 @@ export default function ListaModificaciones() {
     } catch (error) {
       console.error("Error al obtener datos:", error)
 
-      // fallback de ejemplo (opcional, lo podes sacar en prod)
+      
       const modificacionesEjemplo: Modificacion[] = [
         {
           id: 1,
@@ -171,17 +171,20 @@ export default function ListaModificaciones() {
   }
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-screen">Cargando modificaciones...</div>
+    return <div className="flex justify-center items-center h-screen text-sm sm:text-base">Cargando modificaciones...</div>
   }
 
   return (
     <>
-      <div className="bg-gray-100">
+      {/* HEADER */}
+      <div className="bg-gray-100 w-full">
         <header className="bg-white shadow">
-          <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-bold text-gray-900">Historial de Modificaciones</h1>
-              <Button onClick={fetchData} variant="outline" size="sm">
+          <div className="max-w-7xl mx-auto py-3 px-3 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                Historial de Modificaciones
+              </h1>
+              <Button onClick={fetchData} variant="outline" size="sm" className="self-start sm:self-auto">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Actualizar
               </Button>
@@ -190,11 +193,12 @@ export default function ListaModificaciones() {
         </header>
       </div>
 
-      <div className="min-h-screen bg-gray-100 p-4">
+      {/* CONTENIDO PRINCIPAL */}
+      <div className="min-h-screen bg-gray-100 px-2 py-4 sm:px-4 overflow-x-hidden">
         {/* Filtros */}
         <Card className="mb-4">
           <CardHeader className="py-3">
-            <CardTitle className="flex items-center text-lg">
+            <CardTitle className="flex items-center text-base sm:text-lg">
               <Filter className="mr-2 h-4 w-4" />
               Filtros
             </CardTitle>
@@ -202,7 +206,7 @@ export default function ListaModificaciones() {
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <div>
-                <Label htmlFor="busqueda" className="text-sm">
+                <Label htmlFor="busqueda" className="text-xs sm:text-sm">
                   Búsqueda
                 </Label>
                 <div className="relative">
@@ -210,18 +214,18 @@ export default function ListaModificaciones() {
                   <Input
                     id="busqueda"
                     placeholder="Buscar por entidad, descripción o email..."
-                    className="pl-8 h-8 text-sm"
+                    className="pl-8 h-8 text-xs sm:text-sm"
                     value={busquedaInput}
                     onChange={(e) => setBusquedaInput(e.target.value)}
                   />
                 </div>
               </div>
               <div>
-                <Label htmlFor="filtroAccion" className="text-sm">
+                <Label htmlFor="filtroAccion" className="text-xs sm:text-sm">
                   Acción
                 </Label>
                 <Select value={filtroAccion} onValueChange={setFiltroAccion}>
-                  <SelectTrigger id="filtroAccion" className="h-8 text-sm">
+                  <SelectTrigger id="filtroAccion" className="h-8 text-xs sm:text-sm">
                     <SelectValue placeholder="Todas las acciones" />
                   </SelectTrigger>
                   <SelectContent>
@@ -233,13 +237,13 @@ export default function ListaModificaciones() {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="filtroFecha" className="text-sm">
+                <Label htmlFor="filtroFecha" className="text-xs sm:text-sm">
                   Fecha
                 </Label>
                 <Input
                   id="filtroFecha"
                   type="date"
-                  className="h-8 text-sm"
+                  className="h-8 text-xs sm:text-sm"
                   value={filtroFecha}
                   onChange={(e) => {
                     setFiltroFecha(e.target.value)
@@ -249,7 +253,7 @@ export default function ListaModificaciones() {
               </div>
             </div>
             <div className="flex justify-end mt-3">
-              <Button variant="outline" size="sm" onClick={limpiarFiltros}>
+              <Button variant="outline" size="sm" onClick={limpiarFiltros} className="text-xs sm:text-sm">
                 Limpiar filtros
               </Button>
             </div>
@@ -261,11 +265,15 @@ export default function ListaModificaciones() {
           <Card>
             <CardContent className="p-3">
               <div className="flex items-center">
-                <FileText className="h-6 w-6 text-blue-600" />
+                <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                 <div className="ml-3">
-                  <p className="text-xs font-medium text-gray-600">Registros en esta página</p>
-                  <p className="text-lg font-bold">{modificacionesFiltradas.length}</p>
-                  <p className="text-[11px] text-gray-500">Total filtrado: {totalItems}</p>
+                  <p className="text-[11px] sm:text-xs font-medium text-gray-600">
+                    Registros en esta página
+                  </p>
+                  <p className="text-base sm:text-lg font-bold">{modificacionesFiltradas.length}</p>
+                  <p className="text-[10px] sm:text-[11px] text-gray-500">
+                    Total filtrado: {totalItems}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -273,12 +281,12 @@ export default function ListaModificaciones() {
           <Card>
             <CardContent className="p-3">
               <div className="flex items-center">
-                <div className="h-6 w-6 bg-green-100 rounded-full flex items-center justify-center">
-                  <span className="text-green-600 font-bold">+</span>
+                <div className="h-5 w-5 sm:h-6 sm:w-6 bg-green-100 rounded-full flex items-center justify-center">
+                  <span className="text-green-600 font-bold text-xs sm:text-sm">+</span>
                 </div>
                 <div className="ml-3">
-                  <p className="text-xs font-medium text-gray-600">Creaciones</p>
-                  <p className="text-lg font-bold">
+                  <p className="text-[11px] sm:text-xs font-medium text-gray-600">Creaciones</p>
+                  <p className="text-base sm:text-lg font-bold">
                     {modificacionesFiltradas.filter((m) => m.accion === "CREATE").length}
                   </p>
                 </div>
@@ -288,12 +296,12 @@ export default function ListaModificaciones() {
           <Card>
             <CardContent className="p-3">
               <div className="flex items-center">
-                <div className="h-6 w-6 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 font-bold">~</span>
+                <div className="h-5 w-5 sm:h-6 sm:w-6 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 font-bold text-xs sm:text-sm">~</span>
                 </div>
                 <div className="ml-3">
-                  <p className="text-xs font-medium text-gray-600">Modificaciones</p>
-                  <p className="text-lg font-bold">
+                  <p className="text-[11px] sm:text-xs font-medium text-gray-600">Modificaciones</p>
+                  <p className="text-base sm:text-lg font-bold">
                     {modificacionesFiltradas.filter((m) => m.accion === "UPDATE").length}
                   </p>
                 </div>
@@ -303,12 +311,12 @@ export default function ListaModificaciones() {
           <Card>
             <CardContent className="p-3">
               <div className="flex items-center">
-                <div className="h-6 w-6 bg-red-100 rounded-full flex items-center justify-center">
-                  <span className="text-red-600 font-bold">-</span>
+                <div className="h-5 w-5 sm:h-6 sm:w-6 bg-red-100 rounded-full flex items-center justify-center">
+                  <span className="text-red-600 font-bold text-xs sm:text-sm">-</span>
                 </div>
                 <div className="ml-3">
-                  <p className="text-xs font-medium text-gray-600">Eliminaciones</p>
-                  <p className="text-lg font-bold">
+                  <p className="text-[11px] sm:text-xs font-medium text-gray-600">Eliminaciones</p>
+                  <p className="text-base sm:text-lg font-bold">
                     {modificacionesFiltradas.filter((m) => m.accion === "DELETE").length}
                   </p>
                 </div>
@@ -320,30 +328,34 @@ export default function ListaModificaciones() {
         {/* Tabla de modificaciones */}
         <Card>
           <CardHeader className="py-3">
-            <CardTitle className="text-lg">Registro de modificaciones</CardTitle>
+            <CardTitle className="text-base sm:text-lg">
+              Registro de modificaciones
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {modificacionesFiltradas.length === 0 ? (
               <Alert>
-                <AlertDescription>No se encontraron modificaciones con los filtros aplicados.</AlertDescription>
+                <AlertDescription className="text-sm">
+                  No se encontraron modificaciones con los filtros aplicados.
+                </AlertDescription>
               </Alert>
             ) : (
               <div className="overflow-x-auto">
-                <Table>
+                <Table className="min-w-[720px] sm:min-w-full text-xs sm:text-sm">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[150px]">Fecha</TableHead>
-                      <TableHead className="w-[180px]">Usuario</TableHead>
-                      <TableHead className="w-[100px]">Acción</TableHead>
-                      <TableHead className="w-[140px]">Entidad</TableHead>
+                      <TableHead className="w-[160px]">Fecha</TableHead>
+                      <TableHead className="w-[200px]">Usuario</TableHead>
+                      <TableHead className="w-[110px]">Acción</TableHead>
+                      <TableHead className="w-[150px]">Entidad</TableHead>
                       <TableHead>Descripción</TableHead>
-                      <TableHead className="w-[120px] text-center">Detalles</TableHead>
+                      <TableHead className="w-[130px] text-center">Detalles</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {modificacionesFiltradas.map((modificacion) => (
                       <TableRow key={modificacion.id}>
-                        <TableCell className="font-mono text-sm whitespace-nowrap">
+                        <TableCell className="font-mono text-[11px] sm:text-sm whitespace-nowrap">
                           <div className="flex items-center">
                             <Calendar className="mr-2 h-4 w-4 text-gray-500" />
                             {formatearFecha(modificacion.fecha)}
@@ -353,30 +365,35 @@ export default function ListaModificaciones() {
                           <div className="flex items-center">
                             <User className="mr-2 h-4 w-4 text-gray-500" />
                             <div>
-                              <p className="font-medium text-sm">
+                              <p className="font-medium text-xs sm:text-sm">
                                 {modificacion.usuario.nombre} {modificacion.usuario.apellido}
                               </p>
-                              <p className="text-xs text-gray-500">{modificacion.usuario.email}</p>
+                              <p className="text-[11px] text-gray-500 break-all sm:break-normal">
+                                {modificacion.usuario.email}
+                              </p>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge className={`${accionColors[modificacion.accion]} text-xs`}>
+                          <Badge className={`${accionColors[modificacion.accion]} text-[10px] sm:text-xs`}>
                             {accionLabels[modificacion.accion]}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-0.5">
-                            <Badge variant="outline" className="text-xs w-fit">
+                            <Badge variant="outline" className="text-[10px] sm:text-xs w-fit">
                               {modificacion.entidad}
                             </Badge>
-                            <span className="text-[11px] text-muted-foreground">
+                            <span className="text-[10px] sm:text-[11px] text-muted-foreground">
                               ID entidad: {modificacion.entidadId}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell className="max-w-[260px]">
-                          <p className="truncate text-sm" title={modificacion.descripcion}>
+                          <p
+                            className="truncate text-xs sm:text-sm"
+                            title={modificacion.descripcion}
+                          >
                             {modificacion.descripcion}
                           </p>
                         </TableCell>
@@ -384,27 +401,31 @@ export default function ListaModificaciones() {
                           {modificacion.detalles && (
                             <Dialog>
                               <DialogTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-7 px-2 text-xs">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 px-2 text-[10px] sm:text-xs"
+                                >
                                   <Eye className="h-3 w-3 mr-1" />
                                   Ver detalles
                                 </Button>
                               </DialogTrigger>
-                              <DialogContent className="max-w-2xl p-4 sm:p-6">
+                              <DialogContent className="max-w-[95vw] sm:max-w-2xl p-4 sm:p-6">
                                 <DialogHeader className="mb-2">
-                                  <DialogTitle className="text-base sm:text-lg">
+                                  <DialogTitle className="text-sm sm:text-lg">
                                     Detalle de modificación
                                   </DialogTitle>
-                                  <DialogDescription className="text-xs sm:text-sm">
+                                  <DialogDescription className="text-[11px] sm:text-sm">
                                     {accionLabels[modificacion.accion]} de{" "}
                                     <span className="font-semibold">{modificacion.entidad}</span>{" "}
                                     (ID {modificacion.entidadId}) realizada por{" "}
                                     <span className="font-semibold">
-                                      {modificacion.usuario.email} 
+                                      {modificacion.usuario.email}
                                     </span>{" "}
                                     el {formatearFecha(modificacion.fecha)}.
                                   </DialogDescription>
                                 </DialogHeader>
-                                <ScrollArea className="max-h-[420px] pr-2">
+                                <ScrollArea className="max-h-[60vh] pr-2">
                                   <DetallesModificacion
                                     detalles={modificacion.detalles}
                                     entidad={modificacion.entidad}
@@ -424,20 +445,21 @@ export default function ListaModificaciones() {
         </Card>
 
         {/* Paginación */}
-        <div className="flex items-center justify-between px-2 py-4">
-          <div className="flex-1 text-sm text-muted-foreground">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-1 py-4">
+          <div className="flex-1 text-xs sm:text-sm text-muted-foreground">
             Mostrando {modificaciones.length} de {totalItems} modificaciones
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 self-end sm:self-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
+              className="text-xs sm:text-sm"
             >
               Anterior
             </Button>
-            <div className="text-sm">
+            <div className="text-xs sm:text-sm">
               Página {currentPage} de {totalPages}
             </div>
             <Button
@@ -445,6 +467,7 @@ export default function ListaModificaciones() {
               size="sm"
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
+              className="text-xs sm:text-sm"
             >
               Siguiente
             </Button>

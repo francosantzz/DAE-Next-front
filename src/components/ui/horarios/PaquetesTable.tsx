@@ -8,7 +8,7 @@ import { Badge } from "../genericos/badge"
 
 function HeaderInfo({ getNombreEquipoSeleccionado, getNombreProfesionalSeleccionado, getTotalHoras, verAnteriores, licenciaActiva }: any) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0 pt-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-6 min-w-0">
         <div className="flex items-center space-x-2 min-w-0">
           <UsersIcon className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -37,7 +37,7 @@ export default function PaquetesTable({
   getNombreProfesionalSeleccionado, getTotalHoras, verAnteriores, profesionalesFiltrados, profesionalSeleccionado
 }: any) {
   return (
-    <div className="space-y-4 w-full overflow-x-hidden max-w-[100vw] min-w-0">
+    <div className="space-y-4 w-full overflow-x-hidden max-w-[calc(100vw-1.5rem)] min-w-0 mx-auto">
       <HeaderInfo
         getNombreEquipoSeleccionado={getNombreEquipoSeleccionado}
         getNombreProfesionalSeleccionado={getNombreProfesionalSeleccionado}
