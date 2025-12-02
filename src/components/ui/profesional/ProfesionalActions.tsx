@@ -24,9 +24,8 @@ export type ProfesionalActionsProps = {
   onEdit: (p: Profesional) => void;
   onDelete: (id: number) => Promise<void> | void;
   className?: string;
-  /** Si true, usa botones chicos y apila en mobile */
   compact?: boolean;
-  home?:boolean;
+  home?: boolean;
 };
 
 export default function ProfesionalActions({
@@ -36,29 +35,33 @@ export default function ProfesionalActions({
   onDelete,
   className,
   compact,
-  home
+  home,
 }: ProfesionalActionsProps) {
   const [openConfirm, setOpenConfirm] = useState(false);
 
   const stackClasses = compact
-    ? "flex  justify-end gap-2"
-    : "flex  justify-end gap-2";
+  ? "flex  justify-end gap-2"
+  : "flex  justify-end gap-2";
 
   const nombreVisible = `${profesional.apellido} ${profesional.nombre} - ${profesional.profesion}`;
 
   return (
     <div className={cn(stackClasses, className)}>
-      {/* Ver */}
-      <PermissionButton
-        requiredPermission={{ entity: "profesional", action: "read" }}
-        variant="outline"
-        size={compact ? "sm" : "default"}
-        onClick={() => onView(profesional)}
-        className={`${home && 'hidden'} hover:bg-green-50 hover:border-green-300 text-green-600`}
-      >
-        <Eye className="mr-1 h-3 w-3" />
-        Ver
-      </PermissionButton>
+      
+      {/* Ver solo si NO es home */}
+      {!home && (
+        <PermissionButton
+          requiredPermission={{ entity: "profesional", action: "read" }}
+          variant="outline"
+          size={compact ? "sm" : "default"}
+          onClick={() => onView(profesional)}
+          className="hover:bg-green-50 hover:border-green-300 text-green-600"
+        >
+          <Eye className="mr-1 h-3 w-3" />
+          Ver
+        </PermissionButton>
+      )}
+
       {/* Editar */}
       <PermissionButton
         requiredPermission={{ entity: "profesional", action: "update" }}
@@ -78,15 +81,18 @@ export default function ProfesionalActions({
             size={compact ? "sm" : "default"}
             onClick={() => setOpenConfirm(true)}
           >
-            <Trash2 className=" h-4 w-4" />
+            <Trash2 className="h-4 w-4" />
           </PermissionButton>
         </AlertDialogTrigger>
 
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar a {nombreVisible}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              ¿Eliminar a {nombreVisible}?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción es permanente y eliminará al profesional seleccionado.
+              Esta acción es permanente y eliminará al profesional
+              seleccionado.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
