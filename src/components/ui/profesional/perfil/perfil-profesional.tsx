@@ -134,7 +134,7 @@ export default function PerfilProfesionalPage() {
     setOpenPack(true)
   }
   const onEliminarPaquete = async (paqueteId: number) => {
-    if (!confirm("¿Eliminar paquete?")) return
+
     if (!session?.user?.accessToken || !id) return
     const r = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/profesionals/${id}/paquetes/${paqueteId}`, {
       method: "DELETE",

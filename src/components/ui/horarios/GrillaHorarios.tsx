@@ -122,7 +122,6 @@ export default function GrillaHorarios() {
   }
 
   const handleDelete = async (id: number) => {
-    if (!confirm("¿Está seguro de que desea eliminar este paquete?")) return
     try {
       await deletePaquete(id)
     } catch (error) {

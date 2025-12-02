@@ -40,8 +40,8 @@ export default function ProfesionalActions({
   const [openConfirm, setOpenConfirm] = useState(false);
 
   const stackClasses = compact
-    ? "flex justify-end gap-2"
-    : "flex justify-end gap-2";
+    ? "flex flex-col md:flex-row justify-center md:justify-end gap-2 w-full"
+    : "flex flex-col md:flex-row justify-center md:justify-end gap-2 w-full";
 
   const nombreVisible = `${profesional.apellido} ${profesional.nombre} - ${profesional.profesion}`;
 

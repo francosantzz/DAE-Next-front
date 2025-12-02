@@ -2,24 +2,11 @@
 "use client";
 
 import { Badge } from "@/components/ui/genericos/badge";
-import { Button } from "@/components/ui/genericos/button";
-import { ChevronDown, Edit, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 // importa el tipo desde tu fichero de tipos (no desde el hook)
 import type { Profesional as ProfesionalType } from "@/types/Profesional.interface";
 import { useState } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "../genericos/alert-dialog";
 import ProfesionalActions from "./ProfesionalActions";
 
 // VM type correcto apuntando al hook real
@@ -97,7 +84,7 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
 
   return (
     <div className="px-4 sm:px-6 py-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
         <div className="flex items-center gap-2">
           <span className="font-medium">
             {`${profesional.apellido} ${profesional.nombre}`} -{" "}
@@ -108,34 +95,24 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
           )}
         </div>
 
-        <ProfesionalActions
-          profesional={profesional}
-          onView={(p) => router.push(`/profesionales/${p.id}`)}
-          onEdit={(p) => vm.handleEdit?.(p) ?? (vm.setCurrentProfesional?.(p), vm.setIsDialogOpen?.(true))}
-          onDelete={(id) => vm.remove(id)}
-          compact
-        />
-      </div>
+        {handleFaltanDatos() > 0 && (
+          <div className="bg-yellow-200 w-[12rem] text-center font-bold rounded p-1 text-xs text-[#000] mt-2">
+            <p>⚠️ Faltan {handleFaltanDatos()} datos</p>
+          </div>
+        )}
 
-      {handleFaltanDatos() > 0 && (
-        <div className="bg-yellow-200 w-[12rem] text-center font-bold rounded p-1 text-xs text-[#000] mt-2">
-          <p>⚠️ Faltan {handleFaltanDatos()} datos</p>
+        {/* Estado psicofísico pequeño (opcional) */}
+        <div
+          className={`${
+            getPsicofisicoEstado(profesional) === "FALTA"
+              ? "bg-orange-500"
+              : getPsicofisicoEstado(profesional) === "VENCIDO"
+              ? "bg-red-500"
+              : "hidden"
+          } text-xs text-[#fff] font-semibold max-w-[8rem] text-center p-1 rounded-full`}
+        >
+          Psicofísico: {getPsicofisicoEstado(profesional)}
         </div>
-      )}
-
-      {/* Estado psicofísico pequeño (opcional) */}
-      <div
-        className={`${
-          getPsicofisicoEstado(profesional) === "OK"
-            ? "bg-green-500"
-            : getPsicofisicoEstado(profesional) === "FALTA"
-            ? "bg-orange-500"
-            : getPsicofisicoEstado(profesional) === "VENCIDO"
-            ? "bg-red-500"
-            : ""
-        } mt-2 text-xs text-[#000] font-semibold w-[12rem] text-center p-1 rounded`}
-      >
-        Estado psicofísico: {getPsicofisicoEstado(profesional)}
       </div>
 
       <div className="mt-3 text-sm text-gray-600">
@@ -163,20 +140,37 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
           ))}
         </div>
         <div className="flex flex-col gap-2 mt-2">
-          <h3
+          {/*<h3
             onClick={handleViewPaquetesHoras}
             className="flex gap-1 items-center font-bold uppercase hover:underline cursor-pointer"
           >
             Paquetes horas <ChevronDown />
           </h3>
-          {verPaqutesHoras &&
+           {verPaqutesHoras &&
             profesional.paquetesHoras.map((ph) => (
               <div className="flex gap-2" key={ph.id}>
                 <p className="font-semibold">- {ph.escuela ? ph.escuela.nombre : ph.tipo} {`(${ph.equipo?.nombre})`}: </p>
                 <p>{ph.cantidad} hs</p>
               </div>
-            ))}
+            ))} */}
+
+          <div className="flex gap-2 mb-2">
+            <p className="font-semibold">
+              Paquetes horas activos:{" "}
+              {profesional.paquetesHoras.length > 0 ? "SI" : "NO"}
+            </p>
+          </div>
         </div>
+        <ProfesionalActions
+          profesional={profesional}
+          onView={(p) => router.push(`/profesionales/${p.id}`)}
+          onEdit={(p) =>
+            vm.handleEdit?.(p) ??
+            (vm.setCurrentProfesional?.(p), vm.setIsDialogOpen?.(true))
+          }
+          onDelete={(id) => vm.remove(id)}
+          compact
+        />
       </div>
     </div>
   );

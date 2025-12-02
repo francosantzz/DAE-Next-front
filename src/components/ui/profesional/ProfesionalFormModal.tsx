@@ -158,6 +158,8 @@ export default function ProfesionalForm({ vm }: Props) {
       }
 
       const id = currentProfesional?.id
+      console.log("PAYLOAD: ",payload);
+      
       await createOrUpdate(payload, id)
       // cerrar modal (hook también lo hace pero por seguridad lo hacemos aquí)
       close()

@@ -1,10 +1,22 @@
 'use client'
-import React from "react"
+import React, { useState } from "react"
 import { UsersIcon, UserIcon, PlusIcon, FilePenIcon, TrashIcon, SearchIcon } from "lucide-react"
 import { Input } from "../genericos/input"
 import { PermissionButton } from "../genericos/PermissionButton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../genericos/table"
 import { Badge } from "../genericos/badge"
+
+// AlertDialog (ajusta la ruta si la tienes en otro lugar)
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction
+} from "../genericos/alert-dialog"
 
 function HeaderInfo({ getNombreEquipoSeleccionado, getNombreProfesionalSeleccionado, getTotalHoras, verAnteriores, licenciaActiva }: any) {
   return (
@@ -36,6 +48,30 @@ export default function PaquetesTable({
   onOpenModal, onDelete, getNombreEquipoSeleccionado,
   getNombreProfesionalSeleccionado, getTotalHoras, verAnteriores, profesionalesFiltrados, profesionalSeleccionado
 }: any) {
+  // estado para el dialogo de confirmación
+  const [openConfirm, setOpenConfirm] = useState(false)
+  const [selectedPaquete, setSelectedPaquete] = useState<any | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const openDeleteDialog = (paquete: any) => {
+    setSelectedPaquete(paquete)
+    setOpenConfirm(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!selectedPaquete) return
+    setIsDeleting(true)
+    try {
+      await onDelete(Number(selectedPaquete.id))
+    } catch (err) {
+      console.error('Error eliminando paquete:', err)
+    } finally {
+      setIsDeleting(false)
+      setOpenConfirm(false)
+      setSelectedPaquete(null)
+    }
+  }
+
   return (
     <div className="space-y-4 w-full overflow-x-hidden max-w-[100vw] min-w-0">
       <HeaderInfo
@@ -120,8 +156,14 @@ export default function PaquetesTable({
                       <TableCell className="whitespace-nowrap">{paquete.rotativo && paquete.semanas?.length ? paquete.semanas.join(", ") : "-"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <PermissionButton requiredPermission={{ entity: "paquetehoras", action: "update" }} variant="ghost" size="icon" onClick={()=>onOpenModal(paquete)} className="h-8 w-8"><FilePenIcon className="h-4 w-4" /></PermissionButton>
-                          <PermissionButton requiredPermission={{ entity: "paquetehoras", action: "delete" }} variant="ghost" size="icon" onClick={()=>onDelete(paquete.id)} className="h-8 w-8"><TrashIcon className="h-4 w-4" /></PermissionButton>
+                          <PermissionButton requiredPermission={{ entity: "paquetehoras", action: "update" }} variant="ghost" size="icon" onClick={()=>onOpenModal(paquete)} className="h-8 w-8">
+                            <FilePenIcon className="h-4 w-4" />
+                          </PermissionButton>
+
+                          {/* ahora abrimos dialogo en lugar de llamar directamente a onDelete */}
+                          <PermissionButton requiredPermission={{ entity: "paquetehoras", action: "delete" }} variant="ghost" size="icon" onClick={()=>openDeleteDialog(paquete)} className="h-8 w-8">
+                            <TrashIcon className="h-4 w-4" />
+                          </PermissionButton>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -136,6 +178,27 @@ export default function PaquetesTable({
       {sortedPaquetes.length === 0 && (
         <div className="text-center py-8 text-gray-500">No se encontraron paquetes de horas</div>
       )}
+
+      {/* AlertDialog único para confirmación de eliminación */}
+      <AlertDialog open={openConfirm} onOpenChange={(o)=>{ if (!o) { setOpenConfirm(false); setSelectedPaquete(null) } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              ¿Eliminar paquete{selectedPaquete ? ` — ${selectedPaquete.tipo || ''}` : ''}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción es permanente y eliminará el paquete seleccionado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={()=>{ setOpenConfirm(false); setSelectedPaquete(null) }}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-red-600 hover:bg-red-700" disabled={isDeleting}>
+              {isDeleting ? 'Eliminando...' : 'Confirmar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
