@@ -26,12 +26,12 @@ export default function ProfesionalesPage() {
             <FiltrosProfesionales vm={vm} />
             <ListProfesionales vm={vm} />
           </div>
-        </Layout>
-        <Paginator
+          <Paginator
           page={vm.currentPage}
           totalPages={vm.totalPages}
           onPageChange={vm.setCurrentPage}
-        />
+          />
+        </Layout>
       </ErrorBoundary>
     </ProtectedRoute>
   );

@@ -117,7 +117,6 @@ export default function GrillaHorarios() {
       setOpenModal(false)
     } catch (error) {
       console.error("Error al guardar el paquete:", error)
-      // podés mostrar un toast acá
     }
   }
 
@@ -149,58 +148,61 @@ export default function GrillaHorarios() {
 
   return (
     <ErrorBoundary>
-      <div className="container mx-auto px-2 sm:px-4">
-        <Card className="w-full max-w-[100vw] overflow-x-hidden">
-          <CardHeader className="px-3 sm:px-6">
-            <CardTitle className="text-lg sm:text-xl">Grilla de Paquetes de Horas</CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 sm:px-6 overflow-x-hidden max-w-[100vw]">
-            <SelectionPanel
-              equipos={equipos}
-              profesionales={profesionalesFiltrados}
-              equipoSeleccionado={equipoSeleccionado}
-              profesionalSeleccionado={profesionalSeleccionado}
-              setEquipoSeleccionado={setEquipoSeleccionado}
-              setProfesionalSeleccionado={setProfesionalSeleccionado}
-              verAnteriores={verAnteriores}
-              setVerAnteriores={setVerAnteriores}
-              onVerPaquetes={() => {/* si usás Tabs, acá podés cambiar la tab */}}
-            />
-
-            {profesionalSeleccionado && (
-              <PaquetesTable
-                sortedPaquetes={sortedPaquetes}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                onOpenModal={handleOpenModal}
-                onDelete={handleDelete}
-                getNombreEquipoSeleccionado={getNombreEquipoSeleccionado}
-                getNombreProfesionalSeleccionado={getNombreProfesionalSeleccionado}
-                getTotalHoras={getTotalHoras}
-                verAnteriores={verAnteriores}
-                profesionalesFiltrados={profesionalesFiltrados}
+      {/* 🔒 Bloqueamos overflow horizontal a nivel página/componente */}
+      <div className="w-full overflow-x-hidden">
+        <div className="container mx-auto px-2 py-4">
+          <Card className="w-full max-w-full">
+            <CardHeader className="px-3 sm:px-6">
+              <CardTitle className="text-lg sm:text-xl">Grilla de Paquetes de Horas</CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 px-6">
+              <SelectionPanel
+                equipos={equipos}
+                profesionales={profesionalesFiltrados}
+                equipoSeleccionado={equipoSeleccionado}
                 profesionalSeleccionado={profesionalSeleccionado}
+                setEquipoSeleccionado={setEquipoSeleccionado}
+                setProfesionalSeleccionado={setProfesionalSeleccionado}
+                verAnteriores={verAnteriores}
+                setVerAnteriores={setVerAnteriores}
+                onVerPaquetes={() => {/* hook para tabs si hace falta */}}
               />
-            )}
-          </CardContent>
-        </Card>
 
-        <PaqueteModal
-          open={openModal}
-          setOpen={setOpenModal}
-          currentPaquete={currentPaquete}
-          formData={formData}
-          setFormData={setFormData}
-          tiposPaquete={tiposPaquete}
-          escuelasDelEquipo={escuelasDelEquipo}
-          equipoSeleccionado={equipoSeleccionado}
-          handleInputChange={handleInputChange}
-          handleSelectChange={handleSelectChange}
-          handleSubmit={handleSubmit}
-          isLoading={isLoading}
-          toggleSemana={toggleSemana}
-        />
+              {profesionalSeleccionado && (
+                <PaquetesTable
+                  sortedPaquetes={sortedPaquetes}
+                  searchTerm={searchTerm}
+                  setSearchTerm={setSearchTerm}
+                  onOpenModal={handleOpenModal}
+                  onDelete={handleDelete}
+                  getNombreEquipoSeleccionado={getNombreEquipoSeleccionado}
+                  getNombreProfesionalSeleccionado={getNombreProfesionalSeleccionado}
+                  getTotalHoras={getTotalHoras}
+                  verAnteriores={verAnteriores}
+                  profesionalesFiltrados={profesionalesFiltrados}
+                  profesionalSeleccionado={profesionalSeleccionado}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
+
+      <PaqueteModal
+        open={openModal}
+        setOpen={setOpenModal}
+        currentPaquete={currentPaquete}
+        formData={formData}
+        setFormData={setFormData}
+        tiposPaquete={tiposPaquete}
+        escuelasDelEquipo={escuelasDelEquipo}
+        equipoSeleccionado={equipoSeleccionado}
+        handleInputChange={handleInputChange}
+        handleSelectChange={handleSelectChange}
+        handleSubmit={handleSubmit}
+        isLoading={isLoading}
+        toggleSemana={toggleSemana}
+      />
     </ErrorBoundary>
   )
 }
