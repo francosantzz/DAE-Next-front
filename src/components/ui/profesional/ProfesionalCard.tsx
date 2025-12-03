@@ -115,16 +115,21 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
         </div>
       </div>
 
-              <div>
-          {profesional.equipos.map((e) => (
-            <>
-              <Badge variant="outline" className="w-fit mt-2 gap-2 border-green-500 text-green-700 bg-green-50">
-                <p className="font-bold">Equipos: </p>
-                <p>{e.nombre}, {e.departamento.nombre}</p>
-              </Badge>
-            </>
-          ))}
-        </div>
+      <div>
+        {profesional.equipos.map((e) => (
+          <>
+            <Badge
+              variant="outline"
+              className="w-fit mt-2 gap-2 border-green-500 text-green-700 bg-green-50"
+            >
+              <p className="font-bold">Equipos: </p>
+              <p>
+                {e.nombre}, {e.departamento.nombre}
+              </p>
+            </Badge>
+          </>
+        ))}
+      </div>
 
       <div className="mt-3 text-sm text-gray-600">
         <div className="mt-2">
@@ -139,7 +144,6 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
             <span className="ml-2 text-sm text-gray-500">No hay cargos</span>
           )}
         </div>
-
 
         <div className="flex flex-col gap-2 mt-2">
           {/*<h3
@@ -166,10 +170,15 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
         <ProfesionalActions
           profesional={profesional}
           onView={(p) => router.push(`/profesionales/${p.id}`)}
-          onEdit={(p) =>
-            vm.handleEdit?.(p) ??
-            (vm.setCurrentProfesional?.(p), vm.setIsDialogOpen?.(true))
-          }
+          onEdit={(p) => {
+            if (typeof vm.handleEdit === "function") {
+              vm.handleEdit(p);
+              return;
+            }
+            // fallback: usar setters si existen
+            vm.setCurrentProfesional?.(p);
+            vm.setIsDialogOpen?.(true);
+          }}
           onDelete={(id) => vm.remove(id)}
           compact
         />
