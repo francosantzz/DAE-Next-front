@@ -115,6 +115,17 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
         </div>
       </div>
 
+              <div>
+          {profesional.equipos.map((e) => (
+            <>
+              <Badge variant="outline" className="w-fit mt-2 gap-2 border-green-500 text-green-700 bg-green-50">
+                <p className="font-bold">Equipos: </p>
+                <p>{e.nombre}, {e.departamento.nombre}</p>
+              </Badge>
+            </>
+          ))}
+        </div>
+
       <div className="mt-3 text-sm text-gray-600">
         <div className="mt-2">
           <strong>Cargos de horas:</strong>
@@ -129,16 +140,7 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
           )}
         </div>
 
-        <div>
-          {profesional.equipos.map((e) => (
-            <>
-              <div className="flex gap-2 mt-1">
-                <p className="font-bold">Equipos: </p>
-                <p>{e.nombre}</p>
-              </div>
-            </>
-          ))}
-        </div>
+
         <div className="flex flex-col gap-2 mt-2">
           {/*<h3
             onClick={handleViewPaquetesHoras}

@@ -70,6 +70,8 @@ export default function ProfesionalActions({
         onClick={() => onEdit(profesional)}
       >
         <Edit className="h-4 w-4" />
+        {!home && <p>Editar</p>}
+        {home && <p className="md:hidden">Editar</p>}
       </PermissionButton>
 
       {/* Eliminar con confirmación */}
@@ -82,6 +84,8 @@ export default function ProfesionalActions({
             onClick={() => setOpenConfirm(true)}
           >
             <Trash2 className="h-4 w-4" />
+            {!home && <p>Eliminar</p>}
+            {home && <p className="md:hidden">Eliminar</p>}
           </PermissionButton>
         </AlertDialogTrigger>
 
