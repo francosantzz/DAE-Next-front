@@ -4,7 +4,7 @@ import { Manrope } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import './globals.css'
 import SessionAuthProvider from '@/context/SessionAuthProvider'
-import { Sidebar } from '@/components/Sidebar'
+import { Sidebar } from '@/components/ui/Sidebar'
 
 const fontHeading = Manrope({
   subsets: ['latin'],
@@ -17,6 +17,11 @@ const fontBody = Manrope({
   display: 'swap',
   variable: '--font-body',
 })
+
+export const metadata = {
+  title: 'Mi App',
+  viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
+};
 
 export default function Layout({ 
   children,
