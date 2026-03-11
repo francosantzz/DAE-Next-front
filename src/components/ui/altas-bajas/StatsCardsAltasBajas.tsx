@@ -2,16 +2,25 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/genericos/card"
 import { UserPlusIcon, UserMinusIcon } from "lucide-react"
-import type { MovimientoProfesional } from "@/types/MovimientoProfesional.interface" 
+import type { MovimientoEstado, MovimientoProfesional } from "@/types/MovimientoProfesional.interface" 
 
 interface Props {
   altas: MovimientoProfesional[]
   bajas: MovimientoProfesional[]
 }
 
+const normalizeEstado = (
+  estado: MovimientoEstado | "procesado" | null | undefined,
+  registrado?: boolean,
+) => {
+  if (estado === "procesado") return "confirmado"
+  if (estado) return estado
+  return registrado ? "confirmado" : "pendiente"
+}
+
 export function StatsCardsAltasBajas({ altas, bajas }: Props) {
-  const altasPendientes = altas.filter((a) => !a.registrado).length
-  const bajasPendientes = bajas.filter((b) => !b.registrado).length
+  const altasPendientes = altas.filter((a) => normalizeEstado(a.estado, a.registrado) === "confirmado").length
+  const bajasPendientes = bajas.filter((b) => normalizeEstado(b.estado, b.registrado) === "confirmado").length
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -23,7 +32,7 @@ export function StatsCardsAltasBajas({ altas, bajas }: Props) {
         <CardContent>
           <div className="text-2xl font-bold text-green-600">{altas.length}</div>
           <p className="text-sm text-red-500">
-            {altasPendientes} {altasPendientes === 1 ? "pendiente" : "pendientes"} de registrar
+            {altasPendientes} {altasPendientes === 1 ? "pendiente" : "pendientes"} de cargar
           </p>
         </CardContent>
       </Card>
@@ -36,7 +45,7 @@ export function StatsCardsAltasBajas({ altas, bajas }: Props) {
         <CardContent>
           <div className="text-2xl font-bold text-red-600">{bajas.length}</div>
           <p className="text-sm text-red-500">
-            {bajasPendientes} {bajasPendientes === 1 ? "pendiente" : "pendientes"} de registrar
+            {bajasPendientes} {bajasPendientes === 1 ? "pendiente" : "pendientes"} de cargar
           </p>
         </CardContent>
       </Card>
