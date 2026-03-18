@@ -43,14 +43,14 @@ export default function ProfesionalForm({ vm }: Props) {
     telefono: '',
     fechaNacimiento: '',
     fechaVencimientoPsicofisico: '',
-    fechaVencimientoMatricula: '',    
+    fechaVencimientoMatricula: '',
     matricula: '',
     correoElectronico: '',
     equiposIds: [] as number[],
     cargosHoras: [] as CargoHoras[],
     direccion: { calle: '', numero: '', departamentoId: '' },
   }
-  
+
 
   const [form, setForm] = useState<any>(emptyForm)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -158,8 +158,8 @@ export default function ProfesionalForm({ vm }: Props) {
       }
 
       const id = currentProfesional?.id
-      console.log("PAYLOAD: ",payload);
-      
+      console.log("PAYLOAD: ", payload);
+
       await createOrUpdate(payload, id)
       // cerrar modal (hook también lo hace pero por seguridad lo hacemos aquí)
       close()
@@ -224,7 +224,7 @@ export default function ProfesionalForm({ vm }: Props) {
               </div>
               <div className="min-w-0">
                 <Label htmlFor="fechaVencimientoMatricula">Vto. Matrícula</Label>
-                <Input id="fechaVencimientoMatricula" name="fechaVencimientoMatricula" type="date" className="w-full min-w-0" value={form.fechaVencimientoMatricula || ''} onChange={(e) => setForm((p:any)=>({...p, fechaVencimientoMatricula: e.target.value}))} />
+                <Input id="fechaVencimientoMatricula" name="fechaVencimientoMatricula" type="date" className="w-full min-w-0" value={form.fechaVencimientoMatricula || ''} onChange={(e) => setForm((p: any) => ({ ...p, fechaVencimientoMatricula: e.target.value }))} />
               </div>
               <div className="min-w-0">
                 <Label htmlFor="fechaVencimientoPsicofisico">Vto. Psicofísico</Label>
@@ -276,13 +276,28 @@ export default function ProfesionalForm({ vm }: Props) {
                           <SelectItem value="investigacion">Investigación</SelectItem>
                           <SelectItem value="mision_especial_primaria">Misión Especial Primaria</SelectItem>
                           <SelectItem value="mision_especial_secundaria">Misión Especial Secundaria</SelectItem>
+                          <SelectItem value="mision_especial">Misión Especial</SelectItem>
                           <SelectItem value="regimen_27">Régimen 27</SelectItem>
+                          <SelectItem value="regimen_5">Régimen 5</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="flex-1 min-w-0">
                       <Label>Cantidad de Horas</Label>
-                      <Input type="number" className="w-full min-w-0" value={cargo.cantidadHoras} min={0} onChange={(e) => handleCargoHorasChange(index, 'cantidadHoras', parseInt((e.target as HTMLInputElement).value) || 0)} />
+                      <Input
+                        type="number"
+                        className="w-full min-w-0"
+                        value={cargo.cantidadHoras}
+                        min={0}
+                        step="0.01"
+                        onChange={(e) =>
+                          handleCargoHorasChange(
+                            index,
+                            'cantidadHoras',
+                            parseFloat((e.target as HTMLInputElement).value) || 0
+                          )
+                        }
+                      />
                     </div>
                     <Button type="button" variant="destructive" size="sm" onClick={() => removeCargoHoras(index)} className="sm:self-end">
                       <XIcon className="h-4 w-4" />
@@ -304,14 +319,14 @@ export default function ProfesionalForm({ vm }: Props) {
               >
                 <SelectTrigger id="equiposIds" className="w-full min-w-0"><SelectValue placeholder="Seleccione equipos" /></SelectTrigger>
                 <SelectContent>
-                  { (equiposDisponibles ?? []).map((e: any) => (
+                  {(equiposDisponibles ?? []).map((e: any) => (
                     <SelectItem key={e.id} value={String(e.id)}>{e.nombre}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
               <div className="mt-2 flex flex-wrap gap-2">
-                { (form.equiposIds ?? []).map((id: number) => {
+                {(form.equiposIds ?? []).map((id: number) => {
                   const eq = (equipos ?? []).find((x: any) => x.id === id)
                   return eq ? (
                     <Badge key={id} variant="secondary" className="flex items-center gap-1">
