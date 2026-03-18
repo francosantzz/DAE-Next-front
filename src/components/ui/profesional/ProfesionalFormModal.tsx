@@ -19,7 +19,7 @@ type Props = {
 
 interface CargoHoras {
   id?: number;
-  tipo: 'comunes' | 'investigacion' | 'mision_especial_primaria' | 'mision_especial_secundaria' | 'regimen_27';
+  tipo: 'comunes' | 'investigacion' | 'mision_especial_primaria' | 'mision_especial_secundaria' | 'mision_especial' | 'regimen_27' | 'regimen_5';
   cantidadHoras: number;
 }
 
