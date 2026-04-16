@@ -77,7 +77,7 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
 
     // 3) si ninguno existe, avisamos en consola (no cambié más la UI)
     console.warn(
-      "Edit handler not found on vm. Implement vm.handleEdit or vm.setCurrentProfesional & vm.setIsDialogOpen."
+      "Edit handler not found on vm. Implement vm.handleEdit or vm.setCurrentProfesional & vm.setIsDialogOpen.",
     );
   };
   // ---------- fin modificación ----------
@@ -107,8 +107,8 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
             getPsicofisicoEstado(profesional) === "FALTA"
               ? "bg-orange-500"
               : getPsicofisicoEstado(profesional) === "VENCIDO"
-              ? "bg-red-500"
-              : "hidden"
+                ? "bg-red-500"
+                : "hidden"
           } text-xs text-[#fff] font-semibold max-w-[8rem] text-center p-1 rounded-full`}
         >
           Psicofísico: {getPsicofisicoEstado(profesional)}
@@ -166,6 +166,23 @@ export default function ProfesionalCard({ profesional, vm }: Props) {
               {profesional.paquetesHoras.length > 0 ? "SI" : "NO"}
             </p>
           </div>
+          {profesional.tieneReduccion && (
+            <div className="flex flex-col gap-1 mt-1">
+              <p className="font-semibold text-amber-600">Tiene Reducción</p>
+              {profesional.motivoReduccion && (
+                <p className="text-xs text-gray-600">
+                  <span className="font-semibold">Motivo:</span>{" "}
+                  {profesional.motivoReduccion}
+                </p>
+              )}
+              {profesional.horasReduccion && (
+                <p className="text-xs text-gray-600">
+                  <span className="font-semibold">Horas de reducción:</span>{" "}
+                  {profesional.horasReduccion} hs
+                </p>
+              )}
+            </div>
+          )}
         </div>
         <ProfesionalActions
           profesional={profesional}

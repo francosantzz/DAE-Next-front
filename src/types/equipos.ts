@@ -18,6 +18,9 @@ export interface Profesional {
     licenciaActiva: boolean;
     disponible: boolean;
     totalHoras?: number;         // opcional
+    tieneReduccion: boolean;        
+    motivoReduccion?: string;         
+    horasReduccion?: number;       
   }
   
   

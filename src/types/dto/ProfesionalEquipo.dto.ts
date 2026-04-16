@@ -8,6 +8,9 @@ export interface ProfesionalEquipoDTO {
       tipo: string;
       cantidadHoras: number;
     }[];
+    tieneReduccion: boolean;        
+    motivoReduccion?: string;         
+    horasReduccion?: number; 
     tipoLicencia?: string;
     fechaInicioLicencia?: string;
     fechaFinLicencia?: string;

@@ -65,7 +65,7 @@ export function BajasTable({ bajas, onEstadoChange, isUpdating, onSeccionSave, i
   }
 
   return (
-    <Table>
+    <Table className="min-w-max table-auto [&_th]:whitespace-nowrap [&_td]:whitespace-nowrap">
       <TableHeader>
         <TableRow>
           <TableHead>Profesional</TableHead>
@@ -75,7 +75,7 @@ export function BajasTable({ bajas, onEstadoChange, isUpdating, onSeccionSave, i
           <TableHead>Horas</TableHead>
           <TableHead>Fecha baja</TableHead>
           <TableHead>Sección</TableHead>
-          <TableHead className="text-center">Estado</TableHead>
+          <TableHead className="text-center whitespace-nowrap">Estado</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

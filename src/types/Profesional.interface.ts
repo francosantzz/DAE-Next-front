@@ -19,6 +19,9 @@ export interface Profesional {
   correoElectronico: string
   totalHoras: number
   cargosHoras: CargoHoras[]
+  tieneReduccion: boolean;
+  motivoReduccion?: string;
+  horasReduccion?: number;
   equipos: EquipoProfesionalDTO[]
   paquetesHoras: PaqueteHorasPerfil[]
   direccion: Direccion

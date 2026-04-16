@@ -145,6 +145,13 @@ export function Sidebar() {
       requiredPermission: { entity: "paquetehoras", action: "read" }
     },
     {
+      href: "/horarios-alta",
+      title: "Altas de horarios",
+      icon: CalendarIcon,
+      authRequired: true,
+      requiredPermission: { entity: "modificacion", action: "read" }
+    },
+    {
       title: "Altas y Bajas",
       href: "/altas-bajas",
       icon: TrendingUpIcon,

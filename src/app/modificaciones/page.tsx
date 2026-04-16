@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/generi
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/genericos/table"
 import { Badge } from "@/components/ui/genericos/badge"
 import { ScrollArea } from "@/components/ui/genericos/scroll-area"
-import { Calendar, User, FileText, Search, Filter, RefreshCw, Eye } from "lucide-react"
+import { Calendar, Eye, User, FileText, Search, Filter, RefreshCw } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/genericos/alert"
 import { useSession } from "next-auth/react"
 import { useDebounce } from "@/hooks/useDebounce"
@@ -349,7 +349,7 @@ export default function ListaModificaciones() {
                       <TableHead className="w-[110px]">Acción</TableHead>
                       <TableHead className="w-[150px]">Entidad</TableHead>
                       <TableHead>Descripción</TableHead>
-                      <TableHead className="w-[130px] text-center">Detalles</TableHead>
+                      <TableHead className="w-[180px] text-center">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
