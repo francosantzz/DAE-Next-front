@@ -200,12 +200,20 @@ export default function ProfesionalForm({ vm }: Props) {
         }),
         equiposIds: form.equiposIds || [],
         cargosHoras: form.cargosHoras || [],
+
         // ✅ Campos de reducción
         tieneReduccion: form.tieneReduccion ?? false,
         ...(form.tieneReduccion &&
           form.motivoReduccion && { motivoReduccion: form.motivoReduccion }),
+
         ...(form.tieneReduccion &&
-          form.horasReduccion && { horasReduccion: form.horasReduccion }),
+          form.horasReduccion !== undefined &&
+          form.horasReduccion !== "" && {
+            horasReduccion: Number(
+              String(form.horasReduccion).replace(",", "."),
+            ),
+          }),
+
         ...(form.direccion?.calle && {
           direccion: {
             calle: form.direccion.calle,
@@ -576,17 +584,17 @@ export default function ProfesionalForm({ vm }: Props) {
                     <Input
                       id="horasReduccion"
                       name="horasReduccion"
-                      type="number"
-                      min={0}
-                      step="0.01"
+                      type="text"
+                      inputMode="decimal"
                       className="w-full min-w-0"
-                      value={form.horasReduccion}
-                      onChange={(e) =>
+                      value={form.horasReduccion ?? ""}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9.,]/g, "");
                         setForm((prev: any) => ({
                           ...prev,
-                          horasReduccion: parseFloat(e.target.value) || 0,
-                        }))
-                      }
+                          horasReduccion: value,
+                        }));
+                      }}
                     />
                   </div>
                 )}
