@@ -40,11 +40,13 @@ const diasSemana = [
 export function DetalleEquipoDialog({ equipo, isOpen, onClose, isLoading = false }: DetalleEquipoDialogProps) {
   if (!equipo && !isLoading) return null
 
+  const isDefined = <T,>(value: T | null | undefined): value is T => value != null
+
   // Verificaciones defensivas para propiedades anidadas
   const departamento = equipo?.departamento ?? { nombre: "Sin departamento", region: undefined }
-  const profesionales = equipo?.profesionales ?? []
-  const escuelas = equipo?.escuelas ?? []
-  const paquetesHoras = equipo?.paquetesHoras ?? []
+  const profesionales = (equipo?.profesionales ?? []).filter(isDefined)
+  const escuelas = (equipo?.escuelas ?? []).filter(isDefined)
+  const paquetesHoras = (equipo?.paquetesHoras ?? []).filter(isDefined)
   const paquetesConEscuela = paquetesHoras.filter(p => p.tipo === "Escuela")
 
   const toNumber = (v: unknown): number => {
@@ -116,7 +118,7 @@ const escuelasConHorasSemana1 = new Set(
 
 const promedioHorasPorEscuela =
   escuelasConHorasSemana1.size > 0
-    ? horasEnEscuelas / escuelasOrdenadas.length
+    ? horasEnEscuelas / escuelasConHorasSemana1.size
     : 0;
 
 
@@ -238,6 +240,8 @@ const promedioHorasPorEscuela =
                   {profesionales.map((profesional) => {
                     const hoy = todayLocal();
                     const finLic = parseLocalDateFromYMD(profesional.fechaFinLicencia);
+                    const nombre = profesional.nombre ?? "";
+                    const apellido = profesional.apellido ?? "";
                     
                     const tieneLicenciaActiva = !!(
                       profesional.licenciaActiva &&
@@ -259,14 +263,14 @@ const promedioHorasPorEscuela =
                               ? "bg-orange-100 text-orange-600 font-semibold" 
                               : "bg-purple-100 text-purple-600 font-semibold"
                           }>
-                            {profesional.nombre.charAt(0)}
-                            {profesional.apellido.charAt(0)}
+                            {nombre.charAt(0)}
+                            {apellido.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-semibold text-gray-900">
-                            {profesional.nombre} {profesional.apellido}
+                            {nombre} {apellido}
                             {profesional.profesion ? ` - ${profesional.profesion}` : ''}
                             </p>
                             {tieneLicenciaActiva && (
@@ -287,7 +291,7 @@ const promedioHorasPorEscuela =
                             <div className="mt-1 text-xs text-orange-600">
                               <span className="font-medium">Licencia: </span>
                               {profesional.tipoLicencia}
-                              {profesional.fechaFinLicencia && (
+                              {profesional.fechaFinLicencia && finLic && (
                                 <span> (hasta {finLic.toLocaleDateString('es-ES')})</span>                              
                                 )}
                             </div>
@@ -327,11 +331,14 @@ const promedioHorasPorEscuela =
                       const paquetesDeEstaEscuela = paquetesHoras.filter(
                         (p) => p.escuela?.id === escuela.id
                       )
+                      const paquetesConProfesional = paquetesDeEstaEscuela.filter(
+                        (paquete) => Boolean(paquete.profesional)
+                      )
                       const tienePaquete = paquetesDeEstaEscuela.length > 0
                       
                       // Verificar si algún paquete tiene profesional en licencia
                       const hoy = todayLocal();
-                      const tieneProfesionalEnLicencia = paquetesDeEstaEscuela.some(paquete => {
+                      const tieneProfesionalEnLicencia = paquetesConProfesional.some(paquete => {
                         const profesional = paquete.profesional;
                         const finLic = parseLocalDateFromYMD(profesional.fechaFinLicencia);
                         return !!(
@@ -377,9 +384,10 @@ const promedioHorasPorEscuela =
                           {tienePaquete && (
                             <div className="space-y-3 mt-3">
                               {paquetesDeEstaEscuela.map((paquete) => {
-                                const finLic = parseLocalDateFromYMD(paquete.profesional.fechaFinLicencia);
+                                const profesional = paquete.profesional;
+                                const finLic = parseLocalDateFromYMD(profesional?.fechaFinLicencia);
                                 const profesionalEnLicencia = !!(
-                                  paquete.profesional.licenciaActiva &&
+                                  profesional?.licenciaActiva &&
                                   finLic &&
                                   finLic >= hoy
                                 );                                
@@ -395,7 +403,9 @@ const promedioHorasPorEscuela =
                                     <div className="flex justify-between items-center">
                                       <div className="flex items-center gap-2">
                                         <p className="font-medium text-gray-800">
-                                          {paquete.profesional.nombre} {paquete.profesional.apellido}
+                                          {profesional
+                                            ? `${profesional.nombre ?? ""} ${profesional.apellido ?? ""}`.trim() || "Profesional no informado"
+                                            : "Profesional no informado"}
                                         </p>
                                         {profesionalEnLicencia && (
                                           <Badge variant="outline" className="text-xs bg-orange-100 text-orange-700 border-orange-300">
@@ -416,10 +426,10 @@ const promedioHorasPorEscuela =
                                     {profesionalEnLicencia && (
                                       <div className="mt-2 p-2 bg-orange-100 rounded text-xs text-orange-800">
                                         <div className="font-medium">⚠️ Profesional en licencia</div>
-                                        {paquete.profesional.tipoLicencia && (
-                                          <div>Tipo: {paquete.profesional.tipoLicencia}</div>
+                                        {profesional?.tipoLicencia && (
+                                          <div>Tipo: {profesional.tipoLicencia}</div>
                                         )}
-                                        {paquete.profesional.fechaFinLicencia && (
+                                        {profesional?.fechaFinLicencia && finLic && (
                                           <div>Hasta: {finLic.toLocaleDateString('es-ES')}</div>
                                         )}
                                       </div>

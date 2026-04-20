@@ -317,6 +317,11 @@ export default function HorariosAltaPage() {
   const [isSubmittingReject, setIsSubmittingReject] = useState(false);
   const [rejectError, setRejectError] = useState<string | null>(null);
 
+  // ─── Estados para confirmación ──────────────────────────────────────────────
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isSubmittingConfirm, setIsSubmittingConfirm] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+
   const fetchRegistros = useCallback(async () => {
     if (!session?.user?.accessToken) return;
 
@@ -1129,7 +1134,6 @@ export default function HorariosAltaPage() {
 
       handleRejectDialogChange(false);
 
-      // Refrescar el historial de envíos si el registro sigue abierto
       if (selectedRegistro) {
         await handleViewClick(selectedRegistro);
       }
@@ -1146,6 +1150,89 @@ export default function HorariosAltaPage() {
       setRejectError(message);
     } finally {
       setIsSubmittingReject(false);
+    }
+  };
+
+  // ─── Handlers confirmación ──────────────────────────────────────────────────
+
+  const handleConfirmDialogChange = (open: boolean) => {
+    setIsConfirmDialogOpen(open);
+    if (!open) {
+      setConfirmError(null);
+      setIsSubmittingConfirm(false);
+    }
+  };
+
+  const handleConfirmSubmit = async () => {
+    if (!session?.user?.accessToken) {
+      setConfirmError("No hay una sesión activa para confirmar el envío.");
+      return;
+    }
+
+    if (!selectedEnvio) {
+      setConfirmError("No se encontró el envío a confirmar.");
+      return;
+    }
+
+    setIsSubmittingConfirm(true);
+    setConfirmError(null);
+
+    try {
+      const res = await fetch(
+        `${apiBase}/api/v1/profesionals/formulario-horarios/envios/${selectedEnvio.id}/confirmar`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.user.accessToken}`,
+          },
+        },
+      );
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        let backendMessage = "";
+        if (text.trim()) {
+          try {
+            const errorPayload = JSON.parse(text) as { message?: unknown };
+            backendMessage =
+              typeof errorPayload.message === "string" &&
+              errorPayload.message.trim()
+                ? errorPayload.message
+                : text;
+          } catch {
+            backendMessage = text;
+          }
+        }
+        throw new Error(
+          backendMessage ||
+            `Error al confirmar el envío (status ${res.status})`,
+        );
+      }
+
+      const response = (await res.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+
+      handleConfirmDialogChange(false);
+      handlePackagesDialogChange(false);
+
+      if (selectedRegistro) {
+        await handleViewClick(selectedRegistro);
+      }
+
+      setFormularioAlert({
+        type: "success",
+        message: response?.message?.trim() || "Envío confirmado correctamente.",
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Ocurrió un error al confirmar el envío.";
+      setConfirmError(message);
+    } finally {
+      setIsSubmittingConfirm(false);
     }
   };
 
@@ -1934,6 +2021,41 @@ export default function HorariosAltaPage() {
               </DialogContent>
             </Dialog>
 
+            {/* ── Confirmar envío dialog ── */}
+            <AlertDialog
+              open={isConfirmDialogOpen}
+              onOpenChange={handleConfirmDialogChange}
+            >
+              <AlertDialogContent className="max-w-[95vw] sm:max-w-md">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmar envío</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {selectedEnvio
+                      ? `Estás por confirmar el envío #${selectedEnvio.envioNumero}. Los paquetes de horas del profesional serán reemplazados por los del formulario. Esta acción no se puede deshacer.`
+                      : "Los paquetes de horas del profesional serán reemplazados. Esta acción no se puede deshacer."}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                {confirmError && (
+                  <p className="text-sm text-red-600 px-1">{confirmError}</p>
+                )}
+
+                <AlertDialogFooter className="flex-col-reverse gap-2 sm:flex-row">
+                  <AlertDialogCancel disabled={isSubmittingConfirm}>
+                    Cancelar
+                  </AlertDialogCancel>
+                  <Button
+                    type="button"
+                    className="bg-green-500 text-white hover:bg-green-600"
+                    onClick={() => void handleConfirmSubmit()}
+                    disabled={isSubmittingConfirm}
+                  >
+                    {isSubmittingConfirm ? "Confirmando..." : "Confirmar envío"}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
             {/* Footer: stacks vertically on mobile */}
             {selectedEnvio?.estadoRevision !== "pendiente" ? (
               <>
@@ -1961,6 +2083,7 @@ export default function HorariosAltaPage() {
                   <Button
                     className="bg-green-500 text-white hover:bg-green-600"
                     type="button"
+                    onClick={() => setIsConfirmDialogOpen(true)}
                   >
                     Confirmar envío
                   </Button>
