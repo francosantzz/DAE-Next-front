@@ -24,6 +24,7 @@ import type {
   HorariosFormData,
   PaquetesEquipo,
 } from "./components/types"
+import { normalizeCalendarRotativoDates } from "./components/rotativoCalendar"
 import { computeWeeklyWorkload } from "./components/weeklyWorkload"
 
 const EQUIPO_DAE_ID = 62
@@ -33,8 +34,6 @@ const HORARIOS_FORM_SESSION_KEY = "horarios-form-session"
 const ROTATIVO_CICLO_SEMANAS = 4
 
 const EMPTY_SLOT = { diaSemana: "", horaInicio: "", horaFin: "" }
-const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
-
 type FormSubmitFeedback = {
   type: "success" | "error"
   message: string
@@ -73,23 +72,6 @@ const isWeekNumber = (value: number): value is 1 | 2 | 3 | 4 =>
 
 const normalizeWeeks = (weeks: number[]) =>
   Array.from(new Set(weeks.filter(isWeekNumber))).sort((a, b) => a - b)
-
-const isIsoDate = (value: string) => {
-  if (!ISO_DATE_PATTERN.test(value)) return false
-
-  const [year, month, day] = value.split("-").map(Number)
-  const date = new Date(`${value}T00:00:00`)
-
-  return (
-    !Number.isNaN(date.getTime()) &&
-    date.getFullYear() === year &&
-    date.getMonth() + 1 === month &&
-    date.getDate() === day
-  )
-}
-
-const normalizeDates = (dates: string[]) =>
-  Array.from(new Set(dates.filter(isIsoDate))).sort((a, b) => a.localeCompare(b))
 
 const parseDiaSemana = (value: string, label: string) => {
   const parsed = Number.parseInt(value, 10)
@@ -146,7 +128,9 @@ const buildRotativoPayload = (
   }
 
   if (tipoRotacion === "porCalendario") {
-    const fechas = normalizeDates(Array.isArray(rotativo.fechas) ? rotativo.fechas : [])
+    const fechas = normalizeCalendarRotativoDates(
+      Array.isArray(rotativo.fechas) ? rotativo.fechas : [],
+    )
 
     if (fechas.length === 0) {
       throw new Error(`${label} requiere fechas válidas para enviarse.`)
@@ -571,7 +555,10 @@ export default function HorariosFormIntroPage() {
             if (!Array.isArray(paquete.rotativo.semanas) || paquete.rotativo.semanas.length === 0)
               return false
           } else if (paquete.rotativo.tipo === "porCalendario") {
-            if (!Array.isArray(paquete.rotativo.fechas) || paquete.rotativo.fechas.length === 0)
+            const fechasValidas = normalizeCalendarRotativoDates(
+              Array.isArray(paquete.rotativo.fechas) ? paquete.rotativo.fechas : [],
+            )
+            if (fechasValidas.length === 0)
               return false
           } else {
             return false

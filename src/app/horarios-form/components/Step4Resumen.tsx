@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/genericos/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/genericos/card"
+import { normalizeCalendarRotativoDates } from "./rotativoCalendar"
 import type { Equipo, Escuela, HorariosFormData } from "./types"
 import type { WeeklyWorkload } from "./weeklyWorkload"
 import { getWeeklyWorkloadStatus } from "./weeklyWorkload"
@@ -66,7 +67,9 @@ export default function Step4Resumen({
     }
 
     if (rotativo.tipo === "porCalendario") {
-      const fechas = Array.isArray(rotativo.fechas) ? rotativo.fechas : []
+      const fechas = normalizeCalendarRotativoDates(
+        Array.isArray(rotativo.fechas) ? rotativo.fechas : [],
+      )
       if (fechas.length === 0) return "Rotativo"
       return `Rotativo por fechas: ${fechas
         .map((fecha) => new Date(`${fecha}T00:00:00`).toLocaleDateString("es-AR"))

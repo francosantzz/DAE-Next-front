@@ -1,4 +1,5 @@
 import type { PaquetesEquipo } from "./types"
+import { getFourWeekCycleFromDate } from "./rotativoCalendar"
 
 export type WeekNumber = 1 | 2 | 3 | 4
 
@@ -18,19 +19,9 @@ const ALL_WEEKS: WeekNumber[] = [1, 2, 3, 4]
 const isWeekNumber = (value: number): value is WeekNumber =>
   value === 1 || value === 2 || value === 3 || value === 4
 
-const clampToWeekNumber = (value: number): WeekNumber => {
-  if (value <= 1) return 1
-  if (value === 2) return 2
-  if (value === 3) return 3
-  return 4
-}
-
 const getWeekFromDate = (isoDate: string): WeekNumber | null => {
-  if (!isoDate) return null
-  const date = new Date(`${isoDate}T00:00:00`)
-  if (Number.isNaN(date.getTime())) return null
-  const dayOfMonth = date.getDate()
-  return clampToWeekNumber(Math.floor((dayOfMonth - 1) / 7) + 1)
+  const weekInCycle = getFourWeekCycleFromDate(isoDate)
+  return weekInCycle && isWeekNumber(weekInCycle) ? weekInCycle : null
 }
 
 const uniqueWeeks = (weeks: number[]): WeekNumber[] => {

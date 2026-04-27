@@ -159,6 +159,13 @@ export function Sidebar() {
       requiredPermission: { entity: "modificacion", action: "read"}
     },
     {
+      title: "Altas y Bajas",
+      href: "/altas-bajas",
+      icon: TrendingUpIcon,
+      authRequired: true,
+      requiredPermission: { entity: "modificacion", action: "read"}
+    },
+    {
       href: "/modificaciones",
       title: "Modificaciones",
       icon: PencilIcon,
