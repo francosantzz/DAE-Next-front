@@ -22,11 +22,39 @@ export type FormularioHorariosProfesional = {
   correo: string
 }
 
+export type FormularioHorariosDatosPaso2 = {
+  nombre: string
+  apellido: string
+  profesion: string
+  cuil: string
+  dni: string
+  correo: string
+  telefono: string
+  fechaNacimiento: string
+  direccion: {
+    calle: string
+    numero: string
+    departamentoId: string
+  }
+}
+
+export type FormularioHorariosCargo = {
+  tipo: string
+  cantidad: number
+  equipoId: number
+}
+
 export type FormularioHorariosLoginResponse = {
   access_token: string
   token_type: string
   expires_in: number
   profesional: FormularioHorariosProfesional
+  tipoFormulario: string
+  intentosRealizados: number
+  precargarPaso2: boolean
+  datosPaso2: FormularioHorariosDatosPaso2 | null
+  cargos: FormularioHorariosCargo[]
+  equiposIds: number[]
 }
 
 export type FormularioHorariosSession = {
@@ -34,6 +62,12 @@ export type FormularioHorariosSession = {
   tokenType: string
   expiresAt: number
   profesional: FormularioHorariosProfesional
+  tipoFormulario?: string
+  intentosRealizados?: number
+  precargarPaso2?: boolean
+  datosPaso2?: FormularioHorariosDatosPaso2 | null
+  cargos?: FormularioHorariosCargo[]
+  equiposIds?: number[]
 }
 
 export type FormularioHorariosTipoRotacion = "semanas" | "fechas"
@@ -54,6 +88,8 @@ export type FormularioHorariosEnvioPaquete = {
 
 export type FormularioHorariosEnvioPayload = {
   paquetesHoras: FormularioHorariosEnvioPaquete[]
+  cargos: FormularioHorariosCargo[]
+  equiposIds: number[]
 }
 
 export type FormularioHorariosEnvioResponse = {

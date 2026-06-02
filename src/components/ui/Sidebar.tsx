@@ -152,9 +152,9 @@ export function Sidebar() {
       requiredPermission: { entity: "modificacion", action: "read" }
     },
     {
-      title: "Altas y Bajas",
-      href: "/altas-bajas",
-      icon: TrendingUpIcon,
+      title: "Cambios semestrales",
+      href: "/cambios-horarios-semestrales",
+      icon: History,
       authRequired: true,
       requiredPermission: { entity: "modificacion", action: "read"}
     },

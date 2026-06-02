@@ -12,9 +12,10 @@ import Step2DatosPersonales from "./components/Step2DatosPersonales"
 import Step3CargaHoraria from "./components/Step3CargaHoraria"
 import Step4Resumen from "./components/Step4Resumen"
 import type {
-  Departamento,
   Equipo,
   Escuela,
+  FormularioHorariosCargo,
+  FormularioHorariosDatosPaso2,
   FormularioHorariosEnvioPaquete,
   FormularioHorariosEnvioPayload,
   FormularioHorariosEnvioResponse,
@@ -66,6 +67,104 @@ const createEmptyFormData = (
     departamentoId: "",
   },
 })
+
+type FormularioPaso2PreloadSource = {
+  precargarPaso2?: boolean
+  datosPaso2?: FormularioHorariosDatosPaso2 | null
+  cargos?: FormularioHorariosCargo[] | null
+  equiposIds?: number[] | null
+}
+
+const toText = (value: unknown) => {
+  if (typeof value === "string") return value
+  if (typeof value === "number" && Number.isFinite(value)) return String(value)
+  return ""
+}
+
+const normalizeCargos = (source: FormularioHorariosCargo[] | null | undefined) => {
+  if (!Array.isArray(source) || source.length === 0) {
+    return [{ tipo: "", cantidad: "", equipoId: "" }]
+  }
+
+  const mapped = source.map((cargo) => {
+    const parsedCantidad = Number(toText(cargo?.cantidad))
+    const parsedEquipoId = Number.parseInt(toText(cargo?.equipoId), 10)
+
+    return {
+      tipo: toText(cargo?.tipo).trim(),
+      cantidad: Number.isFinite(parsedCantidad) && parsedCantidad >= 0 ? String(parsedCantidad) : "",
+      equipoId: Number.isFinite(parsedEquipoId) && parsedEquipoId > 0 ? String(parsedEquipoId) : "",
+    }
+  })
+
+  return mapped.length > 0 ? mapped : [{ tipo: "", cantidad: "", equipoId: "" }]
+}
+
+const normalizeEquiposIds = (
+  sourceEquipos: number[] | null | undefined,
+  cargos: { equipoId: string }[],
+) => {
+  const ids = new Set<number>()
+
+  if (Array.isArray(sourceEquipos)) {
+    sourceEquipos.forEach((id) => {
+      const parsed = Number.parseInt(toText(id), 10)
+      if (Number.isFinite(parsed) && parsed > 0) {
+        ids.add(parsed)
+      }
+    })
+  }
+
+  cargos.forEach((cargo) => {
+    const parsed = Number.parseInt(cargo.equipoId, 10)
+    if (Number.isFinite(parsed) && parsed > 0) {
+      ids.add(parsed)
+    }
+  })
+
+  return Array.from(ids)
+}
+
+const buildPreloadedFormData = (
+  profesional: FormularioHorariosProfesional,
+  preloadSource: FormularioPaso2PreloadSource | undefined,
+): HorariosFormData => {
+  const base = createEmptyFormData(profesional)
+  const hasDatos = Boolean(preloadSource?.datosPaso2)
+  const hasCargos = Array.isArray(preloadSource?.cargos) && preloadSource.cargos.length > 0
+  const hasEquipos =
+    Array.isArray(preloadSource?.equiposIds) &&
+    preloadSource.equiposIds.some((id) => Number.isFinite(Number.parseInt(toText(id), 10)))
+  const shouldPreload = preloadSource?.precargarPaso2 === true || hasDatos || hasCargos || hasEquipos
+
+  if (!shouldPreload) {
+    return base
+  }
+
+  const datos = preloadSource?.datosPaso2
+  const cargos = normalizeCargos(preloadSource?.cargos)
+  const equiposIds = normalizeEquiposIds(preloadSource?.equiposIds, cargos)
+
+  return {
+    ...base,
+    nombre: toText(datos?.nombre).trim() || base.nombre,
+    apellido: toText(datos?.apellido).trim() || base.apellido,
+    profesion: toText(datos?.profesion).trim(),
+    cuil: toText(datos?.cuil).trim(),
+    dni: toText(datos?.dni).trim() || base.dni,
+    correo: toText(datos?.correo).trim() || base.correo,
+    telefono: toText(datos?.telefono).trim(),
+    fechaNacimiento: toText(datos?.fechaNacimiento).trim(),
+    cargos,
+    equiposIds,
+    direccion: {
+      calle: toText(datos?.direccion?.calle).trim(),
+      numero: toText(datos?.direccion?.numero).trim(),
+      departamentoId: toText(datos?.direccion?.departamentoId).trim(),
+    },
+    paquetes: {},
+  }
+}
 
 const isWeekNumber = (value: number): value is 1 | 2 | 3 | 4 =>
   value === 1 || value === 2 || value === 3 || value === 4
@@ -148,6 +247,28 @@ const buildRotativoPayload = (
 
 const buildFormularioEnvioPayload = (formData: HorariosFormData): FormularioHorariosEnvioPayload => {
   const paquetesHoras: FormularioHorariosEnvioPaquete[] = []
+  const cargos = formData.cargos
+    .map((cargo) => ({
+      tipo: cargo.tipo.trim(),
+      cantidad: Number(cargo.cantidad),
+      equipoId: Number.parseInt(cargo.equipoId, 10),
+    }))
+    .filter(
+      (cargo) =>
+        cargo.tipo !== "" &&
+        Number.isFinite(cargo.cantidad) &&
+        cargo.cantidad > 0 &&
+        Number.isFinite(cargo.equipoId) &&
+        cargo.equipoId > 0,
+    )
+
+  const equiposIds = Array.from(
+    new Set(
+      formData.equiposIds.filter(
+        (id) => Number.isFinite(id) && id > 0,
+      ),
+    ),
+  )
 
   formData.equiposIds.forEach((equipoId) => {
     const paquetes = formData.paquetes[String(equipoId)]
@@ -195,12 +316,11 @@ const buildFormularioEnvioPayload = (formData: HorariosFormData): FormularioHora
     })
   })
 
-  return { paquetesHoras }
+  return { paquetesHoras, cargos, equiposIds }
 }
 
 export default function HorariosFormIntroPage() {
   const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL ?? ""
-  const [departamentos, setDepartamentos] = useState<Departamento[]>([])
   const [equipos, setEquipos] = useState<Equipo[]>([])
   const [isEquiposLoading, setIsEquiposLoading] = useState(false)
   const [equiposErrorMsg, setEquiposErrorMsg] = useState<string | null>(null)
@@ -225,10 +345,13 @@ export default function HorariosFormIntroPage() {
   const [escuelasDisponibles, setEscuelasDisponibles] = useState<Map<number, Escuela[]>>(new Map())
   const [escuelasSinPaquetes, setEscuelasSinPaquetes] = useState<Map<number, Escuela[]>>(new Map())
 
-  const resetFormularioState = (profesional?: FormularioHorariosProfesional) => {
+  const resetFormularioState = (
+    profesional?: FormularioHorariosProfesional,
+    nextFormData?: HorariosFormData,
+  ) => {
     setCurrentStep(1)
     setInfoLeida(false)
-    setFormData(createEmptyFormData(profesional))
+    setFormData(nextFormData ?? createEmptyFormData(profesional))
     setEscuelasDisponibles(new Map())
     setEscuelasSinPaquetes(new Map())
   }
@@ -248,7 +371,10 @@ export default function HorariosFormIntroPage() {
     resetFormularioState()
   }
 
-  const saveProfessionalSession = (session: FormularioHorariosSession) => {
+  const saveProfessionalSession = (
+    session: FormularioHorariosSession,
+    nextFormData?: HorariosFormData,
+  ) => {
     if (typeof window !== "undefined") {
       window.localStorage.setItem(HORARIOS_FORM_SESSION_KEY, JSON.stringify(session))
     }
@@ -260,7 +386,7 @@ export default function HorariosFormIntroPage() {
       correo: session.profesional.correo,
       contrasena: "",
     })
-    resetFormularioState(session.profesional)
+    resetFormularioState(session.profesional, nextFormData)
   }
 
   const diasSemana = [
@@ -283,14 +409,27 @@ export default function HorariosFormIntroPage() {
 
       const storedSession = JSON.parse(storedSessionRaw) as FormularioHorariosSession
       const expiresAt = Number(storedSession?.expiresAt ?? 0)
+      const hasPreloadContractField = Object.prototype.hasOwnProperty.call(
+        storedSession ?? {},
+        "precargarPaso2",
+      )
 
-      if (!storedSession?.accessToken || !storedSession?.profesional || expiresAt <= Date.now()) {
+      if (
+        !storedSession?.accessToken ||
+        !storedSession?.profesional ||
+        expiresAt <= Date.now() ||
+        !hasPreloadContractField
+      ) {
         window.localStorage.removeItem(HORARIOS_FORM_SESSION_KEY)
         setLoginData({
           correo: storedSession?.profesional?.correo ?? "",
           contrasena: "",
         })
-        setAuthErrorMsg("Tu sesión del formulario venció. Volvé a ingresar para continuar.")
+        setAuthErrorMsg(
+          hasPreloadContractField
+            ? "Tu sesión del formulario venció. Volvé a ingresar para continuar."
+            : "Actualizamos el formulario. Volvé a ingresar para precargar tus datos.",
+        )
         setIsAuthResolved(true)
         return
       }
@@ -300,7 +439,13 @@ export default function HorariosFormIntroPage() {
         correo: storedSession.profesional.correo,
         contrasena: "",
       })
-      resetFormularioState(storedSession.profesional)
+      const nextFormData = buildPreloadedFormData(storedSession.profesional, {
+        precargarPaso2: storedSession.precargarPaso2,
+        datosPaso2: storedSession.datosPaso2 ?? null,
+        cargos: storedSession.cargos ?? [],
+        equiposIds: storedSession.equiposIds ?? [],
+      })
+      resetFormularioState(storedSession.profesional, nextFormData)
     } catch {
       window.localStorage.removeItem(HORARIOS_FORM_SESSION_KEY)
       setAuthErrorMsg("No se pudo recuperar la sesión del formulario. Ingresá nuevamente.")
@@ -489,18 +634,19 @@ export default function HorariosFormIntroPage() {
 
   const isStep1Valid = infoLeida
 
-  const isStep2Valid =
-    formData.nombre.trim() !== "" &&
-    formData.apellido.trim() !== "" &&
-    formData.profesion.trim() !== "" &&
-    formData.cuil.trim() !== "" &&
-    formData.dni.trim() !== "" &&
-    formData.correo.trim() !== "" &&
-    formData.telefono.trim() !== "" &&
-    formData.fechaNacimiento.trim() !== "" &&
-    formData.direccion.calle.trim() !== "" &&
-    formData.direccion.numero.trim() !== "" &&
-    formData.direccion.departamentoId.trim() !== ""
+  const isStep2Valid = (() => {
+    if (formData.equiposIds.length === 0) return false
+    if (!Array.isArray(formData.cargos) || formData.cargos.length === 0) return false
+
+    return formData.cargos.every((cargo) => {
+      const tipoValido = cargo.tipo.trim() !== ""
+      const cantidad = Number(cargo.cantidad || 0)
+      const cantidadValida = Number.isFinite(cantidad) && cantidad > 0
+      const equipoId = Number.parseInt(cargo.equipoId, 10)
+      const equipoValido = Number.isFinite(equipoId) && formData.equiposIds.includes(equipoId)
+      return tipoValido && cantidadValida && equipoValido
+    })
+  })()
 
   const isHorasCatedraValid = (() => {
     if (!formData.horasCatedra.enabled) return true
@@ -624,15 +770,50 @@ export default function HorariosFormIntroPage() {
         throw new Error("No se pudo iniciar sesión en este momento.")
       }
 
-      const payload = (await res.json()) as FormularioHorariosLoginResponse
+      const rawPayload = (await res.json()) as Record<string, unknown>
+      const payload = rawPayload as FormularioHorariosLoginResponse
+      const tipoFormulario = toText(rawPayload.tipoFormulario ?? rawPayload.tipo_formulario).trim()
+      const intentosRealizados = Number(
+        rawPayload.intentosRealizados ?? rawPayload.intentos_realizados ?? 0,
+      )
+      const precargarPaso2 = Boolean(
+        rawPayload.precargarPaso2 ?? rawPayload.precargar_paso2 ?? false,
+      )
+      const datosPaso2 = (rawPayload.datosPaso2 ??
+        rawPayload.datos_paso2 ??
+        null) as FormularioHorariosDatosPaso2 | null
+      const cargos = Array.isArray(rawPayload.cargos)
+        ? (rawPayload.cargos as FormularioHorariosCargo[])
+        : []
+      const equiposIdsRaw = Array.isArray(rawPayload.equiposIds)
+        ? rawPayload.equiposIds
+        : Array.isArray(rawPayload.equipos_ids)
+          ? rawPayload.equipos_ids
+          : []
+      const equiposIds = equiposIdsRaw
+        .map((id) => Number.parseInt(toText(id), 10))
+        .filter((id) => Number.isFinite(id) && id > 0)
+
       const nextSession: FormularioHorariosSession = {
         accessToken: payload.access_token,
         tokenType: payload.token_type,
         expiresAt: Date.now() + payload.expires_in * 1000,
         profesional: payload.profesional,
+        tipoFormulario,
+        intentosRealizados: Number.isFinite(intentosRealizados) ? intentosRealizados : 0,
+        precargarPaso2,
+        datosPaso2,
+        cargos,
+        equiposIds,
       }
 
-      saveProfessionalSession(nextSession)
+      const nextFormData = buildPreloadedFormData(payload.profesional, {
+        precargarPaso2,
+        datosPaso2,
+        cargos,
+        equiposIds,
+      })
+      saveProfessionalSession(nextSession, nextFormData)
     } catch (error) {
       setAuthErrorMsg(
         error instanceof Error ? error.message : "No se pudo iniciar sesión en este momento.",
@@ -743,20 +924,6 @@ export default function HorariosFormIntroPage() {
     if (Array.isArray(payload?.items)) return payload.items
     return []
   }
-
-  useEffect(() => {
-    if (!authSession) return
-
-    const fetchDepartamentos = async () => {
-      try {
-        const res = await fetch(`${apiBase}/departamentos`)
-        if (!res.ok) return
-        const data = await res.json()
-        setDepartamentos(normalizeList(data))
-      } catch {}
-    }
-    fetchDepartamentos()
-  }, [apiBase, authSession])
 
   useEffect(() => {
     const fetchEquipos = async () => {
@@ -935,7 +1102,6 @@ export default function HorariosFormIntroPage() {
               <Step2DatosPersonales
                 formData={formData}
                 setFormData={setFormData}
-                departamentos={departamentos}
                 equipos={equipos}
                 isEquiposLoading={isEquiposLoading}
                 equiposErrorMsg={equiposErrorMsg}

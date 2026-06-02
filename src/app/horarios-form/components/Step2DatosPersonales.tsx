@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState } from "react"
 import { Badge } from "@/components/ui/genericos/badge"
@@ -9,12 +9,11 @@ import { Label } from "@/components/ui/genericos/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/genericos/select"
 import { X } from "lucide-react"
 import type { Dispatch, SetStateAction } from "react"
-import type { Departamento, Equipo, HorariosFormData } from "./types"
+import type { Equipo, HorariosFormData } from "./types"
 
 type Step2DatosPersonalesProps = {
   formData: HorariosFormData
   setFormData: Dispatch<SetStateAction<HorariosFormData>>
-  departamentos: Departamento[]
   equipos: Equipo[]
   isEquiposLoading?: boolean
   equiposErrorMsg?: string | null
@@ -23,7 +22,6 @@ type Step2DatosPersonalesProps = {
 export default function Step2DatosPersonales({
   formData,
   setFormData,
-  departamentos,
   equipos,
   isEquiposLoading = false,
   equiposErrorMsg = null,
@@ -37,79 +35,10 @@ export default function Step2DatosPersonales({
   return (
     <Card className="border-slate-200">
       <CardHeader>
-        <CardTitle className="text-lg">Datos personales</CardTitle>
+        <CardTitle className="text-lg">Cargos y secciones</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="nombre">Nombre</Label>
-            <Input
-              id="nombre"
-              value={formData.nombre}
-              onChange={(e) => setFormData((p) => ({ ...p, nombre: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="apellido">Apellido</Label>
-            <Input
-              id="apellido"
-              value={formData.apellido}
-              onChange={(e) => setFormData((p) => ({ ...p, apellido: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="profesion">Profesión</Label>
-            <Input
-              id="profesion"
-              value={formData.profesion}
-              onChange={(e) => setFormData((p) => ({ ...p, profesion: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="cuil">CUIL</Label>
-            <Input
-              id="cuil"
-              value={formData.cuil}
-              onChange={(e) => setFormData((p) => ({ ...p, cuil: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="dni">DNI</Label>
-            <Input
-              id="dni"
-              value={formData.dni}
-              onChange={(e) => setFormData((p) => ({ ...p, dni: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="correo">Correo</Label>
-            <Input
-              id="correo"
-              type="email"
-              value={formData.correo}
-              onChange={(e) => setFormData((p) => ({ ...p, correo: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="telefono">Teléfono</Label>
-            <Input
-              id="telefono"
-              value={formData.telefono}
-              onChange={(e) => setFormData((p) => ({ ...p, telefono: e.target.value }))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="fechaNacimiento">Fecha de nacimiento</Label>
-            <Input
-              id="fechaNacimiento"
-              type="date"
-              value={formData.fechaNacimiento}
-              onChange={(e) => setFormData((p) => ({ ...p, fechaNacimiento: e.target.value }))}
-            />
-          </div>
-        </div>
-
-         <div className="space-y-2">
+        <div className="space-y-2">
           <h3 className="text-sm font-semibold text-slate-800">Secciones</h3>
           <Select
             value=""
@@ -180,9 +109,7 @@ export default function Step2DatosPersonales({
               )
             })}
           </div>
-          {equiposErrorMsg && (
-            <p className="text-xs text-rose-600">{equiposErrorMsg}</p>
-          )}
+          {equiposErrorMsg && <p className="text-xs text-rose-600">{equiposErrorMsg}</p>}
         </div>
 
         <div>
@@ -255,7 +182,7 @@ export default function Step2DatosPersonales({
                   <SelectContent>
                     {equiposSeleccionados.length === 0 ? (
                       <div className="px-2 py-2 text-xs text-slate-500">
-                        Primero agregá una sección abajo.
+                        Primero agregá una sección.
                       </div>
                     ) : (
                       equiposSeleccionados.map((eq) => (
@@ -295,54 +222,6 @@ export default function Step2DatosPersonales({
             )}
           </div>
         </div>
-
-        <div>
-          <h3 className="text-sm font-semibold text-slate-800">Dirección</h3>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="calle">Calle</Label>
-            <Input
-              id="calle"
-              value={formData.direccion.calle}
-              onChange={(e) =>
-                setFormData((p) => ({ ...p, direccion: { ...p.direccion, calle: e.target.value } }))
-              }
-            />
-          </div>
-          <div>
-            <Label htmlFor="numero">Número</Label>
-            <Input
-              id="numero"
-              value={formData.direccion.numero}
-              onChange={(e) =>
-                setFormData((p) => ({ ...p, direccion: { ...p.direccion, numero: e.target.value } }))
-              }
-            />
-          </div>
-          <div>
-            <Label htmlFor="departamentoId">Departamento</Label>
-            <Select
-              value={formData.direccion.departamentoId}
-              onValueChange={(value) =>
-                setFormData((p) => ({ ...p, direccion: { ...p.direccion, departamentoId: value } }))
-              }
-            >
-              <SelectTrigger id="departamentoId">
-                <SelectValue placeholder="Seleccione un departamento" />
-              </SelectTrigger>
-              <SelectContent>
-                {departamentos.map((d) => (
-                  <SelectItem key={d.id} value={d.id.toString()}>
-                    {d.nombre}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-       
       </CardContent>
     </Card>
   )

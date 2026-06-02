@@ -3,7 +3,7 @@
 import type { ChangeEvent, FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Eye, Mail, Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, Key, Mail, Pencil, Plus, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/genericos/alert";
 import {
   AlertDialog,
@@ -32,6 +32,13 @@ import { Input } from "@/components/ui/genericos/input";
 import { Label } from "@/components/ui/genericos/label";
 import { Paginator } from "@/components/ui/genericos/Paginator";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/genericos/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -50,21 +57,29 @@ type FormularioHorariosRegistro = {
   nombre: string;
   apellido: string;
   correo: string;
+  tipoFormulario?: string | null;
   intentosPermitidos: number | null;
   intentosRealizados: number | null;
   ultimoEnvio: string | null;
   ultimaActualizacion: string | null;
 };
 
+type TipoFormulario = "alta-horarios" | "semestral-jul-26";
+
 type FormularioEnvioPayload = {
   nombre: string;
   apellido: string;
   dni: string;
   correo: string;
+  tipoFormulario: TipoFormulario;
 };
 
 type FormularioReenvioPayload = {
   correo: string;
+};
+
+type FormularioContrasenaPayload = {
+  nuevaContrasena: string;
 };
 
 type FormularioHorariosEnvioHistorialPaquete = {
@@ -105,11 +120,14 @@ type FormularioDeleteResponse = {
 const actionButtonClass =
   "inline-flex h-9 w-9 items-center justify-center rounded-full text-base transition-colors";
 
+const defaultTipoFormulario: TipoFormulario = "alta-horarios";
+
 const initialFormularioState: FormularioEnvioPayload = {
   nombre: "",
   apellido: "",
   dni: "",
   correo: "",
+  tipoFormulario: defaultTipoFormulario,
 };
 
 const formatDateTime = (value: string | null) => {
@@ -287,6 +305,12 @@ export default function HorariosAltaPage() {
   const [resendCorreo, setResendCorreo] = useState("");
   const [isSubmittingResend, setIsSubmittingResend] = useState(false);
   const [resendError, setResendError] = useState<string | null>(null);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [passwordRegistro, setPasswordRegistro] =
+    useState<FormularioHorariosRegistro | null>(null);
+  const [nuevaContrasena, setNuevaContrasena] = useState("");
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deletingRegistro, setDeletingRegistro] =
     useState<FormularioHorariosRegistro | null>(null);
@@ -330,6 +354,7 @@ export default function HorariosAltaPage() {
 
     try {
       const params = new URLSearchParams();
+      params.set("tipoFormulario", "alta-horarios");
       if (search.trim()) {
         params.set("search", search.trim());
       }
@@ -489,6 +514,10 @@ export default function HorariosAltaPage() {
       apellido: item.apellido ?? "",
       dni: item.dni ?? "",
       correo: item.correo ?? "",
+      tipoFormulario:
+        item.tipoFormulario === "semestral-jul-26"
+          ? "semestral-jul-26"
+          : defaultTipoFormulario,
     });
     setEditError(null);
     setIsEditDialogOpen(true);
@@ -510,6 +539,24 @@ export default function HorariosAltaPage() {
     setResendCorreo(item.correo ?? "");
     setResendError(null);
     setIsResendDialogOpen(true);
+  };
+
+  const handlePasswordDialogChange = (open: boolean) => {
+    setIsPasswordDialogOpen(open);
+
+    if (!open) {
+      setPasswordRegistro(null);
+      setNuevaContrasena("");
+      setPasswordError(null);
+      setIsSubmittingPassword(false);
+    }
+  };
+
+  const handlePasswordClick = (item: FormularioHorariosRegistro) => {
+    setPasswordRegistro(item);
+    setNuevaContrasena("");
+    setPasswordError(null);
+    setIsPasswordDialogOpen(true);
   };
 
   const handleEditInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -617,6 +664,105 @@ export default function HorariosAltaPage() {
       });
     } finally {
       setIsSubmittingResend(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!session?.user?.accessToken) {
+      setPasswordError("No hay una sesion activa para cambiar la contrasena.");
+      setFormularioAlert({
+        type: "error",
+        message:
+          "No se pudo cambiar la contrasena porque la sesion no esta disponible.",
+      });
+      return;
+    }
+
+    if (!passwordRegistro) {
+      setPasswordError("No se encontro el registro para cambiar la contrasena.");
+      return;
+    }
+
+    const payload: FormularioContrasenaPayload = {
+      nuevaContrasena: nuevaContrasena.trim(),
+    };
+
+    if (!payload.nuevaContrasena) {
+      setPasswordError("La nueva contrasena es obligatoria.");
+      return;
+    }
+
+    setIsSubmittingPassword(true);
+    setPasswordError(null);
+    setFormularioAlert(null);
+
+    try {
+      const res = await fetch(
+        `${apiBase}/api/v1/profesionals/formulario-horarios/${passwordRegistro.id}/contrasena`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.user.accessToken}`,
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        console.error(
+          "Error al cambiar contrasena del formulario de horarios",
+          res.status,
+          text,
+        );
+
+        let backendMessage = "";
+        if (text.trim()) {
+          try {
+            const errorPayload = JSON.parse(text) as { message?: unknown };
+            backendMessage =
+              typeof errorPayload.message === "string" &&
+              errorPayload.message.trim()
+                ? errorPayload.message
+                : text;
+          } catch {
+            backendMessage = text;
+          }
+        }
+
+        throw new Error(
+          backendMessage ||
+            `Error al cambiar contrasena del formulario de horarios (status ${res.status})`,
+        );
+      }
+
+      const response = (await res.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+
+      handlePasswordDialogChange(false);
+      await fetchRegistros();
+      setFormularioAlert({
+        type: "success",
+        message:
+          response?.message?.trim() || "Contrasena actualizada correctamente.",
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Ocurrio un error al cambiar la contrasena.";
+
+      setPasswordError(message);
+      setFormularioAlert({
+        type: "error",
+        message,
+      });
+    } finally {
+      setIsSubmittingPassword(false);
     }
   };
 
@@ -839,6 +985,7 @@ export default function HorariosAltaPage() {
       apellido: formularioData.apellido.trim(),
       dni: formularioData.dni.trim(),
       correo: formularioData.correo.trim(),
+      tipoFormulario: formularioData.tipoFormulario,
     };
 
     try {
@@ -932,6 +1079,7 @@ export default function HorariosAltaPage() {
       apellido: editData.apellido.trim(),
       dni: editData.dni.trim(),
       correo: editData.correo.trim(),
+      tipoFormulario: editData.tipoFormulario,
     };
 
     try {
@@ -1285,6 +1433,15 @@ export default function HorariosAltaPage() {
       >
         <Pencil className="h-4 w-4" aria-hidden="true" />
       </button>
+      <button
+        type="button"
+        className={`${actionButtonClass} bg-slate-100 text-slate-700 hover:bg-slate-200`}
+        aria-label={`Cambiar contrasena del registro ${item.id}`}
+        title="Cambiar contrasena"
+        onClick={() => handlePasswordClick(item)}
+      >
+        <Key className="h-4 w-4" aria-hidden="true" />
+      </button>
     </div>
   );
 
@@ -1634,6 +1791,30 @@ export default function HorariosAltaPage() {
                     required
                   />
                 </div>
+                <div>
+                  <Label htmlFor="tipo-formulario">Tipo de formulario</Label>
+                  <Select
+                    value={formularioData.tipoFormulario}
+                    onValueChange={(value) =>
+                      setFormularioData((prev) => ({
+                        ...prev,
+                        tipoFormulario: value as TipoFormulario,
+                      }))
+                    }
+                  >
+                    <SelectTrigger id="tipo-formulario">
+                      <SelectValue placeholder="Seleccionar tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="alta-horarios">
+                        alta-horarios
+                      </SelectItem>
+                      <SelectItem value="semestral-jul-26">
+                        semestral-jul-26
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {formularioError && (
@@ -1710,6 +1891,59 @@ export default function HorariosAltaPage() {
         </Dialog>
 
         {/* ── Historial de envíos dialog ── */}
+        <Dialog
+          open={isPasswordDialogOpen}
+          onOpenChange={handlePasswordDialogChange}
+        >
+          <DialogContent className="max-w-[95vw] sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Cambiar contrasena</DialogTitle>
+              <DialogDescription>
+                {passwordRegistro
+                  ? `Defini una nueva contrasena para ${passwordRegistro.nombre} ${passwordRegistro.apellido}.`
+                  : "Defini una nueva contrasena para el profesional."}
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <Label htmlFor="password-nueva-contrasena">
+                    Nueva contrasena
+                  </Label>
+                  <Input
+                    id="password-nueva-contrasena"
+                    name="nuevaContrasena"
+                    type="password"
+                    value={nuevaContrasena}
+                    onChange={(e) => setNuevaContrasena(e.target.value)}
+                    placeholder="NuevaClave123"
+                    required
+                  />
+                </div>
+              </div>
+
+              {passwordError && (
+                <p className="text-sm text-red-600">{passwordError}</p>
+              )}
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handlePasswordDialogChange(false)}
+                  disabled={isSubmittingPassword}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isSubmittingPassword}>
+                  {isSubmittingPassword ? "Guardando..." : "Cambiar contrasena"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+
         <Dialog
           open={isHistoryDialogOpen}
           onOpenChange={handleHistoryDialogChange}
@@ -1911,6 +2145,7 @@ export default function HorariosAltaPage() {
                                   </p>
                                   <p className="text-sm text-slate-600">
                                     {paquete.escuelaNombre?.trim() ||
+                                      paquete.tipo?.trim() ||
                                       "Sin escuela"}
                                   </p>
                                 </div>
@@ -2146,6 +2381,32 @@ export default function HorariosAltaPage() {
                     placeholder="correo@dominio.com"
                     required
                   />
+                </div>
+                <div>
+                  <Label htmlFor="edit-tipo-formulario">
+                    Tipo de formulario
+                  </Label>
+                  <Select
+                    value={editData.tipoFormulario}
+                    onValueChange={(value) =>
+                      setEditData((prev) => ({
+                        ...prev,
+                        tipoFormulario: value as TipoFormulario,
+                      }))
+                    }
+                  >
+                    <SelectTrigger id="edit-tipo-formulario">
+                      <SelectValue placeholder="Seleccionar tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="alta-horarios">
+                        alta-horarios
+                      </SelectItem>
+                      <SelectItem value="semestral-jul-26">
+                        semestral-jul-26
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
