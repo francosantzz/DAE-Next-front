@@ -170,24 +170,45 @@ const escuelasConHorasSemana1 = new Set(
         backgroundColor: "#ffffff",
       })
 
-      const imgData = canvas.toDataURL("image/png")
       const pdf = new jsPDF("p", "mm", "a4")
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
       const margin = 10
       const usableWidth = pageWidth - margin * 2
-      const imgHeight = (canvas.height * usableWidth) / canvas.width
-      let heightLeft = imgHeight
-      let position = margin
+      const usableHeight = pageHeight - margin * 2
+      const sliceHeightPx = Math.max(1, Math.floor((usableHeight * canvas.width) / usableWidth))
+      const pageCount = Math.ceil(canvas.height / sliceHeightPx)
 
-      pdf.addImage(imgData, "PNG", margin, position, usableWidth, imgHeight, undefined, "FAST")
-      heightLeft -= pageHeight - margin * 2
+      for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
+        const sourceY = pageIndex * sliceHeightPx
+        const sourceHeight = Math.min(sliceHeightPx, canvas.height - sourceY)
+        const pageCanvas = document.createElement("canvas")
+        pageCanvas.width = canvas.width
+        pageCanvas.height = sourceHeight
 
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight + margin
-        pdf.addPage()
-        pdf.addImage(imgData, "PNG", margin, position, usableWidth, imgHeight, undefined, "FAST")
-        heightLeft -= pageHeight - margin * 2
+        const ctx = pageCanvas.getContext("2d")
+        if (!ctx) continue
+
+        ctx.drawImage(
+          canvas,
+          0,
+          sourceY,
+          canvas.width,
+          sourceHeight,
+          0,
+          0,
+          canvas.width,
+          sourceHeight
+        )
+
+        const pageImage = pageCanvas.toDataURL("image/png")
+        const renderedHeight = (sourceHeight * usableWidth) / canvas.width
+
+        if (pageIndex > 0) {
+          pdf.addPage()
+        }
+
+        pdf.addImage(pageImage, "PNG", margin, margin, usableWidth, renderedHeight, undefined, "FAST")
       }
       pdf.save(`detalle-equipo-${equipo.id ?? "sin-id"}.pdf`)
     } finally {
