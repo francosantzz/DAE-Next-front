@@ -1,7 +1,11 @@
 "use client"
+import { useRef, useState } from "react"
+import html2canvas from "html2canvas"
+import { jsPDF } from "jspdf"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/genericos/dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/genericos/card"
 import { Badge } from "@/components/ui/genericos/badge"
+import { Button } from "@/components/ui/genericos/button"
 import { Avatar, AvatarFallback } from "@/components/ui/genericos/avatar"
 import { Separator } from "@/components/ui/genericos/separator"
 import {
@@ -16,7 +20,8 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
-  Loader2
+  Loader2,
+  FileDown
 } from "lucide-react"
 import type { Equipo, Profesional, PaqueteHoras, Escuela} from "@/types/equipos";
 
@@ -38,6 +43,9 @@ const diasSemana = [
 ]
 
 export function DetalleEquipoDialog({ equipo, isOpen, onClose, isLoading = false }: DetalleEquipoDialogProps) {
+  const printRef = useRef<HTMLDivElement>(null)
+  const [isExportingPdf, setIsExportingPdf] = useState(false)
+
   if (!equipo && !isLoading) return null
 
   const isDefined = <T,>(value: T | null | undefined): value is T => value != null
@@ -116,16 +124,85 @@ const escuelasConHorasSemana1 = new Set(
     .filter((id): id is number => typeof id === "number")
 );
 
-const promedioHorasPorEscuela =
-  escuelasConHorasSemana1.size > 0
-    ? horasEnEscuelas / escuelasConHorasSemana1.size
-    : 0;
+  const promedioHorasPorEscuela =
+    escuelasConHorasSemana1.size > 0
+      ? horasEnEscuelas / escuelasConHorasSemana1.size
+      : 0;
+
+  const handleExportPdf = async () => {
+    if (!printRef.current || !equipo || isExportingPdf) return
+
+    setIsExportingPdf(true)
+
+    const exportNode = document.createElement("div")
+
+    try {
+      exportNode.style.position = "fixed"
+      exportNode.style.left = "-10000px"
+      exportNode.style.top = "0"
+      exportNode.style.width = "900px"
+      exportNode.style.background = "#ffffff"
+      exportNode.style.padding = "24px"
+      const headerBlock = document.createElement("div")
+      headerBlock.style.marginBottom = "20px"
+
+      const title = document.createElement("h1")
+      title.style.fontSize = "24px"
+      title.style.fontWeight = "700"
+      title.style.color = "#111827"
+      title.style.margin = "0 0 8px 0"
+      title.textContent = equipo.nombre ?? "Detalle de equipo"
+
+      const subtitle = document.createElement("p")
+      subtitle.style.fontSize = "14px"
+      subtitle.style.color = "#4b5563"
+      subtitle.style.margin = "0"
+      subtitle.textContent = "Información detallada del equipo y sus asignaciones"
+
+      headerBlock.append(title, subtitle)
+      exportNode.appendChild(headerBlock)
+      exportNode.appendChild(printRef.current.cloneNode(true))
+      document.body.appendChild(exportNode)
+
+      const canvas = await html2canvas(exportNode, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+      })
+
+      const imgData = canvas.toDataURL("image/png")
+      const pdf = new jsPDF("p", "mm", "a4")
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const margin = 10
+      const usableWidth = pageWidth - margin * 2
+      const imgHeight = (canvas.height * usableWidth) / canvas.width
+      let heightLeft = imgHeight
+      let position = margin
+
+      pdf.addImage(imgData, "PNG", margin, position, usableWidth, imgHeight, undefined, "FAST")
+      heightLeft -= pageHeight - margin * 2
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight + margin
+        pdf.addPage()
+        pdf.addImage(imgData, "PNG", margin, position, usableWidth, imgHeight, undefined, "FAST")
+        heightLeft -= pageHeight - margin * 2
+      }
+      pdf.save(`detalle-equipo-${equipo.id ?? "sin-id"}.pdf`)
+    } finally {
+      exportNode.remove()
+      setIsExportingPdf(false)
+    }
+  }
 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[95vw] h-[90vh] sm:max-w-[900px] sm:h-auto sm:max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+        <DialogHeader className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
           <DialogTitle className="text-2xl font-bold text-gray-800 flex items-center">
             <Users className="mr-3 h-6 w-6 text-blue-600" />
             {isLoading ? "Cargando equipo..." : equipo?.nombre}
@@ -133,8 +210,19 @@ const promedioHorasPorEscuela =
           <DialogDescription className="text-gray-600">
             {isLoading ? "Obteniendo información detallada..." : "Información detallada del equipo y sus asignaciones"}
           </DialogDescription>
+            </div>
+          {!isLoading && equipo && (
+            <div className="flex justify-end">
+              <Button type="button" size="sm" onClick={handleExportPdf} disabled={isExportingPdf} className="bg-blue-600 text-white hover:bg-blue-700">
+                <FileDown className="mr-2 h-4 w-4" />
+                {isExportingPdf ? "Generando..." : "Exportar PDF"}
+              </Button>
+            </div>
+          )}
+          </div>
         </DialogHeader>
 
+        <div ref={printRef} className="space-y-6">
         {isLoading ? (
           // Mostrar loader mientras carga
           <div className="flex justify-center items-center py-20">
@@ -529,6 +617,7 @@ const promedioHorasPorEscuela =
             </Card>
         </div>
         ) : null}
+        </div>
       </DialogContent>
     </Dialog>
   )
