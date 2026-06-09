@@ -117,6 +117,18 @@ const todayLocal = (): Date => {
   return d;
 };
 
+const buildPdfFileName = (nombreEquipo?: string | null) => {
+  const baseName = (nombreEquipo ?? "detalle-equipo")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return `detalle-equipo-${baseName || "sin-nombre"}.pdf`;
+};
+
 // Promedio por escuela SOLO contando las que efectivamente tienen horas en semana 1
 const escuelasConHorasSemana1 = new Set(
   paquetesEscuelaSemana1
@@ -210,7 +222,7 @@ const escuelasConHorasSemana1 = new Set(
 
         pdf.addImage(pageImage, "PNG", margin, margin, usableWidth, renderedHeight, undefined, "FAST")
       }
-      pdf.save(`detalle-equipo-${equipo.id ?? "sin-id"}.pdf`)
+      pdf.save(buildPdfFileName(equipo.nombre))
     } finally {
       exportNode.remove()
       setIsExportingPdf(false)
